@@ -1,0 +1,14 @@
+{
+  "devDependencies": {
+    "typescript": "^4.5.5"
+  },
+  "name": "raptor",
+  "version": "0.1.0",
+  "description": "RAPTOR Node.js implementation",
+  "main": "built/main.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC"
+}
