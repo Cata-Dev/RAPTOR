@@ -1,0 +1,10 @@
+{
+    "compilerOptions": {
+      "outDir": "./built",
+      "moduleResolution": "Node",
+      "module": "CommonJS",
+      "allowJs": true,
+      "target": "es6"
+    },
+    "include": ["./src/**/*"]
+  }
