@@ -14,7 +14,7 @@ export class Graph {
      */
     add_node(e: node): Graph {
         if (!(e in this.adj)) this.adj[e] = [];
-        return;
+        return this;
     }
 
     /**
