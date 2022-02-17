@@ -34,7 +34,7 @@ export default class Segment {
     /**
      * @description It's basically an orthogonal projection
      */
-    closestPointToPoint(P: Point): Point {
+    closestPointFromPoint(P: Point): Point {
 
         const AP: Vector2 = new Vector2(this.A, P);
         const AB: Vector2 = new Vector2(this.A, this.B);
