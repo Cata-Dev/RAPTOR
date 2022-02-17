@@ -1,4 +1,6 @@
 export type node = string;
+export type edge = [node, node]
+export type weightedEdge = [...edge, number]
 
 export class Graph {
 
@@ -18,7 +20,7 @@ export class Graph {
     }
 
     /**
-     * @description And an arc between two nodes e1 and e2
+     * @description Add an arc between two nodes e1 and e2
      * @param e1 A node of the graph
      * @param e2 A node of the graph
      */
@@ -54,7 +56,7 @@ export class Graph {
      * @param e1 A node of the graph
      * @param e2 A node of the graph
      */
-    arete(e1: node, e2: node): boolean {
+    edge(e1: node, e2: node): boolean {
         return this.arc(e1, e2) && this.arc(e2, e1);
     }
 
@@ -104,6 +106,20 @@ export class Graph {
         return this.nodes.reduce((acc, v) => acc+this.degre(v), 0);
     }
 
+    get edges(): Array<edge> {
+
+        const edges: Array<edge> = []
+        const e = this.nodes;
+        for (let x = 0; x < e.length; x++) {
+            for (let y = x; y < e.length; y++) {
+                if (this.edge(e[x], e[y])) edges.push([e[x], e[y]]);
+            }
+        }
+
+        return edges
+
+    }
+
     /**
      * @returns Number of double oriented arcs
      */
@@ -112,7 +128,7 @@ export class Graph {
         const e = this.nodes;
         for (let x = 0; x < e.length; x++) {
             for (let y = x; y < e.length; y++) {
-                if (this.arc(e[x], e[y]) && this.arc(e[y], e[x])) c += 1;
+                if (this.edge(e[x], e[y])) c += 1;
             }
         }
         return c;
