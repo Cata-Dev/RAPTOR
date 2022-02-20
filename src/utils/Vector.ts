@@ -12,10 +12,21 @@ export default class Vector2 {
      * @param e1 Origin
      * @param e2 Destination
      */
-    constructor(e1: Point, e2: Point) {
+    constructor(e1: Point, e2: Point)
+    constructor(x: number, y: number)
+    constructor(xe1: Point | number, ye2: Point | number) {
+
+        if (xe1 instanceof Point && ye2 instanceof Point) {
         
-        this.x = e2.x - e1.x;
-        this.y = e2.y - e1.y;
+            this.x = ye2.x - xe1.x;
+            this.y = ye2.y - xe1.y;
+
+        } else if (typeof xe1 === 'number' && typeof ye2 === 'number') {
+
+            this.x = xe1;
+            this.y = ye2;
+
+        }
 
     }
 
@@ -39,6 +50,12 @@ export default class Vector2 {
         this.x *= k;
         this.y *= k;
         return this;
+
+    }
+
+    static mult(v: Vector2, k: number): Vector2 {
+
+        return new Vector2(v.x*k, v.y*k)
 
     }
 

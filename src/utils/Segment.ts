@@ -5,11 +5,13 @@ export default class Segment {
 
     A: Point;
     B: Point;
+    AB: Vector2;
 
     constructor(A: Point, B: Point) {
 
         this.A = A;
         this.B = B;
+        this.AB = new Vector2(A, B);
 
     }
 
@@ -37,10 +39,9 @@ export default class Segment {
     closestPointFromPoint(P: Point): Point {
 
         const AP: Vector2 = new Vector2(this.A, P);
-        const AB: Vector2 = new Vector2(this.A, this.B);
 
-        const ABAP = Vector2.dot(AP, AB);
-        const magnitudeAB: number = AB.magnitude;
+        const ABAP = Vector2.dot(AP, this.AB);
+        const magnitudeAB: number = this.AB.magnitude;
         const distance: number = ABAP / magnitudeAB;
 
         if (distance < 0) {
@@ -53,7 +54,7 @@ export default class Segment {
 
         } else {
 
-            return this.A.transform(AB.mult(distance));
+            return Point.transform(this.A, Vector2.mult(this.AB, distance));
 
         }
 
