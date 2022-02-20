@@ -6,15 +6,15 @@ import { node, WeightedGraph } from './utils/Graph';
  * @param s Source node
  * @returns First, the distances from source node to considered node. Secondly, an array that traces downwards the shortest path from considered node to source node.
  */
-export function Dijkstra(G: WeightedGraph, s: node): [number[], node[]];
+export default function Dijkstra(G: WeightedGraph, s: node): [number[], node[]];
 /**
  * @description Computes the shortest path from source node s to target node t.
  * @param G Source graph
  * @param s Source node
  * @param t Target node
  */
-export function Dijkstra(G: WeightedGraph, s: node, t: node): node[];
-export function Dijkstra(G: WeightedGraph, s: node, t?: node): node[] | [number[], node[]] {
+export default function Dijkstra(G: WeightedGraph, s: node, t: node): node[];
+export default function Dijkstra(G: WeightedGraph, s: node, t?: node): node[] | [number[], node[]] {
 
     const nodes: node[] = G.nodes;
 
