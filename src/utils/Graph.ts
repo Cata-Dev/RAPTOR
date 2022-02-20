@@ -1,79 +1,100 @@
-export type node = string;
+export type node = string | number;
 export type edge = [node, node]
 export type weightedEdge = [...edge, number]
 
 export class Graph {
 
-    readonly adj: { [e: node]: Array<node> };
+    readonly adj: Map<node, Set<node>>;
 
     constructor() {
-        this.adj = {};
+        this.adj = new Map();
     }
 
     /**
      * @description Add a node to the graph
-     * @param e A node of the graph
+     * @param n A node of the graph
      */
-    add_node(e: node): Graph {
-        if (!(e in this.adj)) this.adj[e] = [];
+    add_node(n: node): Graph {
+        if (!(this.adj.has(n))) this.adj.set(n, new Set());
         return this;
     }
 
     /**
-     * @description Add an arc between two nodes e1 and e2
-     * @param e1 A node of the graph
-     * @param e2 A node of the graph
+     * @description Add an arc from node n1 to node n2
+     * @param n1 A node of the graph
+     * @param n2 A node of the graph
      */
-    add_arc(e1: node, e2: node): Graph {
-        this.add_node(e1);
-        this.add_node(e2);
-        this.adj[e1].push(e2);
+    add_arc(n1: node, n2: node): Graph {
+        this.add_node(n1);
+        this.add_node(n2);
+        this.adj.get(n1).add(n2);
         return this;
     }
 
     /**
-     * @description Add an edge between two nodes e1 and e2
-     * @param e1 A node of the graph
-     * @param e2 A node of the graph
+     * @description Remove an arc from node n1 to node n2
+     * @param n1 A node of the graph
+     * @param n2 A node of the graph
      */
-    add_edge(e1: node, e2: node): Graph {
-        this.add_arc(e1, e2);
-        this.add_arc(e2, e1);
+    remove_arc(n1: node, n2: node): Graph {
+        this.adj.get(n1).delete(n2);
         return this;
     }
 
     /**
-     * @description Check the existence of an arc between two nodes e1 and e2
-     * @param e1 A node of the graph
-     * @param e2 A node of the graph
+     * @description Add an edge between two nodes n1 and n2
+     * @param n1 A node of the graph
+     * @param n2 A node of the graph
      */
-    arc(e1: node, e2: node): boolean {
-        return this.neighbors(e1).find(e => e == e2) ? true : false;
+    add_edge(n1: node, n2: node): Graph {
+        this.add_arc(n1, n2);
+        this.add_arc(n2, n1);
+        return this;
     }
 
     /**
-     * @description Check the existence of an edge between e1 and e2
-     * @param e1 A node of the graph
-     * @param e2 A node of the graph
+     * @description Remove an edge between two nodes n1 and n2
+     * @param n1 A node of the graph
+     * @param n2 A node of the graph
      */
-    edge(e1: node, e2: node): boolean {
-        return this.arc(e1, e2) && this.arc(e2, e1);
+    remove_edge(n1: node, n2: node): Graph {
+        this.remove_arc(n1, n2);
+        this.remove_arc(n2, n1);
+        return this;
     }
 
     /**
-     * @description Test wether e1 and e2 are adjacent
-     * @param e1 A node of the graph
-     * @param e2 A node of the graph
+     * @description Check the existence of an arc between two nodes n1 and n2
+     * @param n1 A node of the graph
+     * @param n2 A node of the graph
      */
-    adjacent(e1: node, e2: node): boolean {
-        return this.arc(e1, e2) || this.arc(e2, e1);
+    arc(n1: node, n2: node): boolean {
+        return this.neighbors(n1).find(n => n == n2) ? true : false;
+    }
+
+    /**
+     * @description Check the existence of an edge between n1 and n2
+     * @param n1 A node of the graph
+     * @param n2 A node of the graph
+     */
+    edge(n1: node, n2: node): boolean {
+        return this.arc(n1, n2) && this.arc(n2, n1);
+    }
+
+    /**
+     * @description Test wether n1 and n2 are adjacent
+     * @param n1 A node of the graph
+     * @param n2 A node of the graph
+     */
+    adjacent(n1: node, n2: node): boolean {
+        return this.arc(n1, n2) || this.arc(n2, n1);
     }
 
     /**
      * @description The nodes of the graph
      */
     get nodes(): Array<node> {
-        return Object.keys(this.adj);
+        return Array.from(this.adj.keys());
     }
 
     /**
@@ -84,125 +105,103 @@ export class Graph {
     }
 
     /**
-     * @returns The neighbors of the edge e
-     * @param e A node of the graph
+     * @returns The neighbors of the node n
+     * @param n A node of the graph
      */
-    neighbors(e: node): Array<node> {
-        return this.adj[e] || [];
+    neighbors(n: node): Array<node> {
+        return Array.from(this.adj.get(n)?.values() || []);
     }
 
     /**
-     * @returns The degree of the node e
-     * @param e A node of the graph
+     * @returns The degree of the node n
+     * @param n A node of the graph
      */
-    degre(e: node): number {
-        return this.neighbors(e).length;
-    }
-
-    /**
-     * @returns Number of arcs
-     */
-    get nbArcs(): number {
-        return this.nodes.reduce((acc, v) => acc+this.degre(v), 0);
+    degree(n: node): number {
+        return this.adj.get(n)?.size || 0;
     }
 
     get edges(): Array<edge> {
 
-        const edges: Array<edge> = []
-        const e = this.nodes;
-        for (let x = 0; x < e.length; x++) {
-            for (let y = x; y < e.length; y++) {
-                if (this.edge(e[x], e[y])) edges.push([e[x], e[y]]);
+        const edges: Array<edge> = [];
+        const n = this.nodes;
+        for (let x = 0; x < n.length; x++) {
+            for (let y = x; y < n.length; y++) {
+                if (this.edge(n[x], n[y])) edges.push([n[x], n[y]]);
             }
         }
 
-        return edges
+        return edges;
 
     }
 
     /**
-     * @returns Number of double oriented arcs
+     * @description A list including the nodes that are connected (source or target) with the node n
+     * @param n A node of the graph
      */
-    get nbArcsDbSens(): number {
-        let c = 0 ;
-        const e = this.nodes;
-        for (let x = 0; x < e.length; x++) {
-            for (let y = x; y < e.length; y++) {
-                if (this.edge(e[x], e[y])) c += 1;
-            }
-        }
-        return c;
-    }
-
-    /**
-     * @returns A list including the node with maximal degree and his degree
-     */
-    get nodeMaxDegree(): [node, number] {
-        let max: [node, number] = [null, 0];
-        for (let e of this.nodes) {
-            if (max[1] < this.degre(e)) max = [e, this.degre(e)];
-        }
-        return max;
-    }
-
-    /**
-     * @returns A list including the node with minimal degree and his degree
-     */
-     get nodeMinDegree(): [node, number] {
-        let min: [node, number] = [null, Infinity];
-        for (let e of this.nodes) {
-            if (min[1] > this.degre(e)) min = [e, this.degre(e)];
-            if (min[1] == 0) break;
-        }
-        return min;
-    }
-
-    /**
-     * @description A list including the nodes that are connected (source or target) with the node e
-     * @param e A node of the graph
-     */
-    connections(e: node): Array<any> {
-        return this.nodes.filter(e1 => this.adjacent(e, e1));
+    connections(n: node): Array<any> {
+        return this.nodes.filter(n1 => this.adjacent(n, n1));
     }
 
 }
 
 export class WeightedGraph extends Graph {
 
-    readonly weights: { [arc: node]: number };
+    readonly weights: Map<node, number>;
 
     constructor() {
         super();
-        this.weights = {};
+        this.weights = new Map();
     }
 
     /**
-     * @description Add an arc between e1 and e2
-     * @param e1 A node of the graph
-     * @param e2 A node of the graph
+     * @description Add an arc from node n1 to node n2
+     * @param n1 A node of the graph
+     * @param n2 A node of the graph
      * @param w The weight of this arc
      */
-    add_arc(e1: node, e2: node, w?: number): WeightedGraph {
-        super.add_arc(e1, e2);
-        this.weights[`${e1}-${e2}`] = w;
+    add_arc(n1: node, n2: node, w?: number): WeightedGraph {
+        super.add_arc(n1, n2);
+        this.weights.set(`${n1}-${n2}`, w);
         return this;
     }
 
     /**
-     * @description Add an edge between two nodes e1 and e2
-     * @param e1 A node of the graph
-     * @param e2 A node of the graph
-     * @param w The weight of this arc
+     * @description Remove an arc from node n1 to node n2
+     * @param n1 A node of the graph
+     * @param n2 A node of the graph
      */
-     add_edge(e1: node, e2: node, w?: number): WeightedGraph {
-        this.add_arc(e1, e2, w);
-        this.add_arc(e2, e1, w);
+    remove_arc(n1: node, n2: node): WeightedGraph {
+        super.remove_arc(n1, n2);
+        this.weights.delete(`${n1}-${n2}`);
         return this;
     }
 
-    weight(e1: node, e2: node): number {
-        if (!this.arc(e1, e2)) throw new Error("Invalid nodes");
-        return this.weights[`${e1}-${e2}`];
+    /**
+     * @description Add an edge between two nodes n1 and n2
+     * @param n1 A node of the graph
+     * @param n2 A node of the graph
+     * @param w The weight of this arc
+     */
+     add_edge(n1: node, n2: node, w?: number): WeightedGraph {
+        this.add_arc(n1, n2, w);
+        this.add_arc(n2, n1, w);
+        return this;
+    }
+
+    /**
+     * @description Remove an edge between two nodes n1 and n2
+     * @param n1 A node of the graph
+     * @param n2 A node of the graph
+     */
+     remove_edge(n1: node, n2: node): WeightedGraph {
+        this.remove_arc(n1, n2);
+        this.remove_arc(n2, n1);
+        return this;
+    }
+
+    weight(n1: node, n2: node): number {
+        if (!this.arc(n1, n2)) throw new Error("Invalid nodes");
+        return this.weights.get(`${n1}-${n2}`);
     }
 
 }
