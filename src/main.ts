@@ -71,7 +71,7 @@ export default class RAPTOR {
      */
     findCurrentTrip(r: routeId, k: number): ([Trip, number] | null) {
         let trip = null;
-        for (let pi of this.routes[r].stops) {
+        for (const pi of this.routes[r].stops) {
             trip = this.et(r, pi, k);
             if (trip) break;
         }
@@ -117,11 +117,11 @@ export default class RAPTOR {
         for (let k = 1; k <= rounds; k++) {
 
             Q.clear()
-            for (let p of Marked) {
+            for (const p of Marked) {
 
                 const connectedRoutes: routeId[] = this.stops[p].connectedRoutes;
 
-                for (let r of connectedRoutes) {
+                for (const r of connectedRoutes) {
 
                     const p2 = Q.get(r);
                     if (p2) {
@@ -135,13 +135,13 @@ export default class RAPTOR {
             }
 
             //Traverse each route
-            for (let [r, p] of Q) {
+            for (const [r, p] of Q) {
     
                 let t: [Trip, number] | null = null;
 
                 const route: Route = this.route(r);
 
-                for (let pi of route.stops.slice(route.stops.indexOf(p))) { //pi: stopId
+                for (const pi of route.stops.slice(route.stops.indexOf(p))) { //pi: stopId
 
                     //Improve periods, local & target pruning
                     if (t) {
@@ -168,11 +168,11 @@ export default class RAPTOR {
             }
 
             //Look at foot-paths
-            for (let p of Q.values()) {
+            for (const p of Q.values()) {
 
                 const stop: Stop = this.stop(p);
 
-                for (let p2 of stop.transfers.get(p)) {
+                for (const p2 of stop.transfers.get(p)) {
 
                     const arrivalTime: timestamp = this.periodsRoundsStops[k][p] + this.walkDuration(p2.length, settings.walkSpeed);
 
