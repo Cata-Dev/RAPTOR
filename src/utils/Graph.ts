@@ -1,13 +1,16 @@
 export type node = string | number;
-export type edge = [node, node]
-export type weightedEdge = [...edge, number]
+export type arc = [node, node];
+export type edge = arc;
+export type weightedEdge = [...edge, number];
 
 export class Graph {
 
     readonly adj: Map<node, Set<node>>;
 
-    constructor() {
-        this.adj = new Map();
+    constructor(adj?: Map<node, Set<node>>) {
+        if (adj instanceof Map) {
+            this.adj = adj;
+        } else this.adj = new Map();
     }
 
     /**
@@ -69,7 +72,7 @@ export class Graph {
      * @param n2 A node of the graph
      */
     arc(n1: node, n2: node): boolean {
-        return this.neighbors(n1).find(n => n == n2) ? true : false;
+        return this.adj.get(n1).has(n2);
     }
 
     /**
@@ -101,7 +104,7 @@ export class Graph {
      * @returns The order of the graph
      */
     get ordre(): number {
-        return this.nodes.length;
+        return this.adj.size;
     }
 
     /**
@@ -120,6 +123,9 @@ export class Graph {
         return this.adj.get(n)?.size || 0;
     }
 
+    /**
+     * @returns The edges of the graph
+     */
     get edges(): Array<edge> {
 
         const edges: Array<edge> = [];
@@ -131,6 +137,23 @@ export class Graph {
         }
 
         return edges;
+
+    }
+
+    /**
+     * @returns The arcs of the graph
+     */
+     get arcs(): Array<edge> {
+
+        const arcs: Array<edge> = [];
+        const n = this.nodes;
+        for (let x = 0; x < n.length; x++) {
+            for (let y = 0; y < n.length; y++) {
+                if (this.arc(n[x], n[y])) arcs.push([n[x], n[y]]);
+            }
+        }
+
+        return arcs;
 
     }
 
@@ -148,9 +171,14 @@ export class WeightedGraph extends Graph {
 
     readonly weights: Map<node, number>;
 
-    constructor() {
-        super();
-        this.weights = new Map();
+    constructor(adj?: Map<node, Set<node>>, weights?: Map<node, number>) {
+        if (adj instanceof Map && weights instanceof Map) {
+            super(adj);
+            this.weights = weights;
+        } else {
+            super();
+            this.weights = new Map();
+        }
     }
 
     /**
