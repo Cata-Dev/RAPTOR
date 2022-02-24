@@ -96,8 +96,15 @@ export class Graph {
     /**
      * @description The nodes of the graph
      */
+     get nodesIterator(): IterableIterator<node> {
+        return this.adj.keys();
+    }
+
+    /**
+     * @description The nodes of the graph
+     */
     get nodes(): Array<node> {
-        return Array.from(this.adj.keys());
+        return Array.from(this.nodesIterator);
     }
 
     /**
@@ -111,8 +118,16 @@ export class Graph {
      * @returns The neighbors of the node n
      * @param n A node of the graph
      */
+    neighborsIterator(n: node): IterableIterator<node> | undefined {
+        return this.adj.get(n).values();
+    }
+
+    /**
+     * @returns The neighbors of the node n
+     * @param n A node of the graph
+     */
     neighbors(n: node): Array<node> {
-        return Array.from(this.adj.get(n)?.values() || []);
+        return Array.from(this.neighborsIterator(n));
     }
 
     /**
@@ -120,7 +135,7 @@ export class Graph {
      * @param n A node of the graph
      */
     degree(n: node): number {
-        return this.adj.get(n)?.size || 0;
+        return this.adj.get(n).size || 0;
     }
 
     /**

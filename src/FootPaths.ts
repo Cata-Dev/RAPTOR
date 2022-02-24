@@ -22,7 +22,7 @@ export function Dijkstra(G: WeightedGraph, s: node, t?: node): path | [Map<node,
     const prev: Map<node, node> = new Map();
     const Q: Set<node> = new Set();
 
-    for (const e of G.nodes) {
+    for (const e of G.nodesIterator) {
 
         dist.set(e, Infinity);
         prev.set(e, null);
@@ -36,7 +36,7 @@ export function Dijkstra(G: WeightedGraph, s: node, t?: node): path | [Map<node,
         let min: [node, number] = [null, Infinity];
         for (const e of Q) {
             const d: number = dist.get(e);
-            if (d <= min[1]) min = [e, d];
+            if (d <= min[1]) min[0] = e, min[1] = d;
         }
         const u: node = min[0];
 
@@ -44,7 +44,7 @@ export function Dijkstra(G: WeightedGraph, s: node, t?: node): path | [Map<node,
 
         if (t && u === t) break;
 
-        for (const v of G.neighbors(u)) {
+        for (const v of G.neighborsIterator(u)) {
 
             if (!Q.has(v)) continue;
 
