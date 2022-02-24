@@ -1,0 +1,122 @@
+export type link = Link<any> | symbol;
+
+/**
+ * @description Class of chained array
+ */
+export class Link<Type> {
+
+    static emptyLink = Symbol('emptyLink')
+
+    private _value: Type;
+    private _next: link;
+
+    /**
+     * @description Construction of the first link
+     * @param val Any type of data to link
+     */
+    constructor(val: Type, next: link = Link.emptyLink) {
+        this._value = val;
+        this._next = next;
+    }
+
+    static isLink(l: link): boolean {
+        return l instanceof Link;
+    }
+
+    /**
+     * @description Get the value of this link
+     */
+    get value(): Type {
+        return this._value;
+    }
+
+    set value(v: any) {
+        this._value = v;
+    }
+
+    /**
+     * @description Get the next link of this chained array
+     */
+     get next(): link {
+        return this._next;
+    }
+
+    set next(v: link) {
+        if (!Link.isLink(v) && v != Link.emptyLink) throw new Error("Next value of the link can only be a Link or an empty Link.")
+        this._next = v;
+    }
+
+    /**
+     * @description Get depth of the link {Number}
+     */
+    get depth(): number {
+        if (!Link.isLink(this._next)) return 1;
+        return 1+(this._next as Link<any>).depth;
+    }
+
+    toArrayRec(): any[] {
+        if (!Link.isLink(this.next)) return [this.value];
+        let next = (this.next as Link<any>).toArrayRec();
+        return [this.value, ...next];
+    }
+
+    toArray(): any[] {
+        return Array.from(this);
+    }
+
+    toArrayRevertedRec(): any[] {
+        if (!this._next || !(this._next instanceof Link)) return [this.value];
+        let next = this._next.toArray();
+        return [...next, this.value];
+    }
+
+    toArrayReverted(): any[] {
+        return this.toArray().reverse();
+    }
+
+    *[Symbol.iterator]() {
+        let el = this as Link<any>
+        while (Link.isLink(el)) {
+            yield el.value
+            el = el._next as Link<any>
+        }
+    }
+
+    /**
+     * @description Get the n(th) element of the link
+     * @param {Number} n Index of the element to access to 
+     */
+    get_rec(n: number): any {
+        if (n < 0) throw new Error("Invalid index");
+        if (n == 0) return this.value;
+        if (this._next instanceof Link) return this._next.get(n-1);
+        else throw new Error("Index out of range");
+    }
+
+    /**
+    * @description Get the n(th) element of the link
+    * @param {Number} n Index of the element to access to 
+    */
+    get(n: number): any {
+        if (n < 0) throw new Error("Invalid index");
+        let i = 0;
+        for (let el of this) {
+            if (n === i) return el;
+            i++;
+        }
+        throw new Error("Index out of range");
+    }
+
+    /**
+     * @description Create chained array from array
+     * @param {Array} array The array to convert into chained array
+     */
+    static fromArray(a: Array<any> = []): Link<any> {
+        let m: Link<any> = null;
+        for (let i = a.length-1; i >= 0; i--) {;
+            m = new this(a[i], m);
+        };
+        return m;
+    }
+
+}
