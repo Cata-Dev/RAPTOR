@@ -1,4 +1,4 @@
-import { Worker, MessageChannel } from 'worker_threads'
+import { Worker } from 'worker_threads'
 import { Duration } from './benchmark';
 import { Queue } from './Queue';
 const nsPerMs = BigInt(1e6)
