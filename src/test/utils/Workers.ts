@@ -1,18 +1,23 @@
 import { Worker } from 'worker_threads'
+import { Deferred, rejectCb, resolveCb } from './Asyncs';
 import { Duration } from './benchmark';
 import { Queue } from './Queue';
 const nsPerMs = BigInt(1e6)
 
+enum Status {
+    Idle,
+    Busy,
+}
+
 interface poolWorker {
     id: number;
-    status: 'IDLE' | 'BUSY';
+    status: Status;
     worker: Worker;
     work: queued | null;
 }
 
-export type resolveCb = (value: any) => void;
-export type rejectCb = (reason?: any) => void;
-type queued = [any, resolveCb, rejectCb];
+
+type queued = [any, resolveCb<any>, rejectCb];
 
 export class WorkerPool {
 
@@ -32,21 +37,21 @@ export class WorkerPool {
 
             this.pool[i] = {
                 id: i,
-                status: 'IDLE',
+                status: Status.Idle,
                 worker: new Worker(this.script),
                 work: null,
             };
 
             if (initData) {
                 const worker = this.pool[i];
-                worker.status = 'BUSY';
+                worker.status = Status.Busy;
 
                 console.log(`Initializing worker ${worker.id}`);
 
                 worker.worker.postMessage({ init: true, ...initData });
                 worker.worker.once('message', (v) => {
                     if (v === true) {
-                        worker.status = 'IDLE';
+                        worker.status = Status.Idle;
 
                         console.log(`Initialized worker ${worker.id}`);
 
@@ -59,93 +64,77 @@ export class WorkerPool {
         }
     }
 
-    run<Type>(data: any, res: resolveCb, rej: rejectCb): void
+    run<Type>(data: any, res: resolveCb<Type>, rej: rejectCb): void
     run<Type>(data: any): Promise<Type>
-    run(data: any, res?: resolveCb, rej?: rejectCb) {
-        if (res && typeof res == 'function' && rej && typeof rej == 'function') {
+    async run<Type>(data: any, res?: resolveCb<Type>, rej?: rejectCb) {
 
-            const work: queued = [data, res, rej];
+        let def: Deferred<Type> | null = null;
+        let resolve: resolveCb<Type>;
+        let reject: rejectCb;
 
-            const worker = this.getIdleWorker();
+        if (!res || !rej) {
+            def = new Deferred<Type>();
+            resolve = def.resolve;
+            reject = def.reject;
+        } else {
+            resolve = res;
+            reject = rej;
+        }
 
-            console.log(`Running worker ${worker.id} (${this.queue.size})`);
+        const job: queued = [data, resolve, reject];
 
-            worker.status = 'BUSY';
-            worker.work = work;
+        const worker = this.getIdleWorker();
+        if (!worker) {
+            this.queue.enqueue(job)
+            console.log(`Delayed, queued (${this.queue.size})`);
+            return reject("Delayed");
+        }
 
-            const startTime = process.hrtime.bigint();
-            worker.worker.postMessage(data);
+        console.log(`Running worker ${worker.id} (${this.queue.size})`);
 
-            const onceMessage = (result: any) => {
-                const delta = new Duration(Number((process.hrtime.bigint()-startTime)/nsPerMs));
-                worker.status = 'IDLE';
-                res(result);
-                console.log(`Finished worker ${worker.id} after ${delta.totalSeconds}s${delta.rSeconds} (${this.queue.size})`);
-                this.runCallback();
-                worker.worker.removeListener('error', onceError);
-            };
-            worker.worker.once('message', onceMessage);
+        worker.status = Status.Busy;
+        worker.work = job;
 
-            const onceError = (err: any) => {
-                worker.status = 'IDLE';
-                rej(err);
-                console.log(`Finished worker ${worker.id} (${this.queue.size})`);
-                this.runCallback();
-                worker.worker.removeListener('message', onceMessage);
-            };
-            worker.worker.once('error', onceError);
+        const startTime = process.hrtime.bigint();
+        worker.worker.postMessage(data);
 
-        } else return new Promise((res, rej) => {
+        const onceMessage = (result: any) => {
+            const delta = new Duration(Number((process.hrtime.bigint() - startTime) / nsPerMs));
+            worker.status = Status.Idle;
+            resolve(result);
+            console.log(`Finished worker ${worker.id} after ${delta.totalSeconds}s${delta.rSeconds} (${this.queue.size})`);
+            this.runCallback();
+            worker.worker.removeListener('message', onceMessage);
+            worker.worker.removeListener('error', onceError);
+        };
+        const onceError = (err: any) => {
+            worker.status = Status.Idle;
+            reject(err);
+            console.log(`Finished worker ${worker.id} (${this.queue.size})`);
+            this.runCallback();
+            worker.worker.removeListener('error', onceError);
+            worker.worker.removeListener('message', onceMessage);
+        };
 
-            const work: queued = [data, res, rej];
+        worker.worker.once('message', onceMessage);
+        worker.worker.once('error', onceError);
 
-            const worker = this.getIdleWorker();
-            if (!worker) this.queue.enqueue(work), console.log(`Queued (${this.queue.size})`);
-            else {
-
-                console.log(`Running worker ${worker.id} (${this.queue.size})`)
-
-                worker.status = 'BUSY';
-                worker.work = work;
-
-                const startTime = process.hrtime.bigint();
-                worker.worker.postMessage(data);
-
-                const onceMessage = (result: any) => {
-                    const delta = new Duration(Number((process.hrtime.bigint()-startTime)/nsPerMs));
-                    worker.status = 'IDLE';
-                    res(result);
-                    console.log(`Finished worker ${worker.id} after ${delta.totalSeconds}s${delta.rSeconds} (${this.queue.size})`);
-                    this.runCallback();
-                    worker.worker.removeListener('error', onceError);
-                };
-                worker.worker.once('message', onceMessage);
-    
-                const onceError = (err: any) => {
-                    worker.status = 'IDLE';
-                    rej(err);
-                    console.log(`Finished worker ${worker.id} (${this.queue.size})`);
-                    this.runCallback();
-                    worker.worker.removeListener('message', onceMessage);
-                };
-                worker.worker.once('error', onceError);
-
-            }
-
-        })
+        if (!res || !rej) return def!.promise
     }
 
-    protected runCallback(): void {
-        
-        if (!this.queue.size) return;
-        const nextQueued = this.queue.dequeue();
-        this.run(...nextQueued);
+    protected runCallback(job?: queued) {
+
+        if (!job) {
+            if (!this.queue.size) return;
+            job = this.queue.dequeue();
+        }
+        return this.run(...job);
 
     }
 
     protected getIdleWorker(): poolWorker | undefined {
 
-        return this.pool.find(w => w.status === 'IDLE');
+        return this.pool.find(w => w.status === Status.Idle);
 
     }
 
