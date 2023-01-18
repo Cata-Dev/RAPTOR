@@ -1,30 +1,30 @@
-export type link = Link<any> | symbol;
+export type LinkOrEmpty = Link<any> | symbol;
 
 /**
  * @description Class of chained array
  */
 export class Link<Type> {
 
-    static emptyLink = Symbol('emptyLink')
+    static emptyLink = Symbol('emptyLink');
 
     private _value: Type;
-    private _next: link;
+    private _next: LinkOrEmpty;
 
     /**
-     * @description Construction of the first link
-     * @param val Any type of data to link
+     * @description Construction of the first LinkOrEmpty
+     * @param val Any type of data to LinkOrEmpty
      */
-    constructor(val: Type, next: link = Link.emptyLink) {
+    constructor(val: Type, next: LinkOrEmpty = Link.emptyLink) {
         this._value = val;
         this._next = next;
     }
 
-    static isLink(l: link): boolean {
+    static isLink(l: LinkOrEmpty): boolean {
         return l instanceof Link;
     }
 
     /**
-     * @description Get the value of this link
+     * @description Get the value of this LinkOrEmpty
      */
     get value(): Type {
         return this._value;
@@ -35,19 +35,19 @@ export class Link<Type> {
     }
 
     /**
-     * @description Get the next link of this chained array
+     * @description Get the next LinkOrEmpty of this chained array
      */
-     get next(): link {
+     get next(): LinkOrEmpty {
         return this._next;
     }
 
-    set next(v: link) {
-        if (!Link.isLink(v) && v != Link.emptyLink) throw new Error("Next value of the link can only be a Link or an empty Link.")
+    set next(v: LinkOrEmpty) {
+        if (!Link.isLink(v) && v != Link.emptyLink) throw new Error("Next value of the LinkOrEmpty can only be a Link or an empty Link.")
         this._next = v;
     }
 
     /**
-     * @description Get depth of the link {Number}
+     * @description Get depth of the LinkOrEmpty {Number}
      */
     get depth(): number {
         if (!Link.isLink(this._next)) return 1;
@@ -83,7 +83,7 @@ export class Link<Type> {
     }
 
     /**
-     * @description Get the n(th) element of the link
+     * @description Get the n(th) element of the LinkOrEmpty
      * @param {Number} n Index of the element to access to 
      */
     get_rec(n: number): any {
@@ -94,7 +94,7 @@ export class Link<Type> {
     }
 
     /**
-    * @description Get the n(th) element of the link
+    * @description Get the n(th) element of the LinkOrEmpty
     * @param {Number} n Index of the element to access to 
     */
     get(n: number): any {
