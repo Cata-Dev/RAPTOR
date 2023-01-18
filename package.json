@@ -1,6 +1,6 @@
 {
   "devDependencies": {
-    "typescript": "^4.5.5"
+    "typescript": "^4.9.4"
   },
   "name": "raptor",
   "version": "0.1.0",
