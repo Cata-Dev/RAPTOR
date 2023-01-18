@@ -1,9 +1,9 @@
 import { path, Dijkstra, tracePath } from '../FootPaths';
 import { WeightedGraph } from '../utils/Graph';
-import { stop, id } from './test';
+import { id } from './test';
 
 let footGraph: WeightedGraph | undefined;
-let stops: stop[] | undefined;
+let stops: dbSNCF_Stops[] | undefined;
 
 export function computePath(i: number) {
 
@@ -23,6 +23,7 @@ export function computePath(i: number) {
 }
 
 import { parentPort } from 'worker_threads';
+import { dbSNCF_Stops } from './models/SNCF_stops.model';
 
 parentPort.on('message', (data) => {
 
