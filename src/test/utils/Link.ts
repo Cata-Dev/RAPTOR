@@ -1,11 +1,13 @@
-export type LinkOrEmpty = Link<any> | symbol;
+const emptyLink = Symbol('emptyLink')
+
+export type LinkOrEmpty<T = unknown> = Link<T> | typeof emptyLink;
 
 /**
  * @description Class of chained array
  */
 export class Link<Type> {
 
-    static emptyLink = Symbol('emptyLink');
+    static emptyLink: typeof emptyLink = emptyLink;
 
     private _value: Type;
     private _next: LinkOrEmpty;
@@ -37,7 +39,7 @@ export class Link<Type> {
     /**
      * @description Get the next LinkOrEmpty of this chained array
      */
-     get next(): LinkOrEmpty {
+    get next(): LinkOrEmpty {
         return this._next;
     }
 
@@ -51,7 +53,7 @@ export class Link<Type> {
      */
     get depth(): number {
         if (!Link.isLink(this._next)) return 1;
-        return 1+(this._next as Link<any>).depth;
+        return 1 + (this._next as Link<any>).depth;
     }
 
     toArrayRec(): any[] {
@@ -89,7 +91,7 @@ export class Link<Type> {
     get_rec(n: number): any {
         if (n < 0) throw new Error("Invalid index");
         if (n == 0) return this.value;
-        if (this._next instanceof Link) return this._next.get(n-1);
+        if (this._next instanceof Link) return this._next.get(n - 1);
         else throw new Error("Index out of range");
     }
 
@@ -109,11 +111,11 @@ export class Link<Type> {
 
     /**
      * @description Create chained array from array
-     * @param {Array} array The array to convert into chained array
+     * @param {Array} a The array to convert into chained array
      */
-    static fromArray(a: Array<any> = []): Link<any> {
-        let m: Link<any> = null;
-        for (let i = a.length-1; i >= 0; i--) {;
+    static fromArray<T extends unknown>(a: Array<T> = []): LinkOrEmpty<T> {
+        let m: LinkOrEmpty<T> = Link.emptyLink;
+        for (let i = a.length - 1; i >= 0; i--) {
             m = new this(a[i], m);
         };
         return m;

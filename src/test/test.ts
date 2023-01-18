@@ -50,6 +50,7 @@ async function run() {
 
     }
     const b1 = await benchmark(queryData, [], 10);
+    if (!b1.lastReturn) return console.log(`b1 return null`)
     const { sections, sectionsMap, stops } = b1.lastReturn;
 
     function makeGraph() {
@@ -66,6 +67,7 @@ async function run() {
         return footGraph;
     }
     const b2 = await benchmark(makeGraph, [], 10);
+    if (!b2.lastReturn) return console.log(`b2 return null`)
     const footGraph = b2.lastReturn;
 
     const arcs = footGraph.arcs;
@@ -78,7 +80,8 @@ async function run() {
         const segments: Map<dbSections, { n: number, seg: Segment }> = new Map();
         for (const a of arcs) {
 
-            const section: dbSections = sectionsMap.get(`${a[0]}-${a[1]}`);
+            const section = sectionsMap.get(`${a[0]}-${a[1]}`);
+            if (!section) continue // Added for ts mental health
             for (let i = 0; i < section.coords.length - 1; i++) {
 
                 segments.set(section, {
@@ -95,7 +98,7 @@ async function run() {
         const approachedStops: Array<[Point, dbSections, number]> = new Array(stops.length);
         for (let i = 0; i < stops.length; i++) {
 
-            let closestPoint: [number, Point, dbSections, number] = [Infinity, null, null, null];
+            let closestPoint: [number, Point | null, dbSections | null, number | null] = [Infinity, null, null, null];
 
             for (const [section, { n, seg }] of segments) {
 
@@ -110,12 +113,13 @@ async function run() {
                 }
             }
 
-            approachedStops[i] = [closestPoint[1], closestPoint[2], closestPoint[3]];
+            if (closestPoint[1] !== null && closestPoint[2] !== null && closestPoint[3] !== null) approachedStops[i] = [closestPoint[1], closestPoint[2], closestPoint[3]];
 
         }
         return approachedStops;
     }
     const b3 = await benchmark(ComputeApproachedStops, [], 1);
+    if (!b3.lastReturn) return console.log(`b3 return null`)
     const approachedStops = b3.lastReturn;
 
     function updateGraph() {
