@@ -1,17 +1,18 @@
 {
-  "devDependencies": {
-    "typescript": "^4.9.4"
-  },
   "name": "raptor",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "RAPTOR Node.js implementation",
   "main": "built/main.js",
   "scripts": {
+    "build": "tsc",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
     "mongoose": "^6.8.4"
+  },
+  "devDependencies": {
+    "typescript": "^4.9.4"
   }
 }
