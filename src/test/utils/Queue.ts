@@ -1,9 +1,9 @@
-import { link, Link } from "./Link";
+import { LinkOrEmpty, Link } from "./Link";
 
 export class Queue<Type> {
 
-    private front: link;
-    private back: link;
+    private front: LinkOrEmpty;
+    private back: LinkOrEmpty;
     private _size: number;
 
     constructor() {
