@@ -8,8 +8,8 @@ module.exports = function (Schema, model) {
 		_id: { type: String },
 		realtime: { type: Date, required: true },
 		trip: { type: Number, required: true }, //implicitly includes direction
-        stop_point: { type: String, required: true, ref: 'sncf_stops' },
-        route: { type: String, required: true, ref: 'sncf_routes' },
+		stop_point: { type: String, required: true, ref: 'sncf_stops' },
+		route: { type: String, required: true, ref: 'sncf_routes' },
 	}, {
 		timestamps: true,
 	});
@@ -17,5 +17,5 @@ module.exports = function (Schema, model) {
 	// This is necessary to avoid model compilation errors in watch mode
 	// see https://mongoosejs.com/docs/api/connection.html#connection_Connection-deleteModel
 	return model(modelName, schema);
-  
+
 };
