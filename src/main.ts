@@ -18,6 +18,10 @@ export default class RAPTOR {
         this.stops = stops.map(s => s instanceof Stop ? s : new Stop(...s));
         this.routes = routes.map(r => r instanceof Route ? r : new Route(...r));
 
+        // Added for ts mental health
+        this.periodsRoundsStops = []
+        this.periodsStops = []
+
     }
 
     stop(s: stopId): Stop {
@@ -38,7 +42,7 @@ export default class RAPTOR {
      */
     walkDuration(length: number, walkSpeed: number): number {
 
-        return length*walkSpeed
+        return length * walkSpeed
 
     }
 
@@ -52,15 +56,15 @@ export default class RAPTOR {
     et(r: routeId, p: stopId, k: number): [Trip, number] | null {
         let earliestTrip: Trip | null = null;
         let i: number = 0;
-        let n: number = null;
+        let n: number | null = null;
         const route: Route = this.routes[r];
         for (let t: number = 0; t < route.trips.length; t++) {
             const trip: Trip = route.trips[t]
             //Catchable && earliest trip
-            if (earliestTrip && route.departureTime(t, p) >= this.periodsRoundsStops[p][k-1] && trip.stopTimes[p] < earliestTrip.stopTimes[p]) earliestTrip = trip, n = i;
+            if (earliestTrip && route.departureTime(t, p) >= this.periodsRoundsStops[p][k - 1] && trip.stopTimes[p] < earliestTrip.stopTimes[p]) earliestTrip = trip, n = i;
             i++;
         }
-        return !isNaN(n) ? [earliestTrip, n] : null;
+        return typeof n === "number" && !isNaN(n) && earliestTrip instanceof Trip ? [earliestTrip, n] : null;
     }
 
     /**
@@ -109,7 +113,7 @@ export default class RAPTOR {
 
         this.periodsRoundsStops[ps][0] = departureTime;
         Marked.add(ps);
-        
+
         const Q: Map<routeId, stopId> = new Map();
 
         //Step 1
@@ -136,7 +140,7 @@ export default class RAPTOR {
 
             //Traverse each route
             for (const [r, p] of Q) {
-    
+
                 let t: [Trip, number] | null = null;
 
                 const route: Route = this.route(r);
@@ -144,10 +148,10 @@ export default class RAPTOR {
                 for (const pi of route.stops.slice(route.stops.indexOf(p))) { //pi: stopId
 
                     //Improve periods, local & target pruning
-                    if (t) {
+                    if (t !== null) {
 
                         const arrivalTime: timestamp = t[0].stopTimes[pi];
-                        
+
                         if (arrivalTime < Math.min(this.periodsStops[pi], this.periodsStops[pt])) {
 
                             this.periodsRoundsStops[k][pi] = arrivalTime;
@@ -156,15 +160,15 @@ export default class RAPTOR {
 
                         }
                     }
-    
+
                     //Catch an earlier trip at pi ?
-                    if (this.periodsRoundsStops[k-1][pi] <= route.departureTime(t[1], pi)) {
-    
+                    if (t !== null && this.periodsRoundsStops[k - 1][pi] <= route.departureTime(t[1], pi)) {
+
                         t = this.et(r, pi, k);
 
                     }
                 }
-    
+
             }
 
             //Look at foot-paths
@@ -172,7 +176,11 @@ export default class RAPTOR {
 
                 const stop: Stop = this.stop(p);
 
-                for (const p2 of stop.transfers.get(p)) {
+                // Added for ts mental health
+                const transfers = stop.transfers.get(p)
+                if (!transfers) continue;
+
+                for (const p2 of transfers) {
 
                     const arrivalTime: timestamp = this.periodsRoundsStops[k][p] + this.walkDuration(p2.length, settings.walkSpeed);
 

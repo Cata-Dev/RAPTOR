@@ -1,5 +1,8 @@
 import { node, WeightedGraph } from './utils/Graph';
 
+const nullNode = Symbol("nullNode");
+type nodeOrNullNode = typeof nullNode | node
+
 export type path = node[];
 /**
  * @description Generate the shortest paths from source node s to every nodes in graph G.
@@ -16,16 +19,16 @@ export function Dijkstra(G: WeightedGraph, s: node): [Map<node, number>, Map<nod
  * @returns The shortest path from s to t.
  */
 export function Dijkstra(G: WeightedGraph, s: node, t: node): path;
-export function Dijkstra(G: WeightedGraph, s: node, t?: node): path | [Map<node, number>, Map<node, node>] {
+export function Dijkstra(G: WeightedGraph, s: node, t?: node): path | [Map<node, number>, Map<node, nodeOrNullNode>] {
 
     const dist: Map<node, number> = new Map();
-    const prev: Map<node, node> = new Map();
+    const prev: Map<node, nodeOrNullNode> = new Map();
     const Q: Set<node> = new Set();
 
     for (const e of G.nodesIterator) {
 
         dist.set(e, Infinity);
-        prev.set(e, null);
+        prev.set(e, nullNode);
         Q.add(e);
 
     }
@@ -33,23 +36,25 @@ export function Dijkstra(G: WeightedGraph, s: node, t?: node): path | [Map<node,
 
     while (Q.size) {
 
-        let min: [node, number] = [null, Infinity];
+        let min: [nodeOrNullNode, number] = [nullNode, Infinity];
         for (const e of Q) {
-            const d: number = dist.get(e);
+            const d: number = dist.get(e) || Infinity;
             if (d <= min[1]) min[0] = e, min[1] = d;
         }
+
+        if (min[0] === nullNode) break; // Added for ts mental health
         const u: node = min[0];
 
         Q.delete(u);
 
         if (t && u === t) break;
 
-        for (const v of G.neighborsIterator(u)) {
+        for (const v of G.neighborsIterator(u) || []) {
 
             if (!Q.has(v)) continue;
 
-            const alt = dist.get(u) + G.weight(u, v);
-            if (alt < dist.get(v)) {
+            const alt = (dist.get(u) || Infinity) + G.weight(u, v);
+            if (alt < (dist.get(v) || Infinity)) {
 
                 dist.set(v, alt);
                 prev.set(v, u);
@@ -74,16 +79,16 @@ export function Dijkstra(G: WeightedGraph, s: node, t?: node): path | [Map<node,
  * @param target 
  * @param source 
  */
-export function tracePath(prev: Map<node, node>, target: node, source?: node): path {
+export function tracePath(prev: Map<node, nodeOrNullNode>, target: node, source?: node): path {
 
     let path: path = [];
-    let e: node = target;
+    let e: nodeOrNullNode = target;
     if (prev.get(e) || (source && e === source)) {
 
-        while (e != null) {
+        while (e != nullNode) {
 
             path = [e, ...path];
-            e = prev.get(e);
+            e = prev.get(e) || nullNode;
 
         }
     }

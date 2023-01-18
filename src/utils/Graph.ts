@@ -30,7 +30,7 @@ export class Graph {
     add_arc(n1: node, n2: node): Graph {
         this.add_node(n1);
         this.add_node(n2);
-        this.adj.get(n1).add(n2);
+        this.adj.get(n1)?.add(n2);
         return this;
     }
 
@@ -40,7 +40,7 @@ export class Graph {
      * @param n2 A node of the graph
      */
     remove_arc(n1: node, n2: node): Graph {
-        this.adj.get(n1).delete(n2);
+        this.adj.get(n1)?.delete(n2);
         return this;
     }
 
@@ -72,7 +72,7 @@ export class Graph {
      * @param n2 A node of the graph
      */
     arc(n1: node, n2: node): boolean {
-        return this.adj.get(n1).has(n2);
+        return !!this.adj.get(n1)?.has(n2);
     }
 
     /**
@@ -96,7 +96,7 @@ export class Graph {
     /**
      * @description The nodes of the graph
      */
-     get nodesIterator(): IterableIterator<node> {
+    get nodesIterator(): IterableIterator<node> {
         return this.adj.keys();
     }
 
@@ -119,7 +119,7 @@ export class Graph {
      * @param n A node of the graph
      */
     neighborsIterator(n: node): IterableIterator<node> | undefined {
-        return this.adj.get(n).values();
+        return this.adj.get(n)?.values();
     }
 
     /**
@@ -127,7 +127,7 @@ export class Graph {
      * @param n A node of the graph
      */
     neighbors(n: node): Array<node> {
-        return Array.from(this.neighborsIterator(n));
+        return Array.from(this.neighborsIterator(n) || []);
     }
 
     /**
@@ -135,7 +135,7 @@ export class Graph {
      * @param n A node of the graph
      */
     degree(n: node): number {
-        return this.adj.get(n).size || 0;
+        return this.adj.get(n)?.size || 0;
     }
 
     /**
@@ -158,7 +158,7 @@ export class Graph {
     /**
      * @returns The arcs of the graph
      */
-     get arcs(): Array<edge> {
+    get arcs(): Array<edge> {
 
         const arcs: Array<edge> = [];
         const n = this.nodes;
@@ -202,7 +202,7 @@ export class WeightedGraph extends Graph {
      * @param n2 A node of the graph
      * @param w The weight of this arc
      */
-    add_arc(n1: node, n2: node, w?: number): WeightedGraph {
+    add_arc(n1: node, n2: node, w: number = 0): WeightedGraph {
         super.add_arc(n1, n2);
         this.weights.set(`${n1}-${n2}`, w);
         return this;
@@ -225,7 +225,7 @@ export class WeightedGraph extends Graph {
      * @param n2 A node of the graph
      * @param w The weight of this arc
      */
-     add_edge(n1: node, n2: node, w?: number): WeightedGraph {
+    add_edge(n1: node, n2: node, w?: number): WeightedGraph {
         this.add_arc(n1, n2, w);
         this.add_arc(n2, n1, w);
         return this;
@@ -236,7 +236,7 @@ export class WeightedGraph extends Graph {
      * @param n1 A node of the graph
      * @param n2 A node of the graph
      */
-     remove_edge(n1: node, n2: node): WeightedGraph {
+    remove_edge(n1: node, n2: node): WeightedGraph {
         this.remove_arc(n1, n2);
         this.remove_arc(n2, n1);
         return this;
@@ -244,7 +244,7 @@ export class WeightedGraph extends Graph {
 
     weight(n1: node, n2: node): number {
         if (!this.arc(n1, n2)) throw new Error("Invalid nodes");
-        return this.weights.get(`${n1}-${n2}`);
+        return this.weights.get(`${n1}-${n2}`)!;
     }
 
 }

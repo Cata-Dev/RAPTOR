@@ -4,8 +4,8 @@ export type direction = 0 | 1
 
 export default class Vector2 {
 
-    x: number;
-    y: number;
+    x: number = NaN;
+    y: number = NaN;
 
     /**
      * @description Create a new vector from 2 points
@@ -17,7 +17,7 @@ export default class Vector2 {
     constructor(xe1: Point | number, ye2: Point | number) {
 
         if (xe1 instanceof Point && ye2 instanceof Point) {
-        
+
             this.x = ye2.x - xe1.x;
             this.y = ye2.y - xe1.y;
 
@@ -35,7 +35,7 @@ export default class Vector2 {
      */
     get magnitude(): number {
 
-        return this.x**2+this.y**2;
+        return this.x ** 2 + this.y ** 2;
 
     }
 
@@ -55,13 +55,13 @@ export default class Vector2 {
 
     static mult(v: Vector2, k: number): Vector2 {
 
-        return new Vector2(v.x*k, v.y*k)
+        return new Vector2(v.x * k, v.y * k)
 
     }
 
     static dot(v1: Vector2, v2: Vector2): number {
 
-        return v1.x*v2.x+v1.y*v2.y;
+        return v1.x * v2.x + v1.y * v2.y;
 
     }
 
