@@ -34,24 +34,24 @@ async function run() {
         //ERROR : there can be 2 sections (or more) linking the same nd to the same na. They need to be both differentiated (by their _id, for example).
         const sections = await sectionsModel.find({}).lean().exec() as Array<dbSections>;
         //Map section, from s1 to s2 (oriented).
-        const sectionsMap: Map<string, dbSections> = new Map();
+        const mapppedSections: Map<string, dbSections> = new Map();
         for (const s of sections) {
-            sectionsMap.set(`${s.rg_fv_graph_nd}-${s.rg_fv_graph_na}`, s);
-            if (s.rg_fv_graph_dbl) sectionsMap.set(`${s.rg_fv_graph_na}-${s.rg_fv_graph_nd}`, s);
+            mapppedSections.set(`${s.rg_fv_graph_nd}-${s.rg_fv_graph_na}`, s);
+            if (s.rg_fv_graph_dbl) mapppedSections.set(`${s.rg_fv_graph_na}-${s.rg_fv_graph_nd}`, s);
         }
 
         const stops = await stopsModel.find({ coords: { '$not': { '$elemMatch': { '$eq': NaN } } } }).lean().exec() as Array<dbTBM_Stops>;
 
         return {
             sections,
-            sectionsMap,
+            mapppedSections,
             stops
         }
 
     }
     const b1 = await benchmark(queryData, [], 10);
     if (!b1.lastReturn) return console.log(`b1 return null`)
-    const { sections, sectionsMap, stops } = b1.lastReturn;
+    const { sections, mapppedSections, stops } = b1.lastReturn;
 
     function makeGraph() {
 
@@ -80,7 +80,7 @@ async function run() {
         const segments: Map<dbSections, { n: number, seg: Segment }> = new Map();
         for (const a of arcs) {
 
-            const section = sectionsMap.get(`${a[0]}-${a[1]}`);
+            const section = mapppedSections.get(`${a[0]}-${a[1]}`);
             if (!section) continue // Added for ts mental health
             for (let i = 0; i < section.coords.length - 1; i++) {
 
