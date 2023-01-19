@@ -40,7 +40,7 @@ async function run() {
             if (s.rg_fv_graph_dbl) mapppedSections.set(`${s.rg_fv_graph_na}-${s.rg_fv_graph_nd}`, s);
         }
 
-        const stops = await stopsModel.find({ coords: { '$not': { '$elemMatch': { '$eq': NaN } } } }).lean().exec() as Array<dbTBM_Stops>;
+        const stops = await stopsModel.find({ coords: { '$not': { '$elemMatch': { '$eq': Infinity } } } }).lean().exec() as Array<dbTBM_Stops>;
 
         return {
             sections,
@@ -50,6 +50,7 @@ async function run() {
 
     }
     const b1 = await benchmark(queryData, [], 10);
+    console.log("b1 ended")
     if (!b1.lastReturn) return console.log(`b1 return null`)
     const { sections, mapppedSections, stops } = b1.lastReturn;
 
@@ -67,6 +68,7 @@ async function run() {
         return footGraph;
     }
     const b2 = await benchmark(makeGraph, [], 10);
+    console.log("b2 ended")
     if (!b2.lastReturn) return console.log(`b2 return null`)
     const footGraph = b2.lastReturn;
 
@@ -95,6 +97,7 @@ async function run() {
             }
         }
 
+        /**@description [distance to closest point, closest point, section containing this point, indice of segment composing the section] */
         const approachedStops: Array<[Point, dbSections, number]> = new Array(stops.length);
         for (let i = 0; i < stops.length; i++) {
 
@@ -118,7 +121,8 @@ async function run() {
         }
         return approachedStops;
     }
-    const b3 = await benchmark(ComputeApproachedStops, [], 1);
+    const b3 = await benchmark(ComputeApproachedStops, [], 2);
+    console.log("b3 ended")
     if (!b3.lastReturn) return console.log(`b3 return null`)
     const approachedStops = b3.lastReturn;
 
@@ -126,6 +130,7 @@ async function run() {
         //Pushes new approached stops into graph, just like a proxy on a section
         for (let i = 0; i < approachedStops.length; i++) {
 
+            if (!approachedStops[i]) continue; // couldn't find an approched stop (coords = Infinity)
             const [closestPoint, section, n] = approachedStops[i]
 
             //Compute distance from section start to approachedStop
@@ -152,6 +157,7 @@ async function run() {
         }
     }
     const b4 = await benchmark(updateGraph, []);
+    console.log("b4 ended")
     function computePaths() {
 
         return new Promise((res, rej) => {
@@ -175,6 +181,7 @@ async function run() {
 
     }
     const b5 = await benchmark(computePaths, []);
+    console.log("b5 ended")
     const paths = b5.lastReturn;
 
     return { b1, b2, b3, b4, b5 };
