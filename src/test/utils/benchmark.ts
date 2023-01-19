@@ -56,4 +56,8 @@ export class Duration {
         return this.time % 60000;
     }
 
+    toString() {
+        return `${this.totalMinuts}:${this.totalSeconds}:${this.rSeconds}`
+    }
+
 }
