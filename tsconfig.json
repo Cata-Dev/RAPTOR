@@ -4,6 +4,7 @@
     "moduleResolution": "Node",
     "module": "CommonJS",
     "allowJs": true,
+    "sourceMap": true,
     "target": "es6",
     "strict": true
   },

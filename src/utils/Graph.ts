@@ -1,4 +1,6 @@
 export type node = string | number;
+export const nullNode = Symbol("nullNode");
+export type nodeOrNullNode = typeof nullNode | node
 export type arc = [node, node];
 export type edge = arc;
 export type weightedEdge = [...edge, number];
@@ -127,7 +129,7 @@ export class Graph {
      * @param n A node of the graph
      */
     neighbors(n: node): Array<node> {
-        return Array.from(this.neighborsIterator(n) || []);
+        return Array.from(this.neighborsIterator(n) ?? []);
     }
 
     /**
@@ -135,7 +137,7 @@ export class Graph {
      * @param n A node of the graph
      */
     degree(n: node): number {
-        return this.adj.get(n)?.size || 0;
+        return this.adj.get(n)?.size ?? 0;
     }
 
     /**
