@@ -1,25 +1,44 @@
-import { node, WeightedGraph } from './utils/Graph';
-
-const nullNode = Symbol("nullNode");
-type nodeOrNullNode = typeof nullNode | node
+import { node, nodeOrNullNode, nullNode, WeightedGraph } from './utils/Graph';
 
 export type path = node[];
+
+interface DijkstraOptions {
+    maxCumulWeight: number;
+}
+
 /**
- * @description Generate the shortest paths from source node s to every nodes in graph G.
+ * @description Generate the shortest paths from source node `s` to every nodes in graph `G`.
  * @param G Source graph
  * @param s Source node
  * @returns First, the distances from source node to considered node. Secondly, an array that traces downwards the shortest path from considered node to source node.
  */
-export function Dijkstra(G: WeightedGraph, s: node): [Map<node, number>, Map<node, node>];
+export function Dijkstra(G: WeightedGraph, [s]: [node]): [Map<node, number>, Map<node, node>];
 /**
- * @description Computes the shortest path from source node s to target node t.
+ * @description Generate the shortest paths from source node `s` to every nodes in graph `G`, considering options `O`.
+ * @param G Source graph
+ * @param s Source node
+ * @param O Options for Dijkstra computing
+ * @returns First, the distances from source node to considered node. Secondly, an array that traces downwards the shortest path from considered node to source node.
+ */
+export function Dijkstra(G: WeightedGraph, [s]: [node], O: DijkstraOptions): [Map<node, number>, Map<node, node>];
+/**
+ * @description Computes the shortest path from source node `s` to target node `t` on graph `G`.
  * @param G Source graph
  * @param s Source node
  * @param t Target node
  * @returns The shortest path from s to t.
  */
-export function Dijkstra(G: WeightedGraph, s: node, t: node): path;
-export function Dijkstra(G: WeightedGraph, s: node, t?: node): path | [Map<node, number>, Map<node, nodeOrNullNode>] {
+export function Dijkstra(G: WeightedGraph, [s, t]: [node, node]): path;
+/**
+ * @description Computes the shortest path from source node `s` to target node `t` on graph `G`, considering options `O`.
+ * @param G Source graph
+ * @param s Source node
+ * @param t Target node
+ * @param O Options for Dijkstra computing
+ * @returns The shortest path from s to t.
+ */
+export function Dijkstra(G: WeightedGraph, [s, t]: [node, node], O: DijkstraOptions): path;
+export function Dijkstra(G: WeightedGraph, [s, t]: [node, node] | [node], O?: DijkstraOptions): path | [Map<node, number>, Map<node, nodeOrNullNode>] {
 
     const dist: Map<node, number> = new Map();
     const prev: Map<node, nodeOrNullNode> = new Map();
@@ -38,26 +57,27 @@ export function Dijkstra(G: WeightedGraph, s: node, t?: node): path | [Map<node,
 
         let min: [nodeOrNullNode, number] = [nullNode, Infinity];
         for (const e of Q) {
-            const d: number = dist.get(e) || Infinity;
+            /**@description Distance to e */
+            const d: number = dist.get(e) ?? Infinity;
             if (d <= min[1]) min[0] = e, min[1] = d;
         }
 
         if (min[0] === nullNode) break; // Added for ts mental health
-        const u: node = min[0];
 
-        Q.delete(u);
+        Q.delete(min[0]);
 
-        if (t && u === t) break;
+        if (t && min[0] === t) break;
 
-        for (const v of G.neighborsIterator(u) || []) {
+        for (const v of G.neighborsIterator(min[0]) ?? []) {
 
             if (!Q.has(v)) continue;
 
-            const alt = (dist.get(u) || Infinity) + G.weight(u, v);
-            if (alt < (dist.get(v) || Infinity)) {
+            /**@description New alternative distance found from min, from a + (a,b) instead of b */
+            const alt = (dist.get(min[0]) ?? Infinity) + G.weight(min[0], v);
+            if (alt <= (O?.maxCumulWeight ?? Infinity) && alt < (dist.get(v) ?? Infinity)) {
 
                 dist.set(v, alt);
-                prev.set(v, u);
+                prev.set(v, min[0]);
 
             }
 
@@ -83,12 +103,12 @@ export function tracePath(prev: Map<node, nodeOrNullNode>, target: node, source?
 
     let path: path = [];
     let e: nodeOrNullNode = target;
-    if (prev.get(e) || (source && e === source)) {
+    if (prev.get(e) !== nullNode || (source && e === source)) { // If source === target, just return [target] (== [source])
 
-        while (e != nullNode) {
+        while (e !== nullNode) {
 
             path = [e, ...path];
-            e = prev.get(e) || nullNode;
+            e = prev.get(e) ?? nullNode;
 
         }
     }
