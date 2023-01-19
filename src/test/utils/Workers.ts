@@ -1,5 +1,5 @@
 import { Worker } from 'worker_threads'
-import { Deferred, rejectCb, resolveCb } from './Asyncs';
+import { Deferred, rejectCb, resolveCb } from './ultils';
 import { Duration } from './benchmark';
 import { Queue } from './Queue';
 const nsPerMs = BigInt(1e6)
@@ -87,7 +87,7 @@ export class WorkerPool {
         if (!worker) {
             this.queue.enqueue(job)
             console.log(`Delayed, queued (${this.queue.size})`);
-            return reject("Delayed");
+            return def?.promise;
         }
 
         console.log(`Running worker ${worker.id} (${this.queue.size})`);
