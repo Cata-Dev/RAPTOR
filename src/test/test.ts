@@ -4,7 +4,6 @@ import { benchmark } from './utils/benchmark';
 import { WorkerPool } from './utils/Workers';
 
 import { WeightedGraph } from '../utils/Graph';
-import { path } from '../FootPaths';
 
 import Point from '../utils/Point';
 import Segment from '../utils/Segment';
@@ -19,6 +18,7 @@ function cartographicDistance(x1: number, y1: number, x2: number, y2: number): n
 
 import sectionsModelInit, { dbSections } from "./models/sections.model"
 import stopsModelInit, { dbTBM_Stops } from "./models/TBM_stops.model"
+import { computePath, initialCallback } from './computePath';
 
 async function run() {
 
@@ -162,14 +162,14 @@ async function run() {
 
         return new Promise((res, rej) => {
 
-            const workerPool = new WorkerPool(__dirname + '/computePath.js', 8, { adj: footGraph.adj, weights: footGraph.weights, stops });
+            const workerPool = new WorkerPool<typeof initialCallback>(__dirname + '/computePath.js', 8, { adj: footGraph.adj, weights: footGraph.weights, stops });
 
             //paths<source, <target, paths>>
-            const paths: Map<id, Map<id, path>> = new Map();
+            const paths: Map<id, ReturnType<typeof computePath>> = new Map();
 
             for (let i = 0; i < stops.length; i++) {
 
-                workerPool.run<Map<id, path>>(i).then(sourcePaths => {
+                workerPool.run<typeof computePath>([`stop-${stops[i]._id}`]).then(sourcePaths => {
 
                     paths.set(stops[i]._id, sourcePaths);
                     if (paths.size === stops.length) res(paths);

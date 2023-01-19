@@ -2,16 +2,40 @@ import { path, Dijkstra, tracePath } from '../FootPaths';
 import { WeightedGraph } from '../utils/Graph';
 import { id } from './test';
 
-let footGraph: WeightedGraph | undefined;
-let stops: dbSNCF_Stops[] | undefined;
+import { parentPort } from 'worker_threads';
+import { dbSNCF_Stops } from './models/SNCF_stops.model';
+import { dbTBM_Stops } from './models/TBM_stops.model';
 
-export function computePath(i: number) {
+export interface initData {
+    adj: Required<ConstructorParameters<typeof WeightedGraph>>[0];
+    weights: Required<ConstructorParameters<typeof WeightedGraph>>[1];
+    stops: Array<dbTBM_Stops | dbSNCF_Stops>
+}
+export function initialCallback(data: initData) {
+    footGraph = new WeightedGraph(data.adj, data.weights);
+    stops = data.stops;
+    if (parentPort) parentPort.postMessage(true);
+}
+
+if (parentPort) parentPort.on('message', (data: initData | Parameters<typeof computePath>) => {
+    if (data instanceof Array) {
+        if (parentPort) parentPort.postMessage(computePath(...data));
+    } else {
+        initialCallback(data)
+    }
+
+})
+
+let footGraph: WeightedGraph | undefined;
+let stops: initData["stops"] | undefined;
+
+export function computePath(stopId: string) {
 
     const sourcePaths: Map<id, [path, number]> = new Map();
 
     if (!footGraph || !stops) return sourcePaths;
 
-    const [dist, prev] = Dijkstra(footGraph, [`stop-${stops[i]._id}`]);
+    const [dist, prev] = Dijkstra(footGraph, [stopId]);
 
     for (let j = 0; j < stops.length; j++) {
 
@@ -24,18 +48,3 @@ export function computePath(i: number) {
 
     return sourcePaths;
 }
-
-import { parentPort } from 'worker_threads';
-import { dbSNCF_Stops } from './models/SNCF_stops.model';
-
-if (parentPort) parentPort.on('message', (data) => {
-
-    if (data.init === true) {
-        footGraph = new WeightedGraph(data.adj, data.weights);
-        stops = data.stops;
-        if (parentPort) parentPort.postMessage(true);
-    } else {
-        if (parentPort) parentPort.postMessage(computePath(data));
-    }
-
-})

@@ -16,17 +16,16 @@ interface poolWorker {
     work: queued | null;
 }
 
-
 type queued = [any, resolveCb<any>, rejectCb];
 
-export class WorkerPool {
+export class WorkerPool<Icb extends (...args: any[]) => any> {
 
     readonly script: string;
     readonly size: number;
     readonly pool: poolWorker[];
     readonly queue: Queue<queued>;
 
-    constructor(script: string, size: number, initData?: any) {
+    constructor(script: string, size: number, initData?: Parameters<Icb>[0]) {
 
         this.script = script;
         this.size = size;
@@ -48,7 +47,7 @@ export class WorkerPool {
 
                 console.log(`Initializing worker ${worker.id}`);
 
-                worker.worker.postMessage({ init: true, ...initData });
+                worker.worker.postMessage({ ...initData });
                 worker.worker.once('message', (v) => {
                     if (v === true) {
                         worker.status = Status.Idle;
@@ -64,16 +63,16 @@ export class WorkerPool {
         }
     }
 
-    run<Type>(data: any, res: resolveCb<Type>, rej: rejectCb): void
-    run<Type>(data: any): Promise<Type>
-    async run<Type>(data: any, res?: resolveCb<Type>, rej?: rejectCb) {
+    run<F extends (...args: any) => any>(data: Parameters<F>, res: resolveCb<ReturnType<F>>, rej: rejectCb): void
+    run<F extends (...args: any) => any>(data: Parameters<F>): Promise<ReturnType<F>>
+    async run<F extends (...args: any) => any>(data: Parameters<F>, res?: resolveCb<ReturnType<F>>, rej?: rejectCb) {
 
-        let def: Deferred<Type> | null = null;
-        let resolve: resolveCb<Type>;
+        let def: Deferred<ReturnType<F>> | null = null;
+        let resolve: resolveCb<ReturnType<F>>;
         let reject: rejectCb;
 
         if (!res || !rej) {
-            def = new Deferred<Type>();
+            def = new Deferred<ReturnType<F>>();
             resolve = def.resolve;
             reject = def.reject;
         } else {
