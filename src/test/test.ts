@@ -1,4 +1,4 @@
-import { Schema, model, Model } from 'mongoose';
+import { model } from 'mongoose';
 import db from './utils/mongoose';
 import { benchmark } from './utils/benchmark';
 import { WorkerPool } from './utils/Workers';
