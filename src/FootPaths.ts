@@ -2,7 +2,7 @@ import { node, nodeOrNullNode, nullNode, WeightedGraph } from './utils/Graph';
 
 export type path = node[];
 
-interface DijkstraOptions {
+export interface DijkstraOptions {
     maxCumulWeight: number;
 }
 
