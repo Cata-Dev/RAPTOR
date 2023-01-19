@@ -11,7 +11,7 @@ export function computePath(i: number) {
 
     if (!footGraph || !stops) return sourcePaths;
 
-    const [dist, prev] = Dijkstra(footGraph, `stop-${stops[i]._id}`);
+    const [dist, prev] = Dijkstra(footGraph, [`stop-${stops[i]._id}`]);
 
     for (let j = 0; j < stops.length; j++) {
 
