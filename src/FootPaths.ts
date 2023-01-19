@@ -66,7 +66,7 @@ export function Dijkstra(G: WeightedGraph, [s, t]: [node, node] | [node], O?: Di
 
         Q.delete(min[0]);
 
-        if (t && min[0] === t) break;
+        if (t !== undefined && min[0] === t) break;
 
         for (const v of G.neighborsIterator(min[0]) ?? []) {
 
@@ -74,7 +74,12 @@ export function Dijkstra(G: WeightedGraph, [s, t]: [node, node] | [node], O?: Di
 
             /**@description New alternative distance found from min, from a + (a,b) instead of b */
             const alt = (dist.get(min[0]) ?? Infinity) + G.weight(min[0], v);
-            if (alt <= (O?.maxCumulWeight ?? Infinity) && alt < (dist.get(v) ?? Infinity)) {
+            if (alt > (O?.maxCumulWeight ?? Infinity)) {
+                dist.delete(v);
+                prev.delete(v);
+                continue;
+            }
+            if (alt < (dist.get(v) ?? Infinity)) {
 
                 dist.set(v, alt);
                 prev.set(v, min[0]);
@@ -85,7 +90,7 @@ export function Dijkstra(G: WeightedGraph, [s, t]: [node, node] | [node], O?: Di
 
     }
 
-    if (t) {
+    if (t !== undefined) {
 
         return tracePath(prev, t, s);
 
