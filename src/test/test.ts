@@ -40,7 +40,8 @@ async function run() {
             if (s.rg_fv_graph_dbl) mapppedSections.set(`${s.rg_fv_graph_na}-${s.rg_fv_graph_nd}`, s);
         }
 
-        const stops = await stopsModel.find({ coords: { '$not': { '$elemMatch': { '$eq': Infinity } } } }).lean().exec() as Array<dbTBM_Stops>;
+        const stops = (await stopsModel.find({ coords: { '$not': { '$elemMatch': { '$eq': Infinity } } } }).lean().exec() as Array<dbTBM_Stops>)
+            .filter((s, _, arr) => !arr.find(ss => s.coords[0] === ss.coords[0] && s.coords[1] === ss.coords[1] && s._id !== ss._id));
 
         return {
             sections,
