@@ -74,11 +74,7 @@ export function Dijkstra(G: WeightedGraph, [s, t]: [node, node] | [node], O?: Di
 
             /**@description New alternative distance found from min, from a + (a,b) instead of b */
             const alt = (dist.get(min[0]) ?? Infinity) + G.weight(min[0], v);
-            if (alt > (O?.maxCumulWeight ?? Infinity)) {
-                dist.delete(v);
-                prev.delete(v);
-                continue;
-            }
+            if (O && alt > O.maxCumulWeight) continue
             if (alt < (dist.get(v) ?? Infinity)) {
 
                 dist.set(v, alt);
