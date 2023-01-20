@@ -20,6 +20,9 @@ import sectionsModelInit, { dbSections } from "./models/sections.model"
 import stopsModelInit, { dbTBM_Stops } from "./models/TBM_stops.model"
 import { computePath, initialCallback } from './computePath';
 
+export type Section = Pick<dbSections, "_id" | "coords" | "distance" | "rg_fv_graph_dbl" | "rg_fv_graph_nd" | "rg_fv_graph_na">;
+export type Stop = Pick<dbTBM_Stops, "_id" | "coords">;
+
 async function run() {
 
     //Grab required data
@@ -32,15 +35,15 @@ async function run() {
 
         //Important : sections are oriented.
         //ERROR : there can be 2 sections (or more) linking the same nd to the same na. They need to be both differentiated (by their _id, for example).
-        const sections = await sectionsModel.find({}).lean().exec() as Array<dbSections>;
+        const sections = await sectionsModel.find({}).select({ _id: 1, coords: 1, distance: 1, rg_fv_graph_dbl: 1, rg_fv_graph_nd: 1, rg_fv_graph_na: 1 }).lean().exec() as unknown as Section[];
         //Map section, from s1 to s2 (oriented).
-        const mapppedSections: Map<string, dbSections> = new Map();
+        const mapppedSections: Map<string, Section> = new Map();
         for (const s of sections) {
             mapppedSections.set(`${s.rg_fv_graph_nd}-${s.rg_fv_graph_na}`, s);
             if (s.rg_fv_graph_dbl) mapppedSections.set(`${s.rg_fv_graph_na}-${s.rg_fv_graph_nd}`, s);
         }
 
-        const stops = (await stopsModel.find({ coords: { '$not': { '$elemMatch': { '$eq': Infinity } } } }).lean().exec() as Array<dbTBM_Stops>)
+        const stops = (await stopsModel.find({ coords: { '$not': { '$elemMatch': { '$eq': Infinity } } } }).select({ _id: 1, coords: 1 }).lean().exec() as unknown as Stop[])
             .filter((s, _, arr) => !arr.find(ss => s.coords[0] === ss.coords[0] && s.coords[1] === ss.coords[1] && s._id !== ss._id));
 
         return {
@@ -80,7 +83,7 @@ async function run() {
 
         //Pre-generate segments to fasten the process (and not redundant computing)
         //A segment describes a portion of a section (oriented)
-        const segments: Map<dbSections, { n: number, seg: Segment }> = new Map();
+        const segments: Map<Section, { n: number, seg: Segment }> = new Map();
         for (const a of arcs) {
 
             const section = mapppedSections.get(`${a[0]}-${a[1]}`);
@@ -99,10 +102,10 @@ async function run() {
         }
 
         /**@description [distance to closest point, closest point, section containing this point, indice of segment composing the section] */
-        const approachedStops: Array<[Point, dbSections, number]> = new Array(stops.length);
+        const approachedStops: Array<[Point, Section, number]> = new Array(stops.length);
         for (let i = 0; i < stops.length; i++) {
 
-            let closestPoint: [number, Point | null, dbSections | null, number | null] = [Infinity, null, null, null];
+            let closestPoint: [number, Point | null, Section | null, number | null] = [Infinity, null, null, null];
 
             for (const [section, { n, seg }] of segments) {
 
