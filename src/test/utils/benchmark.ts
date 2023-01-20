@@ -1,7 +1,7 @@
-export async function benchmark<returnType>(f: (...args: any[]) => returnType, args: any[] = [], times: number = 1) {
+export async function benchmark<F extends (...args: any[]) => any>(f: F, args: Parameters<F>, times: number = 1, logStats = true) {
     const starts: number[] = new Array(times);
     const ends: number[] = new Array(times);
-    let lastReturn: Awaited<returnType> | null = null;
+    let lastReturn: Awaited<ReturnType<F>> | null = null;
     for (let i = 0; i < times; i++) {
         starts[i] = performance.now();
         lastReturn = await f(...args);
@@ -9,6 +9,8 @@ export async function benchmark<returnType>(f: (...args: any[]) => returnType, a
     };
     const durations = ends.map((e, i) => new Duration(e - starts[i]))
     const totalDuration = new Duration(durations.reduce((acc, v) => acc + v.ms, 0));
+    const averageDuration = new Duration(totalDuration.ms / times);
+    if (logStats) console.log(`Benchmark of ${f.name || "anonymous"} : ${averageDuration}`);
     return {
         fName: f.name,
         args,
@@ -16,7 +18,7 @@ export async function benchmark<returnType>(f: (...args: any[]) => returnType, a
         ends,
         durations,
         totalDuration,
-        averageDuration: new Duration(totalDuration.ms / times),
+        averageDuration,
         times,
         lastReturn,
     };
