@@ -64,11 +64,11 @@ export class WorkerPool<Icb extends (...args: any[]) => any> {
     }
 
     run<F extends (...args: any) => any>(data: Parameters<F>, res: resolveCb<ReturnType<F>>, rej: rejectCb): void
-    run<F extends (...args: any) => any>(data: Parameters<F>): Promise<ReturnType<F>>
-    async run<F extends (...args: any) => any>(data: Parameters<F>, res?: resolveCb<ReturnType<F>>, rej?: rejectCb) {
+    run<F extends (...args: any) => any>(data: Parameters<F>): Promise<Awaited<ReturnType<F>>>
+    async run<F extends (...args: any) => any>(data: Parameters<F>, res?: resolveCb<Awaited<ReturnType<F>>>, rej?: rejectCb) {
 
         let def: Deferred<ReturnType<F>> | null = null;
-        let resolve: resolveCb<ReturnType<F>>;
+        let resolve: resolveCb<Awaited<ReturnType<F>>>;
         let reject: rejectCb;
 
         if (!res || !rej) {
