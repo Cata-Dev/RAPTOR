@@ -1,4 +1,5 @@
 import { node, nodeOrNullNode, nullNode, WeightedGraph } from './utils/Graph';
+import { FibonacciHeap } from '@tyriar/fibonacci-heap';
 
 export type path = node[];
 
@@ -42,43 +43,35 @@ export function Dijkstra(G: WeightedGraph, [s, t]: [node, node] | [node], O?: Di
 
     const dist: Map<node, number> = new Map();
     const prev: Map<node, nodeOrNullNode> = new Map();
-    const Q: Set<node> = new Set();
+    const Q = new FibonacciHeap<number, node>();
 
+    dist.set(s, 0);
     for (const e of G.nodesIterator) {
 
-        dist.set(e, Infinity);
         prev.set(e, nullNode);
-        Q.add(e);
+        if (e != s) dist.set(e, Infinity);
+        Q.insert(dist.get(e)!, e);
 
     }
-    dist.set(s, 0);
 
-    while (Q.size) {
+    while (!Q.isEmpty()) {
 
-        let min: [nodeOrNullNode, number] = [nullNode, Infinity];
-        for (const e of Q) {
-            /**@description Distance to e */
-            const d: number = dist.get(e) ?? Infinity;
-            if (d <= min[1]) min[0] = e, min[1] = d;
-        }
+        const min = Q.extractMinimum()!; // Can't be null otherwise Q is empty
 
-        if (min[0] === nullNode) break; // Added for ts mental health
+        if (t !== undefined && min.value === t) break;
 
-        Q.delete(min[0]);
-
-        if (t !== undefined && min[0] === t) break;
-
-        for (const v of G.neighborsIterator(min[0]) ?? []) {
-
-            if (!Q.has(v)) continue;
+        for (const v of G.neighborsIterator(min.value!) ?? []) {
 
             /**@description New alternative distance found from min, from a + (a,b) instead of b */
-            const alt = (dist.get(min[0]) ?? Infinity) + G.weight(min[0], v);
-            if (O && alt > O.maxCumulWeight) continue
+            const alt = min.key + G.weight(min.value!, v);
+
+            if (O && alt > O.maxCumulWeight) continue;
+
             if (alt < (dist.get(v) ?? Infinity)) {
 
                 dist.set(v, alt);
-                prev.set(v, min[0]);
+                prev.set(v, min.value!);
+                Q.decreaseKey(min, alt);
 
             }
 
