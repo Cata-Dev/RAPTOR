@@ -169,7 +169,7 @@ async function run() {
             const workerPool = new WorkerPool<typeof initialCallback>(__dirname + '/computePath.js', 8, { adj: footGraph.adj, weights: footGraph.weights, stops });
 
             //paths<source, <target, paths>>
-            const paths: Map<id, ReturnType<typeof computePath>> = new Map();
+            const paths: Map<id, Awaited<ReturnType<typeof computePath>>> = new Map();
 
             for (let i = 0; i < stops.length; i++) {
 

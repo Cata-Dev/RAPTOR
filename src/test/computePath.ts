@@ -1,8 +1,9 @@
 import { path, Dijkstra, tracePath, DijkstraOptions } from '../FootPaths';
-import { WeightedGraph } from '../utils/Graph';
+import { node, WeightedGraph } from '../utils/Graph';
 import { id, Section, Stop } from './test';
 
 import { parentPort } from 'worker_threads';
+import { benchmark } from './utils/benchmark';
 
 export interface initData {
     adj: Required<ConstructorParameters<typeof WeightedGraph>>[0];
@@ -17,9 +18,9 @@ export function initialCallback(data: initData) {
     if (parentPort) parentPort.postMessage(true);
 }
 
-if (parentPort) parentPort.on('message', (data: initData | Parameters<typeof computePath>) => {
+if (parentPort) parentPort.on('message', async (data: initData | Parameters<typeof computePath>) => {
     if (data instanceof Array) {
-        if (parentPort) parentPort.postMessage(computePath(...data));
+        if (parentPort) parentPort.postMessage(await computePath(...data));
     } else {
         initialCallback(data)
     }
@@ -30,22 +31,46 @@ let footGraph: WeightedGraph | undefined;
 let stops: initData["stops"] | undefined;
 let options: initData["options"] | undefined;
 
-export function computePath(stopId: string) {
+export async function computePath(stopId: string) {
 
     const sourcePaths: Map<id, [path, number]> = new Map();
 
     if (!footGraph || !stops) return sourcePaths;
 
-    const [dist, prev] = options ? Dijkstra(footGraph, [stopId], options) : Dijkstra(footGraph, [stopId]);
+    const [dist, prev] = options ? await Dijkstra(footGraph, [stopId], options) : await Dijkstra(footGraph, [stopId]);
 
     for (let j = 0; j < stops.length; j++) {
 
-        // const targetStop: stop = stops[j]; //Better assigning those 2 vars or getting stops[j] 3 times + casting to string 2 times ?
-        // const targetNode = `stop-${targetStop._id}`;
+        const targetNode = `stop-${stops[j]._id}`;
 
-        if (dist.get(`stop-${stops[j]._id}`) !== undefined && dist.get(`stop-${stops[j]._id}`)! < Infinity) sourcePaths.set(stops[j]._id, [tracePath(prev, `stop-${stops[j]._id}`), dist.get(`stop-${stops[j]._id}`)!]);
+        if (dist.get(targetNode) !== undefined && dist.get(targetNode)! < Infinity)
+            sourcePaths.set(stops[j]._id, [tracePath(prev, targetNode), dist.get(targetNode)!]);
 
     }
+
+    return sourcePaths;
+}
+
+export async function computePathBench(stopId: string) {
+
+    const sourcePaths: Map<id, [path, number]> = new Map();
+
+    if (!footGraph || !stops) return sourcePaths;
+
+    const [dist, prev] = options
+        ? (await benchmark(Dijkstra as (G: WeightedGraph, [s]: [node], O: DijkstraOptions) => Promise<[Map<node, number>, Map<node, node>]>, [footGraph, [stopId], options])).lastReturn!
+        : (await benchmark(Dijkstra as (G: WeightedGraph, [s]: [node]) => Promise<[Map<node, number>, Map<node, node>]>, [footGraph, [stopId]])).lastReturn!;
+
+    await benchmark((s: NonNullable<typeof stops>) => {
+        for (let j = 0; j < s.length; j++) {
+
+            const targetNode = `stop-${s[j]._id}`;
+
+            if (dist.get(targetNode) !== undefined && dist.get(targetNode)! < Infinity)
+                sourcePaths.set(s[j]._id, [tracePath(prev, targetNode), dist.get(targetNode)!]);
+
+        }
+    }, [stops], 1, true)
 
     return sourcePaths;
 }
