@@ -109,7 +109,7 @@ export class WorkerPool<Icb extends (...args: any[]) => any> {
         const onceError = (err: any) => {
             worker.status = Status.Idle;
             reject(err);
-            console.log(`Finished worker ${worker.id} (${this.queue.size})`);
+            console.log(`Errored worker ${worker.id} (${this.queue.size})`);
             this.runCallback();
             worker.worker.removeListener('error', onceError);
             worker.worker.removeListener('message', onceMessage);
