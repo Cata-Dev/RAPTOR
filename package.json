@@ -10,6 +10,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@tyriar/fibonacci-heap": "^2.0.9",
     "mongoose": "^6.8.4"
   },
   "devDependencies": {

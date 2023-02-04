@@ -31,9 +31,9 @@ let footGraph: WeightedGraph | undefined;
 let stops: initData["stops"] | undefined;
 let options: initData["options"] | undefined;
 
-export async function computePath(stopId: string) {
+export async function computePath<Paths extends boolean>(stopId: string, returnPaths: Paths) {
 
-    const sourcePaths: Map<id, [path, number]> = new Map();
+    const sourcePaths: Map<id, Paths extends true ? [path, number] : number> = new Map();
 
     if (!footGraph || !stops) return sourcePaths;
 
@@ -44,22 +44,22 @@ export async function computePath(stopId: string) {
         const targetNode = `stop-${stops[j]._id}`;
 
         if (dist.get(targetNode) !== undefined && dist.get(targetNode)! < Infinity)
-            sourcePaths.set(stops[j]._id, [tracePath(prev, targetNode), dist.get(targetNode)!]);
+            sourcePaths.set(stops[j]._id, (returnPaths ? [tracePath(prev, targetNode), dist.get(targetNode)!] : dist.get(targetNode)!) as Paths extends true ? [path, number] : number);
 
     }
 
     return sourcePaths;
 }
 
-export async function computePathBench(stopId: string) {
+export async function computePathBench<Paths extends boolean>(stopId: string, returnPaths: boolean) {
 
-    const sourcePaths: Map<id, [path, number]> = new Map();
+    const sourcePaths: Map<id, Paths extends true ? [path, number] : number> = new Map();
 
     if (!footGraph || !stops) return sourcePaths;
 
     const [dist, prev] = options
-        ? (await benchmark(Dijkstra as (G: WeightedGraph, [s]: [node], O: DijkstraOptions) => Promise<[Map<node, number>, Map<node, node>]>, [footGraph, [stopId], options])).lastReturn!
-        : (await benchmark(Dijkstra as (G: WeightedGraph, [s]: [node]) => Promise<[Map<node, number>, Map<node, node>]>, [footGraph, [stopId]])).lastReturn!;
+        ? (await benchmark(Dijkstra as (G: WeightedGraph, [s]: [node], O: DijkstraOptions) => [Map<node, number>, Map<node, node>], [footGraph, [stopId], options])).lastReturn!
+        : (await benchmark(Dijkstra as (G: WeightedGraph, [s]: [node]) => [Map<node, number>, Map<node, node>], [footGraph, [stopId]])).lastReturn!;
 
     await benchmark((s: NonNullable<typeof stops>) => {
         for (let j = 0; j < s.length; j++) {
@@ -67,7 +67,7 @@ export async function computePathBench(stopId: string) {
             const targetNode = `stop-${s[j]._id}`;
 
             if (dist.get(targetNode) !== undefined && dist.get(targetNode)! < Infinity)
-                sourcePaths.set(s[j]._id, [tracePath(prev, targetNode), dist.get(targetNode)!]);
+                sourcePaths.set(s[j]._id, (returnPaths ? [tracePath(prev, targetNode), dist.get(targetNode)!] : dist.get(targetNode)!) as Paths extends true ? [path, number] : number);
 
         }
     }, [stops], 1, true)

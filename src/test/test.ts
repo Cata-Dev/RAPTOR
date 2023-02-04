@@ -125,7 +125,7 @@ async function run() {
         }
         return approachedStops;
     }
-    const b3 = await benchmark(ComputeApproachedStops, [], 2);
+    const b3 = await benchmark(ComputeApproachedStops, [], 1);
     console.log("b3 ended")
     if (!b3.lastReturn) return console.log(`b3 return null`)
     const approachedStops = b3.lastReturn;
@@ -169,11 +169,11 @@ async function run() {
             const workerPool = new WorkerPool<typeof initialCallback>(__dirname + '/computePath.js', 8, { adj: footGraph.adj, weights: footGraph.weights, stops });
 
             //paths<source, <target, paths>>
-            const paths: Map<id, Awaited<ReturnType<typeof computePath>>> = new Map();
+            const paths: Map<id, Awaited<ReturnType<typeof computePath<false>>>> = new Map();
 
             for (let i = 0; i < stops.length; i++) {
 
-                workerPool.run<typeof computePath>([`stop-${stops[i]._id}`]).then(sourcePaths => {
+                workerPool.run<typeof computePath<false>>([`stop-${stops[i]._id}`, false]).then(sourcePaths => {
 
                     paths.set(stops[i]._id, sourcePaths);
                     if (paths.size === stops.length) res(paths);
