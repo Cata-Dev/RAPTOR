@@ -55,14 +55,11 @@ export default class RAPTOR {
      */
     et(r: routeId, p: stopId, k: number): [Trip, number] | null {
         let earliestTrip: Trip | null = null;
-        let i: number = 0;
         let n: number | null = null;
         const route: Route = this.routes[r];
         for (let t: number = 0; t < route.trips.length; t++) {
-            const trip: Trip = route.trips[t]
-            //Catchable && earliest trip
-            if (earliestTrip && route.departureTime(t, p) >= this.periodsRoundsStops[p][k - 1] && trip.stopTimes[p] < earliestTrip.stopTimes[p]) earliestTrip = trip, n = i;
-            i++;
+            //Catchable
+            if (route.departureTime(t, p) >= this.periodsRoundsStops[p][k - 1]) earliestTrip = route.trips[t], n = t;
         }
         return typeof n === "number" && !isNaN(n) && earliestTrip instanceof Trip ? [earliestTrip, n] : null;
     }
@@ -141,7 +138,7 @@ export default class RAPTOR {
             //Traverse each route
             for (const [r, p] of Q) {
 
-                let t: [Trip, number] | null = null;
+                let t: [Trip, number] | null = this.et(r, p, k);
 
                 const route: Route = this.route(r);
 
@@ -152,7 +149,7 @@ export default class RAPTOR {
 
                         const arrivalTime: timestamp = t[0].stopTimes[pi];
 
-                        if (arrivalTime < Math.min(this.periodsStops[pi], this.periodsStops[pt])) {
+                        if (arrivalTime < Math.min(this.periodsStops[pi], this.periodsStops[pt])) { //local & target pruning
 
                             this.periodsRoundsStops[k][pi] = arrivalTime;
                             this.periodsStops[pi] = arrivalTime;
@@ -162,11 +159,7 @@ export default class RAPTOR {
                     }
 
                     //Catch an earlier trip at pi ?
-                    if (t !== null && this.periodsRoundsStops[k - 1][pi] <= route.departureTime(t[1], pi)) {
-
-                        t = this.et(r, pi, k);
-
-                    }
+                    t = this.et(r, pi, k) ?? t;
                 }
 
             }
