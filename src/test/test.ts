@@ -1,4 +1,4 @@
-import { HydratedDocument, model } from "mongoose";
+import { HydratedDocument } from "mongoose";
 import initDB from "./utils/mongoose";
 import { benchmark } from "./utils/benchmark";
 import { WorkerPool } from "./utils/Workers";
