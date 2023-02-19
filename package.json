@@ -11,7 +11,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@typegoose/typegoose": "^10.1.1",
+    "@typegoose/typegoose": "^10.2.0-beta.3",
     "@tyriar/fibonacci-heap": "^2.0.9",
     "mongodb": "^5.0.1"
   },
