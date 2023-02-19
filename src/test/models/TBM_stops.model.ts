@@ -2,32 +2,61 @@
 //
 // See http://mongoosejs.com/docs/models.html
 
-import { InferSchemaType, Schema, model } from "mongoose";
+import { TBMEndpoints } from ".";
+import { TimeStamps } from "@typegoose/typegoose/lib/defaultClasses";
+import { addModelToTypegoose, buildSchema, prop } from "@typegoose/typegoose";
+import { modelOptions } from "@typegoose/typegoose/lib/modelOptions";
+import { getName } from "@typegoose/typegoose/lib/internal/utils";
+import { Mongoose } from "mongoose";
 
-const dbTBM_Stops = new Schema(
-  {
-    coords: { type: [Number], required: true },
-    _id: { type: Number, required: true },
-    libelle: { type: String, required: true },
-    libelle_lowercase: { type: String, required: true },
-    vehicule: { type: String, enum: ["BUS", "TRAM", "BATEAU"], required: true },
-    type: {
-      type: String,
-      enum: ["CLASSIQUE", "DELESTAGE", "AUTRE", "FICTIF"],
-      required: true,
-    },
-    actif: { type: Number, enum: [0, 1] as const, required: true },
-  },
-  {
-    timestamps: true,
-  },
-);
-
-export type dbTBM_Stops = Omit<InferSchemaType<typeof dbTBM_Stops>, "coords"> & {
-  coords: [number, number];
-};
-
-export default function (m: typeof model) {
-  const modelName = "tbm_stops";
-  return m<dbTBM_Stops>(modelName, dbTBM_Stops);
+export enum VehicleType {
+  Bus = "BUS",
+  Tram = "TRAM",
+  Bateau = "BATEAU",
 }
+
+export enum StopType {
+  Classique = "CLASSIQUE",
+  Delestage = "DELESTAGE",
+  Autre = "AUTRE",
+  Fictif = "FICTIF",
+}
+
+export type Active = 0 | 1;
+
+@modelOptions({ options: { customName: TBMEndpoints.Stops } })
+export class dbTBM_Stops extends TimeStamps {
+  @prop({ required: true })
+  public _id!: number;
+
+  @prop({ type: () => [Number, Number], required: true })
+  public coords!: [number, number];
+
+  @prop({ required: true })
+  public libelle!: string;
+
+  @prop({ required: true })
+  public libelle_lowercase!: string;
+
+  @prop({ required: true, enum: VehicleType })
+  public vehicule!: VehicleType;
+
+  @prop({ required: true, enum: StopType })
+  public type!: StopType;
+
+  @prop({ required: true, enum: [0, 1] as const })
+  public actif!: Active;
+}
+
+// export type dbTBM_Stops = Omit<InferSchemaType<typeof dbTBM_Stops>, "coords"> & {
+//   coords: [number, number];
+// };
+
+export default function init(db: Mongoose) {
+  const dbTBM_StopsSchema = buildSchema(dbTBM_Stops, { existingMongoose: db });
+  const dbTBM_StopsModelRaw = db.model(getName(dbTBM_Stops), dbTBM_StopsSchema);
+
+  return addModelToTypegoose(dbTBM_StopsModelRaw, dbTBM_Stops, { existingMongoose: db });
+}
+
+export type dbTBM_StopsModel = ReturnType<typeof init>;

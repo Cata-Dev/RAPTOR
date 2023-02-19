@@ -2,24 +2,39 @@
 //
 // See http://mongoosejs.com/docs/models.html
 
-import { InferSchemaType, Schema, model } from "mongoose";
+import { SNCFEndpoints } from ".";
+import { TimeStamps } from "@typegoose/typegoose/lib/defaultClasses";
+import { addModelToTypegoose, buildSchema, prop, Ref } from "@typegoose/typegoose";
+import { modelOptions } from "@typegoose/typegoose/lib/modelOptions";
+import { getName } from "@typegoose/typegoose/lib/internal/utils";
+import { dbSNCF_Stops } from "./SNCF_stops.model";
+import { Mongoose } from "mongoose";
 
-const dbSNCF_Schedules = new Schema(
-  {
-    _id: { type: String, required: true },
-    realtime: { type: Date, required: true },
-    trip: { type: Number, required: true }, //implicitly includes direction
-    stop_point: { type: Number, required: true, ref: "sncf_stops" },
-    route: { type: String, required: true, ref: "sncf_routes" },
-  },
-  {
-    timestamps: true,
-  },
-);
+@modelOptions({ options: { customName: SNCFEndpoints.Schedules } })
+export class dbSNCF_Schedules extends TimeStamps {
+  @prop({ required: true })
+  public _id!: string;
 
-export type dbSNCF_Schedules = InferSchemaType<typeof dbSNCF_Schedules>;
+  @prop({ required: true })
+  public realtime!: Date;
 
-export default function (m: typeof model) {
-  const modelName = "sncf_route_schedules";
-  return m(modelName, dbSNCF_Schedules);
+  @prop({ required: true })
+  public trip!: number; //iImplicitly includes direction
+
+  @prop({ required: true, ref: () => dbSNCF_Stops, type: () => Number })
+  public stop_point!: Ref<dbSNCF_Stops, number>;
+
+  @prop({ required: true })
+  public route!: string; // Should be a ref
 }
+
+export default function init(db: Mongoose) {
+  const dbSNCF_SchedulesSchema = buildSchema(dbSNCF_Schedules, { existingMongoose: db });
+  const dbSNCF_SchedulesModelRaw = db.model(getName(dbSNCF_Schedules), dbSNCF_SchedulesSchema);
+
+  return addModelToTypegoose(dbSNCF_SchedulesModelRaw, dbSNCF_Schedules, {
+    existingMongoose: db,
+  });
+}
+
+export type dbSNCF_SchedulesModel = ReturnType<typeof init>;

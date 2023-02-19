@@ -2,25 +2,33 @@
 //
 // See http://mongoosejs.com/docs/models.html
 
-import { InferSchemaType, Schema, model } from "mongoose";
+import { TimeStamps } from "@typegoose/typegoose/lib/defaultClasses";
+import { addModelToTypegoose, buildSchema, prop } from "@typegoose/typegoose";
+import { modelOptions } from "@typegoose/typegoose/lib/modelOptions";
+import { getName } from "@typegoose/typegoose/lib/internal/utils";
+import { SNCFEndpoints } from ".";
+import { Mongoose } from "mongoose";
 
-const dbSNCF_Stops = new Schema(
-  {
-    _id: { type: Number, required: true },
-    coords: { type: [Number], required: true },
-    name: { type: String, required: true },
-    name_lowercase: { type: String, required: true },
-  },
-  {
-    timestamps: true,
-  },
-);
+@modelOptions({ options: { customName: SNCFEndpoints.Stops } })
+export class dbSNCF_Stops extends TimeStamps {
+  @prop({ required: true })
+  public _id!: number;
 
-export type dbSNCF_Stops = Omit<InferSchemaType<typeof dbSNCF_Stops>, "coords"> & {
-  coords: [number, number];
-};
+  @prop({ type: () => [Number, Number], required: true })
+  public coords!: [number, number];
 
-export default function (m: typeof model) {
-  const modelName = "sncf_stops";
-  return m<dbSNCF_Stops>(modelName, dbSNCF_Stops);
+  @prop({ required: true })
+  public name!: string;
+
+  @prop({ required: true })
+  public name_lowercase!: string;
 }
+
+export default function init(db: Mongoose) {
+  const dbSNCF_StopsSchema = buildSchema(dbSNCF_Stops, { existingMongoose: db });
+  const dbSNCF_StopsModelRaw = db.model(getName(dbSNCF_Stops), dbSNCF_StopsSchema);
+
+  return addModelToTypegoose(dbSNCF_StopsModelRaw, dbSNCF_Stops, { existingMongoose: db });
+}
+
+export type dbSNCF_StopsModel = ReturnType<typeof init>;

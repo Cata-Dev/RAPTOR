@@ -2,22 +2,32 @@
 //
 // See http://mongoosejs.com/docs/models.html
 
-import { InferSchemaType, Schema, model } from "mongoose";
+import { TBMEndpoints } from ".";
+import { TimeStamps } from "@typegoose/typegoose/lib/defaultClasses";
+import { addModelToTypegoose, buildSchema, prop } from "@typegoose/typegoose";
+import { modelOptions } from "@typegoose/typegoose/lib/modelOptions";
+import { getName } from "@typegoose/typegoose/lib/internal/utils";
+import { Mongoose } from "mongoose";
 
-const dbIntersections = new Schema(
-  {
-    coords: { type: [Number], required: true },
-    _id: { type: Number, required: true },
-    nature: { type: String, required: true },
-  },
-  {
-    timestamps: true,
-  },
-);
+@modelOptions({ options: { customName: TBMEndpoints.Intersections } })
+export class dbIntersections extends TimeStamps {
+  @prop({ required: true })
+  public _id!: number;
 
-export type dbIntersections = InferSchemaType<typeof dbIntersections>;
+  @prop({ type: () => [Number, Number], required: true })
+  public coords!: [number, number];
 
-export default function (m: typeof model) {
-  const modelName = "intersections";
-  return m(modelName, dbIntersections);
+  @prop({ required: true })
+  public nature!: string;
 }
+
+export default function init(db: Mongoose) {
+  const dbIntersectionsSchema = buildSchema(dbIntersections, { existingMongoose: db });
+  const dbIntersectionsModelRaw = db.model(getName(dbIntersections), dbIntersectionsSchema);
+
+  return addModelToTypegoose(dbIntersectionsModelRaw, dbIntersections, {
+    existingMongoose: db,
+  });
+}
+
+export type dbIntersectionsModel = ReturnType<typeof init>;

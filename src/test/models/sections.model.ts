@@ -1,30 +1,50 @@
 // sections-model.js - A mongoose model
 //
 // See http://mongoosejs.com/docs/models.html
-import { InferSchemaType, Schema, model } from "mongoose";
 
-const dbSections = new Schema(
-  {
-    coords: { type: [[Number]], required: true },
-    distance: { type: Number, required: true },
-    _id: { type: Number, required: true },
-    domanial: { type: Number, required: true },
-    groupe: { type: Number, required: true },
-    nom_voie: { type: String, required: true },
-    rg_fv_graph_dbl: { type: Boolean, required: true },
-    rg_fv_graph_nd: { type: Number, required: true, ref: "nodes" },
-    rg_fv_graph_na: { type: Number, required: true, ref: "nodes" },
-  },
-  {
-    timestamps: true,
-  },
-);
+import { TBMEndpoints } from ".";
+import { TimeStamps } from "@typegoose/typegoose/lib/defaultClasses";
+import { addModelToTypegoose, buildSchema, prop, Ref } from "@typegoose/typegoose";
+import { modelOptions } from "@typegoose/typegoose/lib/modelOptions";
+import { getName } from "@typegoose/typegoose/lib/internal/utils";
+import { dbIntersections } from "./intersections.model";
+import { Mongoose } from "mongoose";
 
-export type dbSections = Omit<InferSchemaType<typeof dbSections>, "coords"> & {
-  coords: [number, number][]
-};
+@modelOptions({ options: { customName: TBMEndpoints.Sections } })
+export class dbSections extends TimeStamps {
+  @prop({ required: true })
+  public _id!: number;
 
-export default function (m: typeof model) {
-  const modelName = "sections";
-  return m<dbSections>(modelName, dbSections);
+  @prop({ type: () => [[Number, Number]], required: true })
+  public coords!: [number, number][];
+
+  @prop({ required: true })
+  public distance!: number;
+
+  @prop({ required: true })
+  public domanial!: number;
+
+  @prop({ required: true })
+  public groupe!: number;
+
+  @prop({ required: true })
+  public nom_voie!: string;
+
+  @prop({ required: true })
+  public rg_fv_graph_dbl!: boolean;
+
+  @prop({ required: true, ref: () => dbIntersections, type: () => Number })
+  public rg_fv_graph_nd!: Ref<dbIntersections, number>;
+
+  @prop({ required: true, ref: () => dbIntersections, type: () => Number })
+  public rg_fv_graph_na!: Ref<dbIntersections, number>;
 }
+
+export default function init(db: Mongoose) {
+  const dbSectionsSchema = buildSchema(dbSections, { existingMongoose: db });
+  const dbSectionsModelRaw = db.model(getName(dbSections), dbSectionsSchema);
+
+  return addModelToTypegoose(dbSectionsModelRaw, dbSections, { existingMongoose: db });
+}
+
+export type dbSectionsModel = ReturnType<typeof init>;

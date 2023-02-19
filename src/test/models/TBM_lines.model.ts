@@ -2,23 +2,34 @@
 //
 // See http://mongoosejs.com/docs/models.html
 
-import { InferSchemaType, Schema, model } from "mongoose";
+import { TBMEndpoints } from ".";
+import { TimeStamps } from "@typegoose/typegoose/lib/defaultClasses";
+import { addModelToTypegoose, buildSchema, prop } from "@typegoose/typegoose";
+import { modelOptions } from "@typegoose/typegoose/lib/modelOptions";
+import { getName } from "@typegoose/typegoose/lib/internal/utils";
+import { Active, VehicleType } from "./TBM_stops.model";
+import { Mongoose } from "mongoose";
 
-const dbTBM_Lines = new Schema(
-  {
-    _id: { type: Number, required: true },
-    libelle: { type: String, required: true },
-    vehicule: { type: String, enum: ["BUS", "TRAM", "BATEAU"], required: true },
-    active: { type: Number, enum: [0, 1] as const, required: true },
-  },
-  {
-    timestamps: true,
-  },
-);
+@modelOptions({ options: { customName: TBMEndpoints.Lines } })
+export class dbTBM_Lines extends TimeStamps {
+  @prop({ required: true })
+  public _id!: number;
 
-export type dbTBM_Lines = InferSchemaType<typeof dbTBM_Lines>;
+  @prop({ required: true })
+  public libelle!: string;
 
-export default function (m: typeof model) {
-  const modelName = "tbm_lines";
-  return m(modelName, dbTBM_Lines);
+  @prop({ required: true, enum: VehicleType })
+  public vehicule!: VehicleType;
+
+  @prop({ required: true, enum: [0, 1] as const })
+  public active!: Active;
 }
+
+export default function init(db: Mongoose) {
+  const dbTBM_LinesSchema = buildSchema(dbTBM_Lines, { existingMongoose: db });
+  const dbTBM_LinesModelRaw = db.model(getName(dbTBM_Lines), dbTBM_LinesSchema);
+
+  return addModelToTypegoose(dbTBM_LinesModelRaw, dbTBM_Lines, { existingMongoose: db });
+}
+
+export type dbTBM_LinesModel = ReturnType<typeof init>;
