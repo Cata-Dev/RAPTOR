@@ -32,11 +32,10 @@ export type routeId = Id;
  * @description A Route, i.e. a succession of geographical specific points (stops) alongside with their correspondings operated trips.
  */
 export class Route {
-
   /**
    * @description Creates a new Route. Note that stops and trips are linked : they are cross-connected.
    */
-  constructor(readonly id: Id, readonly stops: Array<stopId>, readonly trips: Array<Trip>) { }
+  constructor(readonly id: Id, readonly stops: Array<stopId>, readonly trips: Array<Trip>) {}
 
   /**
    * @description Computes the departure time on a trip at stop p.
@@ -44,8 +43,6 @@ export class Route {
    * @param p Stop index in route (trip).
    */
   departureTime(t: number, p: stopId): timestamp {
-
     return this.trips[t].times[this.stops.indexOf(p)][0];
-
   }
 }
