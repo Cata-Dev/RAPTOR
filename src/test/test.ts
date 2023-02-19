@@ -14,6 +14,9 @@ function cartographicDistance(x1: number, y1: number, x2: number, y2: number): n
   return Math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2);
 }
 
+// Needed to solve "Reflect.getMetadata is not a function" error of typegoose
+import "@abraham/reflection";
+
 import sectionsModelInit, { dbSections } from "./models/sections.model";
 import stopsModelInit, { dbTBM_Stops } from "./models/TBM_stops.model";
 import { computePath, initialCallback } from "./computePath";
