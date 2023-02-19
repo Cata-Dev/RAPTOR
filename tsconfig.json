@@ -8,7 +8,8 @@
     "allowJs": true,
     "sourceMap": true,
     "target": "es6",
-    "strict": true
+    "strict": true,
+    "skipLibCheck": true,
   },
   "include": [
     "./src/**/*"
