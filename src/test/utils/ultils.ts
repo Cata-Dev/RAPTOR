@@ -28,3 +28,12 @@ export function approachedStopName(_id: number) {
 export function sectionId<S extends { rg_fv_graph_nd: node; rg_fv_graph_na: node }>({ rg_fv_graph_nd, rg_fv_graph_na }: S) {
   return `${rg_fv_graph_nd}-${rg_fv_graph_na}` as const;
 }
+
+export type KeyOfMap<M extends Map<unknown, unknown>> = M extends Map<infer K, unknown> ? K : never;
+
+/**
+ * @description Checks unicity of a value in an array
+ */
+export function unique<T>(v: T, i: number, arr: T[]): boolean {
+  return arr.indexOf(v) === i;
+}
