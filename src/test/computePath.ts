@@ -1,14 +1,15 @@
 import { path, Dijkstra, tracePath, DijkstraOptions } from "../FootPaths";
 import { node, WeightedGraph } from "../utils/Graph";
-import { id, Section, Stop } from "./test";
+import type { id } from "./test";
 
 import { parentPort } from "worker_threads";
 import { benchmark } from "./utils/benchmark";
+import { approachedStopName } from "./utils/ultils";
 
 export interface initData {
   adj: Required<ConstructorParameters<typeof WeightedGraph>>[0];
   weights: Required<ConstructorParameters<typeof WeightedGraph>>[1];
-  stops: Array<Section | Stop>;
+  stops: id[];
   options?: DijkstraOptions;
 }
 export function initialCallback(data: initData) {
@@ -31,19 +32,19 @@ let footGraph: WeightedGraph | undefined;
 let stops: initData["stops"] | undefined;
 let options: initData["options"] | undefined;
 
-export async function computePath<Paths extends boolean>(stopId: string, returnPaths: Paths) {
-  const sourcePaths: Map<id, Paths extends true ? [path, number] : number> = new Map();
+export async function computePath<Paths extends boolean>(stopId: node, returnPaths: Paths) {
+  const sourcePaths: Map<node, Paths extends true ? [path, number] : number> = new Map();
 
   if (!footGraph || !stops) return sourcePaths;
 
   const [dist, prev] = options ? await Dijkstra(footGraph, [stopId], options) : await Dijkstra(footGraph, [stopId]);
 
-  for (let j = 0; j < stops.length; j++) {
-    const targetNode = `stop-${stops[j]._id}`;
+  for (const stopId of stops) {
+    const targetNode = approachedStopName(stopId);
 
     if (dist.get(targetNode) !== undefined && dist.get(targetNode)! < Infinity)
       sourcePaths.set(
-        stops[j]._id,
+        stopId,
         (returnPaths ? [tracePath(prev, targetNode), dist.get(targetNode)!] : dist.get(targetNode)!) as Paths extends true ? [path, number] : number,
       );
   }
@@ -51,8 +52,8 @@ export async function computePath<Paths extends boolean>(stopId: string, returnP
   return sourcePaths;
 }
 
-export async function computePathBench<Paths extends boolean>(stopId: string, returnPaths: boolean) {
-  const sourcePaths: Map<id, Paths extends true ? [path, number] : number> = new Map();
+export async function computePathBench<Paths extends boolean>(stopId: node, returnPaths: boolean) {
+  const sourcePaths: Map<node, Paths extends true ? [path, number] : number> = new Map();
 
   if (!footGraph || !stops) return sourcePaths;
 
@@ -68,12 +69,12 @@ export async function computePathBench<Paths extends boolean>(stopId: string, re
 
   await benchmark(
     (s: NonNullable<typeof stops>) => {
-      for (let j = 0; j < s.length; j++) {
-        const targetNode = `stop-${s[j]._id}`;
+      for (const stopId of s) {
+        const targetNode = approachedStopName(stopId);
 
         if (dist.get(targetNode) !== undefined && dist.get(targetNode)! < Infinity)
           sourcePaths.set(
-            s[j]._id,
+            stopId,
             (returnPaths ? [tracePath(prev, targetNode), dist.get(targetNode)!] : dist.get(targetNode)!) as Paths extends true
               ? [path, number]
               : number,
