@@ -23,25 +23,17 @@ const c = ((gN1 * Math.cos(phi1)) / n) * Math.exp(n * gl1);
 export default class Point {
   constructor(protected _x: number, protected _y: number) {}
 
-  get x() {
+  public get x() {
     return this._x;
   }
 
-  set x(newX) {
-    this._x = newX;
-  }
-
-  get y() {
+  public get y() {
     return this._y;
   }
 
-  set y(newY) {
-    this._y = newY;
-  }
-
   transform(v: Vector2) {
-    this.x += v.x;
-    this.y += v.y;
+    this._x += v.x;
+    this._y += v.y;
     return this;
   }
 
@@ -59,8 +51,8 @@ export default class Point {
 
   fromWGSToLambert93() {
     const { x, y } = Point.fromWGSToLambert93(this);
-    this.x = x;
-    this.y = y;
+    this._x = x;
+    this._y = y;
     return this;
   }
 
