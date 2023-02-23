@@ -2,13 +2,9 @@ import Point from "./Point";
 import Vector2 from "./Vector";
 
 export default class Segment {
-  A: Point;
-  B: Point;
-  AB: Vector2;
+  protected AB: Vector2;
 
-  constructor(A: Point, B: Point) {
-    this.A = A;
-    this.B = B;
+  constructor(protected A: Point, protected B: Point) {
     this.AB = new Vector2(A, B);
   }
 
