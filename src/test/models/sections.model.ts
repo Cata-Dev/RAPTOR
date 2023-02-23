@@ -28,6 +28,9 @@ export class dbSections extends TimeStamps {
   public groupe!: number;
 
   @prop({ required: true })
+  public cat_dig!: number;
+
+  @prop({ required: true })
   public nom_voie!: string;
 
   @prop({ required: true })
