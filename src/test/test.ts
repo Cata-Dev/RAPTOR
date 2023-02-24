@@ -9,6 +9,7 @@ import Point from "../utils/Point";
 import Segment from "../utils/Segment";
 
 export type id = number;
+export type footGraphNodes = number | ReturnType<typeof approachedStopName>;
 
 // Needed to solve "Reflect.getMetadata is not a function" error of typegoose
 import "@abraham/reflection";
@@ -17,13 +18,33 @@ import sectionsModelInit, { dbSections } from "./models/sections.model";
 import stopsModelInit, { dbTBM_Stops } from "./models/TBM_stops.model";
 import { computePath, initialCallback } from "./computePath";
 import { DocumentType } from "@typegoose/typegoose";
-import { approachedStopName, euclidianDistance, computeGEOJSON, Deferred, GEOJSON, KeyOfMap, sectionId, toWGS, unique } from "./utils/ultils";
+import {
+  approachedStopName,
+  euclidianDistance,
+  computeGEOJSON,
+  Deferred,
+  GEOJSON,
+  sectionId,
+  toWGS,
+  unique,
+  dbIntersectionId,
+  dbSectionId,
+  unpackRefType,
+} from "./utils/ultils";
 import { writeFile } from "fs/promises";
 import { TemplateCoordinates } from "proj4";
+import FootGraphModelInit, { dbFootGraphEdges, dbFootGraphNodes } from "./models/FootGraph.model";
+import FootPathsModelInit, { dbFootPaths } from "./models/FootPaths.model";
+import { KeyOfMap } from "../utils";
 
 const sectionProjection = { coords: 1, distance: 1, rg_fv_graph_nd: 1, rg_fv_graph_na: 1, nom_voie: 1 };
 export type dbSection = Pick<dbSections, keyof typeof sectionProjection>;
-type SectionOverwritten = { rg_fv_graph_nd: node; rg_fv_graph_na: node };
+type SectionOverwritten = {
+  /** Will never be populated, so force to be RefType */
+  rg_fv_graph_nd: unpackRefType<dbSection["rg_fv_graph_nd"]> | ReturnType<typeof approachedStopName>;
+  /** Will never be populated, so force to be RefType */
+  rg_fv_graph_na: unpackRefType<dbSection["rg_fv_graph_nd"]> | ReturnType<typeof approachedStopName>;
+};
 export type Section = Omit<dbSection, keyof SectionOverwritten> & SectionOverwritten;
 
 const stopProjection = { _id: 1, coords: 1, libelle: 1 };
@@ -40,6 +61,8 @@ async function run() {
 
   const sectionsModel = sectionsModelInit(db);
   const stopsModel = stopsModelInit(db);
+  const [FootGraphModel, FootGraphNodesModel, FootGraphEdgesModel] = FootGraphModelInit(db);
+  const FootPathModel = FootPathsModelInit(db);
 
   const limitTop = new Point(44.813926, -0.581271).fromWGSToLambert93();
   const limitBot = new Point(44.793123, -0.632578).fromWGSToLambert93();
@@ -130,7 +153,7 @@ async function run() {
   }
 
   function makeGraph() {
-    const footGraph: WeightedGraph = new WeightedGraph();
+    const footGraph: WeightedGraph<footGraphNodes> = new WeightedGraph();
 
     for (const s of sections.values()) {
       //Oriented but don't care (foot graph)
@@ -304,7 +327,7 @@ async function run() {
     const getFullPaths = true;
 
     //paths<source, <target, paths>>
-    const paths: Map<id, Awaited<ReturnType<typeof computePath<typeof getFullPaths>>>> = new Map();
+    const paths: Map<KeyOfMap<typeof stops>, Awaited<ReturnType<typeof computePath<typeof getFullPaths>>>> = new Map();
 
     const def = new Deferred<typeof paths>();
 
@@ -427,7 +450,51 @@ async function run() {
   );
   for (let i = 0; i < GEOJSONs.length; i++) await writeFile(__dirname + `/../../out-${i}.geojson`, JSON.stringify(GEOJSONs[i]));
 
-  return { b1, b2, b3, b4, b5 };
+  async function updateDb() {
+    //Empty db
+    await FootGraphModel.deleteMany({});
+
+    await FootGraphNodesModel.insertMany(
+      Array.from(validIntersections.values())
+        .map<dbFootGraphNodes>(({ _id, coords }) => ({
+          _id: dbIntersectionId(_id),
+          coords,
+        }))
+        .concat(
+          Array.from(approachedStops).map(([asId, [Point]]) => ({
+            _id: asId,
+            coords: [Point.x, Point.y],
+          })),
+        ),
+    );
+
+    await FootGraphEdgesModel.insertMany(
+      Array.from(sections.values()).map<dbFootGraphEdges>((section, index) => ({
+        _id: dbSectionId(index),
+        coords: section.coords,
+        distance: section.distance,
+        ends: [
+          typeof section.rg_fv_graph_nd === "number" ? dbIntersectionId(section.rg_fv_graph_nd) : section.rg_fv_graph_nd,
+          typeof section.rg_fv_graph_na === "number" ? dbIntersectionId(section.rg_fv_graph_na) : section.rg_fv_graph_na,
+        ],
+      })),
+    );
+
+    await FootPathModel.deleteMany({});
+
+    await FootPathModel.insertMany(
+      Array.from(paths).map<dbFootPaths>(([from, [[to, [path, distance]]]]) => ({
+        from,
+        to,
+        path: path.map((node) => (typeof node === "number" ? dbIntersectionId(node) : node)),
+        distance,
+      })),
+    );
+  }
+  const b6 = await benchmark(updateDb, []);
+  console.log("b6 ended");
+
+  return { b1, b2, b3, b4, b5, b6 };
 }
 
 run().then(console.log).catch(console.error);
