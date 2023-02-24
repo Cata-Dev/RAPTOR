@@ -157,7 +157,7 @@ async function run() {
 
     for (const s of sections.values()) {
       //Oriented but don't care (foot graph)
-      footGraph.add_edge(s.rg_fv_graph_nd as number, s.rg_fv_graph_na as number, s.distance);
+      footGraph.add_edge(s.rg_fv_graph_nd, s.rg_fv_graph_na, s.distance);
     }
 
     return footGraph;
@@ -259,7 +259,7 @@ async function run() {
         }, 0) + Point.distance(closestPoint, new Point(...section.coords[n]));
 
       //Remove edge from p1 to p2
-      footGraph.remove_edge(section.rg_fv_graph_nd as number, section.rg_fv_graph_na as number);
+      footGraph.remove_edge(section.rg_fv_graph_nd, section.rg_fv_graph_na);
       sections.delete(sectionId(section));
 
       const insertedNode = stopId;
@@ -272,7 +272,7 @@ async function run() {
         rg_fv_graph_nd: section.rg_fv_graph_nd,
         rg_fv_graph_na: insertedNode,
       };
-      footGraph.add_edge(section.rg_fv_graph_nd as number, insertedNode, toApproadchedStop);
+      footGraph.add_edge(section.rg_fv_graph_nd, insertedNode, toApproadchedStop);
       sections.set(sectionId({ rg_fv_graph_nd: section.rg_fv_graph_nd, rg_fv_graph_na: insertedNode }), subsectionToApproachedStop);
 
       const subsectionFromApproachedStop: Section = {
@@ -282,7 +282,7 @@ async function run() {
         rg_fv_graph_nd: insertedNode,
         rg_fv_graph_na: section.rg_fv_graph_na,
       };
-      footGraph.add_edge(insertedNode, section.rg_fv_graph_na as number, fromApproachedStop);
+      footGraph.add_edge(insertedNode, section.rg_fv_graph_na, fromApproachedStop);
       sections.set(sectionId({ rg_fv_graph_nd: insertedNode, rg_fv_graph_na: section.rg_fv_graph_na }), subsectionFromApproachedStop);
     }
   }
