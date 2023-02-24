@@ -1,7 +1,7 @@
-import { node, nodeOrNullNode, nullNode, WeightedGraph } from "./utils/Graph";
+import { node, nodeOrNullNode, nullNode, unpackGraphNode, WeightedGraph } from "./utils/Graph";
 import { FibonacciHeap, INode } from "@tyriar/fibonacci-heap";
 
-export type path = node[];
+export type path<N extends node = node> = N[];
 
 export interface DijkstraOptions {
   maxCumulWeight: number;
@@ -13,7 +13,7 @@ export interface DijkstraOptions {
  * @param s Source node
  * @returns First, the distances from source node to considered node. Secondly, an array that traces downwards the shortest path from considered node to source node.
  */
-export function Dijkstra(G: WeightedGraph, [s]: [node]): [Map<node, number>, Map<node, node>];
+export function Dijkstra<N extends node, G extends WeightedGraph>(G: G, [s]: [N]): [Map<N, number>, Map<N, N>];
 /**
  * @description Generate the shortest paths from source node `s` to every nodes in graph `G`, considering options `O`.
  * @param G Source graph
@@ -21,7 +21,7 @@ export function Dijkstra(G: WeightedGraph, [s]: [node]): [Map<node, number>, Map
  * @param O Options for Dijkstra computing
  * @returns First, the distances from source node to considered node. Secondly, an array that traces downwards the shortest path from considered node to source node.
  */
-export function Dijkstra(G: WeightedGraph, [s]: [node], O: DijkstraOptions): [Map<node, number>, Map<node, node>];
+export function Dijkstra<N extends node, G extends WeightedGraph>(G: G, [s]: [N], O: DijkstraOptions): [Map<N, number>, Map<N, N>];
 /**
  * @description Computes the shortest path from source node `s` to target node `t` on graph `G`.
  * @param G Source graph
@@ -29,7 +29,7 @@ export function Dijkstra(G: WeightedGraph, [s]: [node], O: DijkstraOptions): [Ma
  * @param t Target node
  * @returns The shortest path from s to t.
  */
-export function Dijkstra(G: WeightedGraph, [s, t]: [node, node]): path;
+export function Dijkstra<N extends node, G extends WeightedGraph>(G: G, [s, t]: [N, N]): path<N>;
 /**
  * @description Computes the shortest path from source node `s` to target node `t` on graph `G`, considering options `O`.
  * @param G Source graph
@@ -38,16 +38,16 @@ export function Dijkstra(G: WeightedGraph, [s, t]: [node, node]): path;
  * @param O Options for Dijkstra computing
  * @returns The shortest path from s to t.
  */
-export function Dijkstra(G: WeightedGraph, [s, t]: [node, node], O: DijkstraOptions): path;
-export function Dijkstra(
-  G: WeightedGraph,
-  [s, t]: [node, node] | [node],
+export function Dijkstra<N extends node, G extends WeightedGraph>(G: G, [s, t]: [N, N], O: DijkstraOptions): path<N>;
+export function Dijkstra<N extends node, G extends WeightedGraph<N>>(
+  G: G,
+  [s, t]: [N, N] | [N],
   O?: DijkstraOptions,
-): path | [Map<node, number>, Map<node, nodeOrNullNode>] {
-  const dist = new Map<node, number>();
-  const prev = new Map<node, nodeOrNullNode>();
-  const Q = new FibonacciHeap<number, node>();
-  const QMapping = new Map<node, INode<number, node> | null>();
+): path<N> | [Map<N, number>, Map<N, nodeOrNullNode<N>>] {
+  const dist = new Map<N, number>();
+  const prev = new Map<N, nodeOrNullNode<N>>();
+  const Q = new FibonacciHeap<number, N>();
+  const QMapping = new Map<N, INode<number, N> | null>();
 
   dist.set(s, 0);
   QMapping.set(s, Q.insert(0, s));
@@ -89,9 +89,9 @@ export function Dijkstra(
  * @param target
  * @param source
  */
-export function tracePath(prev: Map<node, nodeOrNullNode>, target: node, source?: node): path {
-  let path: path = [];
-  let e: nodeOrNullNode = target;
+export function tracePath<N extends node>(prev: Map<N, nodeOrNullNode<N>>, target: N, source?: N): path<N> {
+  let path: path<N> = [];
+  let e: nodeOrNullNode<N> = target;
   if (prev.get(e) !== nullNode || (source && e === source)) {
     // If source === target, just return [target] (== [source])
 
