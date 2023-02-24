@@ -10,13 +10,13 @@ import { approachedStopName, dbIntersectionId, dbSectionId } from "../utils/ulti
 
 @modelOptions({ options: { customName: "FootGraph" } })
 export class dbFootGraph {
-  @prop({ required: true })
+  @prop({ required: true, type: () => String })
   public _id!: ReturnType<typeof approachedStopName> | ReturnType<typeof dbIntersectionId> | ReturnType<typeof dbSectionId>;
 }
 
 @modelOptions({ options: { customName: "FootGraphNode" } })
 export class dbFootGraphNodes extends dbFootGraph {
-  @prop({ required: true })
+  @prop({ required: true, type: () => String })
   public _id!: ReturnType<typeof approachedStopName> | ReturnType<typeof dbIntersectionId>;
 
   @prop({ required: true, type: () => [Number] })
@@ -28,7 +28,7 @@ export class dbFootGraphNodes extends dbFootGraph {
 
 @modelOptions({ options: { customName: "FootGraphEdge" } })
 export class dbFootGraphEdges extends dbFootGraph {
-  @prop({ required: true })
+  @prop({ required: true, type: () => String })
   public _id!: ReturnType<typeof dbSectionId>;
 
   @prop({ required: true })
