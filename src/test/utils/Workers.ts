@@ -96,7 +96,7 @@ export class WorkerPool<Icb extends (...args: any[]) => any> {
       const delta = new Duration(Number((process.hrtime.bigint() - startTime) / nsPerMs));
       worker.status = Status.Idle;
       resolve(result);
-      console.log(`Finished worker ${worker.id} after ${delta.totalSeconds}s${delta.rSeconds} (${this.queue.size})`);
+      console.log(`Finished worker ${worker.id} after ${delta} (${this.queue.size})`);
       this.runCallback();
       worker.worker.removeListener("message", onceMessage);
       worker.worker.removeListener("error", onceError);
