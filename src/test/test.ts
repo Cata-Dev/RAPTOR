@@ -50,7 +50,7 @@ export type Section = Omit<dbSection, keyof SectionOverwritten> & SectionOverwri
 const stopProjection = { _id: 1, coords: 1, libelle: 1 };
 export type Stop = Pick<dbTBM_Stops, keyof typeof stopProjection>;
 
-async function run() {
+export async function run() {
   /** Data displaying.
    * Uses {@link proj4} with crs {@link https://epsg.io/2154}.
    */
@@ -496,5 +496,3 @@ async function run() {
 
   return { b1, b2, b3, b4, b5, b6 };
 }
-
-run().then(console.log).catch(console.error);
