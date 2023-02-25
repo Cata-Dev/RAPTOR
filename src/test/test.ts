@@ -42,7 +42,7 @@ export type Section = Omit<dbSection, keyof SectionOverwritten> & SectionOverwri
 const stopProjection = { _id: 1, coords: 1, libelle: 1 };
 export type Stop = Pick<dbTBM_Stops, keyof typeof stopProjection>;
 
-export async function run({ getFullPaths = false, computeGEOJSONs = false, dijkstraOptions }: testOptions) {
+export async function run({ getFullPaths = false, dijkstraOptions }: testOptions) {
   //Grab required data
   const db = await initDB();
 
@@ -51,8 +51,8 @@ export async function run({ getFullPaths = false, computeGEOJSONs = false, dijks
   const [FootGraphModel, FootGraphNodesModel, FootGraphEdgesModel] = FootGraphModelInit(db);
   const FootPathModel = FootPathsModelInit(db);
 
-  const limitTop = new Point(44.813926, -0.581271).fromWGSToLambert93();
-  const limitBot = new Point(44.793123, -0.632578).fromWGSToLambert93();
+  // const limitTop = new Point(44.813926, -0.581271).fromWGSToLambert93();
+  // const limitBot = new Point(44.793123, -0.632578).fromWGSToLambert93();
 
   async function queryData() {
     //Important : sections are oriented => 2 entries per section
