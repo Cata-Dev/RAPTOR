@@ -8,6 +8,10 @@ import { node, WeightedGraph } from "../utils/Graph";
 import Point from "../utils/Point";
 import Segment from "../utils/Segment";
 
+export interface testOptions {
+  getFullPaths: boolean;
+  computeGEOJSONs: boolean;
+}
 export type id = number;
 export type footGraphNodes = number | ReturnType<typeof approachedStopName>;
 
@@ -50,7 +54,7 @@ export type Section = Omit<dbSection, keyof SectionOverwritten> & SectionOverwri
 const stopProjection = { _id: 1, coords: 1, libelle: 1 };
 export type Stop = Pick<dbTBM_Stops, keyof typeof stopProjection>;
 
-export async function run() {
+export async function run({ getFullPaths, computeGEOJSONs }: testOptions) {
   /** Data displaying.
    * Uses {@link proj4} with crs {@link https://epsg.io/2154}.
    */
@@ -73,14 +77,14 @@ export async function run() {
       (
         (await sectionsModel
           .find<HydratedDocument<DocumentType<Section>>>(
-            //Restrict domain
             {
-              $and: [
-                { "coords.0.0": { $lte: limitTop.x } },
-                { "coords.0.0": { $gte: limitBot.x } },
-                { "coords.0.1": { $lte: limitTop.y } },
-                { "coords.0.1": { $gte: limitBot.y } },
-              ],
+              //Restrict domain
+              // $and: [
+              //   { "coords.0.0": { $lte: limitTop.x } },
+              //   { "coords.0.0": { $gte: limitBot.x } },
+              //   { "coords.0.1": { $lte: limitTop.y } },
+              //   { "coords.0.1": { $gte: limitBot.y } },
+              // ],
               cat_dig: {
                 $in: [2, 3, 4, 5, 7, 9],
               },
@@ -120,10 +124,10 @@ export async function run() {
               $and: [
                 { coords: { $not: { $elemMatch: { $eq: Infinity } } } },
                 //Restrict domain
-                { "coords.0": { $lte: limitTop.x } },
-                { "coords.0": { $gte: limitBot.x } },
-                { "coords.1": { $lte: limitTop.y } },
-                { "coords.1": { $gte: limitBot.y } },
+                // { "coords.0": { $lte: limitTop.x } },
+                // { "coords.0": { $gte: limitBot.x } },
+                // { "coords.1": { $lte: limitTop.y } },
+                // { "coords.1": { $gte: limitBot.y } },
               ],
             },
             stopProjection,
@@ -142,7 +146,7 @@ export async function run() {
       stops,
     };
   }
-  const b1 = await benchmark(queryData, [], 10);
+  const b1 = await benchmark(queryData, []);
   console.log("b1 ended");
   if (!b1.lastReturn) throw `b1 return null`;
   const { validIntersections, sections, stops } = b1.lastReturn;
@@ -162,34 +166,35 @@ export async function run() {
 
     return footGraph;
   }
-  const b2 = await benchmark(makeGraph, [], 10);
+  const b2 = await benchmark(makeGraph, []);
   console.log("b2 ended");
   if (!b2.lastReturn) throw `b2 return null`;
   const footGraph = b2.lastReturn;
 
-  GEOJSONs.push(
-    computeGEOJSON(
-      // footGraph.nodes,
-      [],
-      footGraph.arcs,
-      () => [],
-      // (node) =>
-      //   toWGS(typeof node === "number" ? validIntersections.get(node)?.coords ?? [0, 0] : stops.get(parseInt(node.split("-")[0]))?.coords ?? [0, 0]),
-      (arc) =>
-        sections.get(sectionId({ rg_fv_graph_nd: arc[0], rg_fv_graph_na: arc[1] }))?.coords.map((coords) => toWGS(coords)) ?? [
-          [0, 0],
-          [0, 0],
-        ],
-      (node) => ({
-        id: node,
-        "marker-color": "#5a5a5a",
-        "marker-size": "small",
-      }),
-      (arc) => ({
-        nom: Array.from(sections.values()).find((s) => s.rg_fv_graph_nd === arc[0] && s.rg_fv_graph_na === arc[1])?.nom_voie || "Unknown",
-      }),
-    ),
-  );
+  if (computeGEOJSONs)
+    GEOJSONs.push(
+      computeGEOJSON(
+        // footGraph.nodes,
+        [],
+        footGraph.arcs,
+        () => [],
+        // (node) =>
+        //   toWGS(typeof node === "number" ? validIntersections.get(node)?.coords ?? [0, 0] : stops.get(parseInt(node.split("-")[0]))?.coords ?? [0, 0]),
+        (arc) =>
+          sections.get(sectionId({ rg_fv_graph_nd: arc[0], rg_fv_graph_na: arc[1] }))?.coords.map((coords) => toWGS(coords)) ?? [
+            [0, 0],
+            [0, 0],
+          ],
+        (node) => ({
+          id: node,
+          "marker-color": "#5a5a5a",
+          "marker-size": "small",
+        }),
+        (arc) => ({
+          nom: Array.from(sections.values()).find((s) => s.rg_fv_graph_nd === arc[0] && s.rg_fv_graph_na === arc[1])?.nom_voie || "Unknown",
+        }),
+      ),
+    );
 
   //Compute approached stops
   function computeApproachedStops() {
@@ -233,7 +238,7 @@ export async function run() {
     }
     return approachedStops;
   }
-  const b3 = await benchmark(computeApproachedStops, [], 1);
+  const b3 = await benchmark(computeApproachedStops, []);
   console.log("b3 ended");
   if (!b3.lastReturn) throw `b3 return null`;
   const approachedStops = b3.lastReturn;
@@ -289,41 +294,40 @@ export async function run() {
   const b4 = await benchmark(refreshWithApproachedStops, []);
   console.log("b4 ended");
 
-  GEOJSONs.push(
-    computeGEOJSON(
-      footGraph.nodes,
-      footGraph.arcs,
-      // () => [],
-      (node) => {
-        let coords: [number, number] = [0, 0];
-        if (typeof node === "number") coords = validIntersections.get(node)?.coords ?? [0, 0];
-        else {
-          const approachedStopPoint = approachedStops.get(node as ReturnType<typeof approachedStopName>)?.[0];
-          if (approachedStopPoint) coords = [approachedStopPoint.x, approachedStopPoint.y];
-        }
-        return toWGS(coords);
-      },
-      (arc) =>
-        getSection(arc[0], arc[1])?.coords.map((coords) => toWGS(coords)) ?? [
-          [0, 0],
-          [0, 0],
-        ],
-      (node) => ({
-        id: node,
-        name: stops.get(typeof node === "string" ? parseInt(node.split("=")[1]) : node)?.libelle ?? "Unknown",
-        "marker-color": typeof node === "string" ? "#ff0000" : "#5a5a5a",
-        "marker-size": typeof node === "string" ? "medium" : "small",
-      }),
-      (arc) => ({
-        name: getSection(arc[0], arc[1])?.nom_voie || "Unknown",
-        distance: getSection(arc[0], arc[1])?.distance || "Unknown",
-        sectionId: sectionId({ rg_fv_graph_nd: arc[0], rg_fv_graph_na: arc[1] }),
-        stroke: typeof arc[0] === "string" || typeof arc[1] === "string" ? "#e60000" : "#5a5a5a",
-      }),
-    ),
-  );
-
-  const getFullPaths = false;
+  if (computeGEOJSONs)
+    GEOJSONs.push(
+      computeGEOJSON(
+        footGraph.nodes,
+        footGraph.arcs,
+        // () => [],
+        (node) => {
+          let coords: [number, number] = [0, 0];
+          if (typeof node === "number") coords = validIntersections.get(node)?.coords ?? [0, 0];
+          else {
+            const approachedStopPoint = approachedStops.get(node as ReturnType<typeof approachedStopName>)?.[0];
+            if (approachedStopPoint) coords = [approachedStopPoint.x, approachedStopPoint.y];
+          }
+          return toWGS(coords);
+        },
+        (arc) =>
+          getSection(arc[0], arc[1])?.coords.map((coords) => toWGS(coords)) ?? [
+            [0, 0],
+            [0, 0],
+          ],
+        (node) => ({
+          id: node,
+          name: stops.get(typeof node === "string" ? parseInt(node.split("=")[1]) : node)?.libelle ?? "Unknown",
+          "marker-color": typeof node === "string" ? "#ff0000" : "#5a5a5a",
+          "marker-size": typeof node === "string" ? "medium" : "small",
+        }),
+        (arc) => ({
+          name: getSection(arc[0], arc[1])?.nom_voie || "Unknown",
+          distance: getSection(arc[0], arc[1])?.distance || "Unknown",
+          sectionId: sectionId({ rg_fv_graph_nd: arc[0], rg_fv_graph_na: arc[1] }),
+          stroke: typeof arc[0] === "string" || typeof arc[1] === "string" ? "#e60000" : "#5a5a5a",
+        }),
+      ),
+    );
 
   async function computePaths() {
     //paths<source, <target, paths>>
@@ -361,94 +365,96 @@ export async function run() {
   const paths = b5.lastReturn;
 
   // From "Les Harmonies"
-  GEOJSONs.push(
-    computeGEOJSON(
-      footGraph.nodes,
-      Array.from(paths.get(128738)!).filter(([_, [path]]) => path.length),
-      (node) => {
-        let coords: [number, number] = [0, 0];
-        if (typeof node === "number") coords = validIntersections.get(node)?.coords ?? [0, 0];
-        else {
-          const approachedStopPoint = approachedStops.get(node as ReturnType<typeof approachedStopName>)?.[0];
-          if (approachedStopPoint) coords = [approachedStopPoint.x, approachedStopPoint.y];
-        }
-        return toWGS(coords);
-      },
-      ([_, [path]]) =>
-        path.reduce<TemplateCoordinates[]>(
-          (acc, v, i) =>
-            i < path.length - 1
-              ? [
-                  ...acc,
-                  ...((
-                    sections.get(sectionId({ rg_fv_graph_nd: v, rg_fv_graph_na: path[i + 1] }))?.coords ??
-                    sections
-                      .get(sectionId({ rg_fv_graph_nd: path[i + 1], rg_fv_graph_na: v }))
-                      ?.coords // Make a copy & reverse to get coords in the right order, tricky
-                      .slice()
-                      .reverse()
-                  )?.map((coords) => toWGS(coords)) ?? [
-                    [0, 0],
-                    [0, 0],
-                  ]),
-                ]
-              : acc,
-          [],
-        ),
-      (node) => ({
-        id: node,
-        name: stops.get(typeof node === "string" ? parseInt(node.split("=")[1]) : node)?.libelle ?? "Unknown",
-        "marker-color": typeof node === "string" ? "#ff0000" : "#5a5a5a",
-        "marker-size": typeof node === "string" ? "medium" : "small",
-      }),
-      ([dest, [path, distance]]) => ({
-        path: `${path[0]}-${dest}`,
-        distance,
-        stroke: "#8080ff",
-      }),
-    ),
-  );
+  if (computeGEOJSONs)
+    GEOJSONs.push(
+      computeGEOJSON(
+        footGraph.nodes,
+        Array.from(paths.get(128738)!).filter(([_, [path]]) => path.length),
+        (node) => {
+          let coords: [number, number] = [0, 0];
+          if (typeof node === "number") coords = validIntersections.get(node)?.coords ?? [0, 0];
+          else {
+            const approachedStopPoint = approachedStops.get(node as ReturnType<typeof approachedStopName>)?.[0];
+            if (approachedStopPoint) coords = [approachedStopPoint.x, approachedStopPoint.y];
+          }
+          return toWGS(coords);
+        },
+        ([_, [path]]) =>
+          path.reduce<TemplateCoordinates[]>(
+            (acc, v, i) =>
+              i < path.length - 1
+                ? [
+                    ...acc,
+                    ...((
+                      sections.get(sectionId({ rg_fv_graph_nd: v, rg_fv_graph_na: path[i + 1] }))?.coords ??
+                      sections
+                        .get(sectionId({ rg_fv_graph_nd: path[i + 1], rg_fv_graph_na: v }))
+                        ?.coords // Make a copy & reverse to get coords in the right order, tricky
+                        .slice()
+                        .reverse()
+                    )?.map((coords) => toWGS(coords)) ?? [
+                      [0, 0],
+                      [0, 0],
+                    ]),
+                  ]
+                : acc,
+            [],
+          ),
+        (node) => ({
+          id: node,
+          name: stops.get(typeof node === "string" ? parseInt(node.split("=")[1]) : node)?.libelle ?? "Unknown",
+          "marker-color": typeof node === "string" ? "#ff0000" : "#5a5a5a",
+          "marker-size": typeof node === "string" ? "medium" : "small",
+        }),
+        ([dest, [path, distance]]) => ({
+          path: `${path[0]}-${dest}`,
+          distance,
+          stroke: "#8080ff",
+        }),
+      ),
+    );
 
   //From "Les Harmonies" to "Peixotto"
   const specificPath = paths.get(128738)!.get(126798)!;
-  GEOJSONs.push(
-    computeGEOJSON(
-      footGraph.nodes,
-      specificPath[0].reduce<[node, node][]>((acc, node, i, path) => (i < path.length - 1 ? [...acc, [node, path[i + 1]]] : acc), []),
-      (node) => {
-        let coords: [number, number] = [0, 0];
-        if (typeof node === "number") coords = validIntersections.get(node)?.coords ?? [0, 0];
-        else {
-          const approachedStopPoint = approachedStops.get(node as ReturnType<typeof approachedStopName>)?.[0];
-          if (approachedStopPoint) coords = [approachedStopPoint.x, approachedStopPoint.y];
-        }
-        return toWGS(coords);
-      },
-      (path) =>
-        path.reduce<TemplateCoordinates[]>(
-          (acc, v, i) =>
-            i === 0
-              ? getSection(v, path[i + 1])?.coords.map((coords) => toWGS(coords)) ?? [
-                  [0, 0],
-                  [0, 0],
-                ]
-              : acc,
-          [],
-        ),
-      (node) => ({
-        id: node,
-        name: stops.get(typeof node === "string" ? parseInt(node.split("=")[1]) : node)?.libelle ?? "Unknown",
-        "marker-color": typeof node === "string" ? "#ff0000" : "#5a5a5a",
-        "marker-size": typeof node === "string" ? "medium" : "small",
-      }),
-      (path) => ({
-        path: `${path[0]}-${path[path.length - 1]}`,
-        totalDistance: specificPath[1],
-        stroke: "#8080ff",
-      }),
-    ),
-  );
-  for (let i = 0; i < GEOJSONs.length; i++) await writeFile(__dirname + `/../../out-${i}.geojson`, JSON.stringify(GEOJSONs[i]));
+  if (computeGEOJSONs)
+    GEOJSONs.push(
+      computeGEOJSON(
+        footGraph.nodes,
+        specificPath[0].reduce<[node, node][]>((acc, node, i, path) => (i < path.length - 1 ? [...acc, [node, path[i + 1]]] : acc), []),
+        (node) => {
+          let coords: [number, number] = [0, 0];
+          if (typeof node === "number") coords = validIntersections.get(node)?.coords ?? [0, 0];
+          else {
+            const approachedStopPoint = approachedStops.get(node as ReturnType<typeof approachedStopName>)?.[0];
+            if (approachedStopPoint) coords = [approachedStopPoint.x, approachedStopPoint.y];
+          }
+          return toWGS(coords);
+        },
+        (path) =>
+          path.reduce<TemplateCoordinates[]>(
+            (acc, v, i) =>
+              i === 0
+                ? getSection(v, path[i + 1])?.coords.map((coords) => toWGS(coords)) ?? [
+                    [0, 0],
+                    [0, 0],
+                  ]
+                : acc,
+            [],
+          ),
+        (node) => ({
+          id: node,
+          name: stops.get(typeof node === "string" ? parseInt(node.split("=")[1]) : node)?.libelle ?? "Unknown",
+          "marker-color": typeof node === "string" ? "#ff0000" : "#5a5a5a",
+          "marker-size": typeof node === "string" ? "medium" : "small",
+        }),
+        (path) => ({
+          path: `${path[0]}-${path[path.length - 1]}`,
+          totalDistance: specificPath[1],
+          stroke: "#8080ff",
+        }),
+      ),
+    );
+  if (computeGEOJSONs) for (let i = 0; i < GEOJSONs.length; i++) await writeFile(__dirname + `/../../out-${i}.geojson`, JSON.stringify(GEOJSONs[i]));
 
   async function updateDb() {
     //Empty db
