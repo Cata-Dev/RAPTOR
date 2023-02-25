@@ -26,7 +26,7 @@ export class dbTBM_Lines extends TimeStamps {
 }
 
 export default function init(db: Mongoose) {
-  if (getModelForClass(dbTBM_Lines,  { existingMongoose: db })) deleteModelWithClass(dbTBM_Lines);
+  if (getModelForClass(dbTBM_Lines, { existingMongoose: db })) deleteModelWithClass(dbTBM_Lines);
 
   const dbTBM_LinesSchema = buildSchema(dbTBM_Lines, { existingMongoose: db });
   const dbTBM_LinesModelRaw = db.model(getName(dbTBM_Lines), dbTBM_LinesSchema);

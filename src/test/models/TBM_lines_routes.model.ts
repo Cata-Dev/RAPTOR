@@ -37,7 +37,7 @@ export class dbTBM_Lines_routes extends TimeStamps {
 
 // for more of what you can do here.
 export default function init(db: Mongoose) {
-  if (getModelForClass(dbTBM_Lines_routes,  { existingMongoose: db })) deleteModelWithClass(dbTBM_Lines_routes);
+  if (getModelForClass(dbTBM_Lines_routes, { existingMongoose: db })) deleteModelWithClass(dbTBM_Lines_routes);
 
   const dbTBM_Lines_routesSchema = buildSchema(dbTBM_Lines_routes, { existingMongoose: db });
   const dbTBM_Lines_routesModelRaw = db.model(getName(dbTBM_Lines_routes), dbTBM_Lines_routesSchema);

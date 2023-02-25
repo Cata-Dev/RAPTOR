@@ -22,7 +22,7 @@ export class dbIntersections extends TimeStamps {
 }
 
 export default function init(db: Mongoose) {
-  if (getModelForClass(dbIntersections,  { existingMongoose: db })) deleteModelWithClass(dbIntersections);
+  if (getModelForClass(dbIntersections, { existingMongoose: db })) deleteModelWithClass(dbIntersections);
 
   const dbIntersectionsSchema = buildSchema(dbIntersections, { existingMongoose: db });
   const dbIntersectionsModelRaw = db.model(getName(dbIntersections), dbIntersectionsSchema);

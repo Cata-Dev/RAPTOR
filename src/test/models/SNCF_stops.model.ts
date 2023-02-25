@@ -25,7 +25,7 @@ export class dbSNCF_Stops extends TimeStamps {
 }
 
 export default function init(db: Mongoose) {
-  if (getModelForClass(dbSNCF_Stops,  { existingMongoose: db })) deleteModelWithClass(dbSNCF_Stops);
+  if (getModelForClass(dbSNCF_Stops, { existingMongoose: db })) deleteModelWithClass(dbSNCF_Stops);
 
   const dbSNCF_StopsSchema = buildSchema(dbSNCF_Stops, { existingMongoose: db });
   const dbSNCF_StopsModelRaw = db.model(getName(dbSNCF_Stops), dbSNCF_StopsSchema);

@@ -29,7 +29,7 @@ export class dbSNCF_Schedules extends TimeStamps {
 }
 
 export default function init(db: Mongoose) {
-  if (getModelForClass(dbSNCF_Schedules,  { existingMongoose: db })) deleteModelWithClass(dbSNCF_Schedules);
+  if (getModelForClass(dbSNCF_Schedules, { existingMongoose: db })) deleteModelWithClass(dbSNCF_Schedules);
 
   const dbSNCF_SchedulesSchema = buildSchema(dbSNCF_Schedules, { existingMongoose: db });
   const dbSNCF_SchedulesModelRaw = db.model(getName(dbSNCF_Schedules), dbSNCF_SchedulesSchema);

@@ -35,7 +35,7 @@ export class dbTBM_Trips extends TimeStamps {
 }
 
 export default function init(db: Mongoose) {
-  if (getModelForClass(dbTBM_Trips,  { existingMongoose: db })) deleteModelWithClass(dbTBM_Trips);
+  if (getModelForClass(dbTBM_Trips, { existingMongoose: db })) deleteModelWithClass(dbTBM_Trips);
 
   const dbTBM_TripsSchema = buildSchema(dbTBM_Trips, { existingMongoose: db });
   const dbTBM_TripsModelRaw = db.model(getName(dbTBM_Trips), dbTBM_TripsSchema);

@@ -34,7 +34,7 @@ export class dbTBM_ScheduledRoutes extends TimeStamps {
 }
 
 export default function init(db: Mongoose) {
-  if (getModelForClass(dbTBM_ScheduledRoutes,  { existingMongoose: db })) deleteModelWithClass(dbTBM_ScheduledRoutes);
+  if (getModelForClass(dbTBM_ScheduledRoutes, { existingMongoose: db })) deleteModelWithClass(dbTBM_ScheduledRoutes);
 
   const dbTBM_ScheduledRoutesSchema = buildSchema(dbTBM_ScheduledRoutes, {
     existingMongoose: db,
