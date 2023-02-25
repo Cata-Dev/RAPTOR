@@ -494,5 +494,8 @@ export async function run() {
   const b6 = await benchmark(updateDb, []);
   console.log("b6 ended");
 
+  //End procedure
+  await db.disconnect();
+
   return { b1, b2, b3, b4, b5, b6 };
 }
