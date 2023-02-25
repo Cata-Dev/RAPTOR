@@ -323,9 +323,9 @@ async function run() {
     ),
   );
 
-  async function computePaths() {
-    const getFullPaths = true;
+  const getFullPaths = false;
 
+  async function computePaths() {
     //paths<source, <target, paths>>
     const paths: Map<KeyOfMap<typeof stops>, Awaited<ReturnType<typeof computePath<typeof getFullPaths>>>> = new Map();
 
