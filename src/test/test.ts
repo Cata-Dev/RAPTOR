@@ -9,8 +9,9 @@ import Point from "../utils/Point";
 import Segment from "../utils/Segment";
 
 export interface testOptions {
-  getFullPaths: boolean;
-  computeGEOJSONs: boolean;
+  getFullPaths?: boolean;
+  computeGEOJSONs?: boolean;
+  dijkstraOptions?: DijkstraOptions;
 }
 export type id = number;
 export type footGraphNodes = number | ReturnType<typeof approachedStopName>;
@@ -40,6 +41,7 @@ import { TemplateCoordinates } from "proj4";
 import FootGraphModelInit, { dbFootGraphEdges, dbFootGraphNodes } from "./models/FootGraph.model";
 import FootPathsModelInit, { dbFootPaths } from "./models/FootPaths.model";
 import { KeyOfMap } from "../utils";
+import { DijkstraOptions } from "../FootPaths";
 
 const sectionProjection = { coords: 1, distance: 1, rg_fv_graph_nd: 1, rg_fv_graph_na: 1, nom_voie: 1 };
 export type dbSection = Pick<dbSections, keyof typeof sectionProjection>;
@@ -54,7 +56,7 @@ export type Section = Omit<dbSection, keyof SectionOverwritten> & SectionOverwri
 const stopProjection = { _id: 1, coords: 1, libelle: 1 };
 export type Stop = Pick<dbTBM_Stops, keyof typeof stopProjection>;
 
-export async function run({ getFullPaths, computeGEOJSONs }: testOptions) {
+export async function run({ getFullPaths = false, computeGEOJSONs = false, dijkstraOptions }: testOptions) {
   /** Data displaying.
    * Uses {@link proj4} with crs {@link https://epsg.io/2154}.
    */
@@ -339,6 +341,7 @@ export async function run({ getFullPaths, computeGEOJSONs }: testOptions) {
       adj: footGraph.adj,
       weights: footGraph.weights,
       stops: Array.from(stops.keys()),
+      options: dijkstraOptions,
     });
 
     let rejected = false;
