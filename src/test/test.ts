@@ -81,12 +81,12 @@ export async function run({ getFullPaths = false, computeGEOJSONs = false, dijks
           .find<HydratedDocument<DocumentType<Section>>>(
             {
               //Restrict domain
-              // $and: [
-              //   { "coords.0.0": { $lte: limitTop.x } },
-              //   { "coords.0.0": { $gte: limitBot.x } },
-              //   { "coords.0.1": { $lte: limitTop.y } },
-              //   { "coords.0.1": { $gte: limitBot.y } },
-              // ],
+              $and: [
+                { "coords.0.0": { $lte: limitTop.x } },
+                { "coords.0.0": { $gte: limitBot.x } },
+                { "coords.0.1": { $lte: limitTop.y } },
+                { "coords.0.1": { $gte: limitBot.y } },
+              ],
               cat_dig: {
                 $in: [2, 3, 4, 5, 7, 9],
               },
@@ -126,10 +126,10 @@ export async function run({ getFullPaths = false, computeGEOJSONs = false, dijks
               $and: [
                 { coords: { $not: { $elemMatch: { $eq: Infinity } } } },
                 //Restrict domain
-                // { "coords.0": { $lte: limitTop.x } },
-                // { "coords.0": { $gte: limitBot.x } },
-                // { "coords.1": { $lte: limitTop.y } },
-                // { "coords.1": { $gte: limitBot.y } },
+                { "coords.0": { $lte: limitTop.x } },
+                { "coords.0": { $gte: limitBot.x } },
+                { "coords.1": { $lte: limitTop.y } },
+                { "coords.1": { $gte: limitBot.y } },
               ],
             },
             stopProjection,
