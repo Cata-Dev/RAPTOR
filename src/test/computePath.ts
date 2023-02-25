@@ -32,7 +32,7 @@ let footGraph: WeightedGraph<footGraphNodes> | undefined;
 let stops: initData["stops"] | undefined;
 let options: initData["options"] | undefined;
 
-export async function computePath<Paths extends boolean>(stopId: ReturnType<typeof approachedStopName>, returnPaths: Paths) {
+export async function computePath(stopId: ReturnType<typeof approachedStopName>, returnPaths: boolean) {
   const sourcePaths: Map<initData["stops"][number], [path<unpackGraphNode<typeof footGraph>>, number]> = new Map();
 
   if (!footGraph || !stops) return sourcePaths;
@@ -51,7 +51,7 @@ export async function computePath<Paths extends boolean>(stopId: ReturnType<type
   return sourcePaths;
 }
 
-export async function computePathBench<Paths extends boolean>(stopId: ReturnType<typeof approachedStopName>, returnPaths: boolean) {
+export async function computePathBench(stopId: ReturnType<typeof approachedStopName>, returnPaths: boolean) {
   const sourcePaths: Map<initData["stops"][number], [path<unpackGraphNode<typeof footGraph>>, number]> = new Map();
 
   if (!footGraph || !stops) return sourcePaths;
