@@ -3,7 +3,7 @@
 // See http://mongoosejs.com/docs/models.html
 
 import { TimeStamps } from "@typegoose/typegoose/lib/defaultClasses";
-import { addModelToTypegoose, buildSchema, prop, Ref } from "@typegoose/typegoose";
+import { addModelToTypegoose, buildSchema, deleteModelWithClass, getModelForClass, prop, Ref } from "@typegoose/typegoose";
 import { modelOptions } from "@typegoose/typegoose/lib/modelOptions";
 import { getName } from "@typegoose/typegoose/lib/internal/utils";
 import { Mongoose } from "mongoose";
@@ -26,6 +26,8 @@ export class dbFootPaths extends TimeStamps {
 }
 
 export default function init(db: Mongoose) {
+  if (getModelForClass(dbFootPaths, { existingMongoose: db })) deleteModelWithClass(dbFootPaths);
+
   const dbFootPathsSchema = buildSchema(dbFootPaths, { existingMongoose: db });
   const dbFootPathsModelRaw = db.model(getName(dbFootPaths), dbFootPathsSchema);
 

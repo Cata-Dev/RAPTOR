@@ -15,7 +15,7 @@ export enum RtScheduleType {
 
 import { TBMEndpoints } from ".";
 import { TimeStamps } from "@typegoose/typegoose/lib/defaultClasses";
-import { addModelToTypegoose, buildSchema, getDiscriminatorModelForClass, index, prop, Ref } from "@typegoose/typegoose";
+import { addModelToTypegoose, buildSchema, deleteModelWithClass, getDiscriminatorModelForClass, getModelForClass, index, prop, Ref } from "@typegoose/typegoose";
 import { modelOptions } from "@typegoose/typegoose/lib/modelOptions";
 import { getName } from "@typegoose/typegoose/lib/internal/utils";
 import { dbTBM_Stops } from "./TBM_stops.model";
@@ -58,6 +58,9 @@ export class dbTBM_Schedules_rt extends dbTBM_Schedules {
 }
 
 export default function init(db: Mongoose) {
+  if (getModelForClass(dbTBM_Schedules,  { existingMongoose: db })) deleteModelWithClass(dbTBM_Schedules);
+  if (getModelForClass(dbTBM_Schedules_rt,  { existingMongoose: db })) deleteModelWithClass(dbTBM_Schedules_rt);
+
   const dbTBM_SchedulesSchema = buildSchema(dbTBM_Schedules, { existingMongoose: db });
   const dbTBM_SchedulesModelRaw = db.model(getName(dbTBM_Schedules), dbTBM_SchedulesSchema);
 

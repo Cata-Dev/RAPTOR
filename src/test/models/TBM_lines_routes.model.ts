@@ -4,7 +4,7 @@
 
 import { TBMEndpoints } from ".";
 import { TimeStamps } from "@typegoose/typegoose/lib/defaultClasses";
-import { addModelToTypegoose, buildSchema, prop, Ref } from "@typegoose/typegoose";
+import { addModelToTypegoose, buildSchema, deleteModelWithClass, getModelForClass, prop, Ref } from "@typegoose/typegoose";
 import { modelOptions } from "@typegoose/typegoose/lib/modelOptions";
 import { getName } from "@typegoose/typegoose/lib/internal/utils";
 import { dbTBM_Lines } from "./TBM_lines.model";
@@ -37,6 +37,8 @@ export class dbTBM_Lines_routes extends TimeStamps {
 
 // for more of what you can do here.
 export default function init(db: Mongoose) {
+  if (getModelForClass(dbTBM_Lines_routes,  { existingMongoose: db })) deleteModelWithClass(dbTBM_Lines_routes);
+
   const dbTBM_Lines_routesSchema = buildSchema(dbTBM_Lines_routes, { existingMongoose: db });
   const dbTBM_Lines_routesModelRaw = db.model(getName(dbTBM_Lines_routes), dbTBM_Lines_routesSchema);
 

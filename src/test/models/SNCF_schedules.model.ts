@@ -4,7 +4,7 @@
 
 import { SNCFEndpoints } from ".";
 import { TimeStamps } from "@typegoose/typegoose/lib/defaultClasses";
-import { addModelToTypegoose, buildSchema, prop, Ref } from "@typegoose/typegoose";
+import { addModelToTypegoose, buildSchema, deleteModelWithClass, getModelForClass, prop, Ref } from "@typegoose/typegoose";
 import { modelOptions } from "@typegoose/typegoose/lib/modelOptions";
 import { getName } from "@typegoose/typegoose/lib/internal/utils";
 import { dbSNCF_Stops } from "./SNCF_stops.model";
@@ -29,6 +29,8 @@ export class dbSNCF_Schedules extends TimeStamps {
 }
 
 export default function init(db: Mongoose) {
+  if (getModelForClass(dbSNCF_Schedules,  { existingMongoose: db })) deleteModelWithClass(dbSNCF_Schedules);
+
   const dbSNCF_SchedulesSchema = buildSchema(dbSNCF_Schedules, { existingMongoose: db });
   const dbSNCF_SchedulesModelRaw = db.model(getName(dbSNCF_Schedules), dbSNCF_SchedulesSchema);
 

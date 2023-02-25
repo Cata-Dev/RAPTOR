@@ -2,7 +2,16 @@
 //
 // See http://mongoosejs.com/docs/models.html
 
-import { addModelToTypegoose, buildSchema, getDiscriminatorModelForClass, index, prop, Ref } from "@typegoose/typegoose";
+import {
+  addModelToTypegoose,
+  buildSchema,
+  deleteModelWithClass,
+  getDiscriminatorModelForClass,
+  getModelForClass,
+  index,
+  prop,
+  Ref,
+} from "@typegoose/typegoose";
 import { modelOptions } from "@typegoose/typegoose/lib/modelOptions";
 import { getName } from "@typegoose/typegoose/lib/internal/utils";
 import { Mongoose } from "mongoose";
@@ -42,6 +51,10 @@ export class dbFootGraphEdges extends dbFootGraph {
 }
 
 export default function init(db: Mongoose) {
+  if (getModelForClass(dbFootGraph, { existingMongoose: db })) deleteModelWithClass(dbFootGraph);
+  if (getModelForClass(dbFootGraphNodes, { existingMongoose: db })) deleteModelWithClass(dbFootGraphNodes);
+  if (getModelForClass(dbFootGraphEdges, { existingMongoose: db })) deleteModelWithClass(dbFootGraphEdges);
+
   const dbFootGraphSchema = buildSchema(dbFootGraph, { existingMongoose: db });
   const dbFootGraphModelRaw = db.model(getName(dbFootGraph), dbFootGraphSchema);
 

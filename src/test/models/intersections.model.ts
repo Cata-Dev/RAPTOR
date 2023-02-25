@@ -4,7 +4,7 @@
 
 import { TBMEndpoints } from ".";
 import { TimeStamps } from "@typegoose/typegoose/lib/defaultClasses";
-import { addModelToTypegoose, buildSchema, prop } from "@typegoose/typegoose";
+import { addModelToTypegoose, buildSchema, deleteModelWithClass, getModelForClass, prop } from "@typegoose/typegoose";
 import { modelOptions } from "@typegoose/typegoose/lib/modelOptions";
 import { getName } from "@typegoose/typegoose/lib/internal/utils";
 import { Mongoose } from "mongoose";
@@ -22,6 +22,8 @@ export class dbIntersections extends TimeStamps {
 }
 
 export default function init(db: Mongoose) {
+  if (getModelForClass(dbIntersections,  { existingMongoose: db })) deleteModelWithClass(dbIntersections);
+
   const dbIntersectionsSchema = buildSchema(dbIntersections, { existingMongoose: db });
   const dbIntersectionsModelRaw = db.model(getName(dbIntersections), dbIntersectionsSchema);
 
