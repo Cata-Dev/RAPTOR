@@ -35,7 +35,8 @@ export class Duration {
   private time: number;
 
   static getLeadingZeros(time: number, expectedNumbers: number) {
-    return `${"0".repeat(expectedNumbers - time.toString().length)}`;
+    const repeats = expectedNumbers - time.toString().length;
+    return "0".repeat(repeats < 0 ? 0 : repeats);
   }
 
   constructor(ms: number) {
