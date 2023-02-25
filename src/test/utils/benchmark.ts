@@ -34,6 +34,10 @@ export async function benchmark<F extends (...args: any[]) => any>(f: F, args: P
 export class Duration {
   private time: number;
 
+  static getLeadingZeros(time: number, expectedNumbers: number) {
+    return `${"0".repeat(expectedNumbers - time.toString().length)}`;
+  }
+
   constructor(ms: number) {
     this.time = ms;
   }
@@ -63,6 +67,8 @@ export class Duration {
   }
 
   toString() {
-    return `${this.totalMinuts}:${this.totalSeconds}:${this.rSeconds}`;
+    return `${Duration.getLeadingZeros(this.totalMinuts, 2)}${this.totalMinuts}:${Duration.getLeadingZeros(this.totalSeconds, 2)}${
+      this.totalSeconds
+    }:${Duration.getLeadingZeros(Math.floor(this.rSeconds), 3)}${this.rSeconds}`;
   }
 }
