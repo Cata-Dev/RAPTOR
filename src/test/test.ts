@@ -331,7 +331,7 @@ export async function run({ getFullPaths, computeGEOJSONs }: testOptions) {
 
   async function computePaths() {
     //paths<source, <target, paths>>
-    const paths: Map<KeyOfMap<typeof stops>, Awaited<ReturnType<typeof computePath<typeof getFullPaths>>>> = new Map();
+    const paths: Map<KeyOfMap<typeof stops>, Awaited<ReturnType<typeof computePath>>> = new Map();
 
     const def = new Deferred<typeof paths>();
 
@@ -345,7 +345,7 @@ export async function run({ getFullPaths, computeGEOJSONs }: testOptions) {
 
     for (const stopId of stops.keys()) {
       workerPool
-        .run<typeof computePath<typeof getFullPaths>>([approachedStopName(stopId), getFullPaths])
+        .run<typeof computePath>([approachedStopName(stopId), getFullPaths])
         .then((sourcePaths) => {
           paths.set(stopId, sourcePaths);
           if (paths.size === approachedStops.size) def.resolve(paths);
