@@ -33,7 +33,7 @@ let stops: initData["stops"] | undefined;
 let options: initData["options"] | undefined;
 
 export async function computePath<Paths extends boolean>(stopId: ReturnType<typeof approachedStopName>, returnPaths: Paths) {
-  const sourcePaths: Map<initData["stops"][number], [Paths extends true ? path<unpackGraphNode<typeof footGraph>> : never[], number]> = new Map();
+  const sourcePaths: Map<initData["stops"][number], [path<unpackGraphNode<typeof footGraph>>, number]> = new Map();
 
   if (!footGraph || !stops) return sourcePaths;
 
@@ -45,17 +45,14 @@ export async function computePath<Paths extends boolean>(stopId: ReturnType<type
     const targetNode = approachedStopName(stopId);
 
     if (dist.get(targetNode) !== undefined && dist.get(targetNode)! < Infinity)
-      sourcePaths.set(stopId, [
-        (returnPaths ? tracePath(prev, targetNode) : []) as Paths extends true ? path<unpackGraphNode<typeof footGraph>> : [],
-        dist.get(targetNode)!,
-      ]);
+      sourcePaths.set(stopId, [returnPaths ? tracePath(prev, targetNode) : [], dist.get(targetNode)!]);
   }
 
   return sourcePaths;
 }
 
 export async function computePathBench<Paths extends boolean>(stopId: ReturnType<typeof approachedStopName>, returnPaths: boolean) {
-  const sourcePaths: Map<initData["stops"][number], [Paths extends true ? path<unpackGraphNode<typeof footGraph>> : [], number]> = new Map();
+  const sourcePaths: Map<initData["stops"][number], [path<unpackGraphNode<typeof footGraph>>, number]> = new Map();
 
   if (!footGraph || !stops) return sourcePaths;
 
@@ -83,10 +80,7 @@ export async function computePathBench<Paths extends boolean>(stopId: ReturnType
         const targetNode = approachedStopName(stopId);
 
         if (dist.get(targetNode) !== undefined && dist.get(targetNode)! < Infinity)
-          sourcePaths.set(stopId, [
-            (returnPaths ? tracePath(prev, targetNode) : []) as Paths extends true ? path<unpackGraphNode<typeof footGraph>> : [],
-            dist.get(targetNode)!,
-          ]);
+          sourcePaths.set(stopId, [returnPaths ? tracePath(prev, targetNode) : [], dist.get(targetNode)!]);
       }
     },
     [stops],
