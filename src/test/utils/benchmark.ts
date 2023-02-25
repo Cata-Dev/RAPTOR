@@ -1,3 +1,10 @@
+/**
+ * Benchmark a function
+ * @param f The function to do the benchmark on, sync or async
+ * @param args The argument(s) to pass to the function {@link f}
+ * @param times Number of times to repeat the benchmark
+ * @param logStats Wheter to log to the bench to the console at its end, or not
+ */
 export async function benchmark<F extends (...args: any[]) => any>(f: F, args: Parameters<F>, times: number = 1, logStats = true) {
   const starts: number[] = new Array(times);
   const ends: number[] = new Array(times);
