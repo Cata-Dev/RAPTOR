@@ -19,14 +19,10 @@ interface poolWorker {
 type queued = [any, resolveCb<any>, rejectCb];
 
 export class WorkerPool<Icb extends (...args: any[]) => any> {
-  readonly script: string;
-  readonly size: number;
   readonly pool: poolWorker[];
   readonly queue: Queue<queued>;
 
-  constructor(script: string, size: number, initData?: Parameters<Icb>[0]) {
-    this.script = script;
-    this.size = size;
+  constructor(readonly script: string, readonly size: number, initData?: Parameters<Icb>[0], readonly debug = false) {
     this.pool = new Array(this.size);
     this.queue = new Queue();
 
@@ -42,14 +38,14 @@ export class WorkerPool<Icb extends (...args: any[]) => any> {
         const worker = this.pool[i];
         worker.status = Status.Busy;
 
-        console.log(`Initializing worker ${worker.id}`);
+        if (this.debug) console.log(`Initializing worker ${worker.id}`);
 
         worker.worker.postMessage({ ...initData });
         worker.worker.once("message", (v) => {
           if (v === true) {
             worker.status = Status.Idle;
 
-            console.log(`Initialized worker ${worker.id}`);
+            if (this.debug) console.log(`Initialized worker ${worker.id}`);
 
             this.runCallback();
           }
@@ -80,11 +76,11 @@ export class WorkerPool<Icb extends (...args: any[]) => any> {
     const worker = this.getIdleWorker();
     if (!worker) {
       this.queue.enqueue(job);
-      console.log(`Delayed, queued (${this.queue.size})`);
+      if (this.debug) console.log(`Delayed, queued (${this.queue.size})`);
       return def?.promise;
     }
 
-    console.log(`Running worker ${worker.id} (${this.queue.size})`);
+    if (this.debug) console.log(`Running worker ${worker.id} (${this.queue.size})`);
 
     worker.status = Status.Busy;
     worker.work = job;
@@ -96,7 +92,7 @@ export class WorkerPool<Icb extends (...args: any[]) => any> {
       const delta = new Duration(Number((process.hrtime.bigint() - startTime) / nsPerMs));
       worker.status = Status.Idle;
       resolve(result);
-      console.log(`Finished worker ${worker.id} after ${delta} (${this.queue.size})`);
+      if (this.debug) console.log(`Finished worker ${worker.id} after ${delta} (${this.queue.size})`);
       this.runCallback();
       worker.worker.removeListener("message", onceMessage);
       worker.worker.removeListener("error", onceError);
@@ -104,7 +100,7 @@ export class WorkerPool<Icb extends (...args: any[]) => any> {
     const onceError = (err: any) => {
       worker.status = Status.Idle;
       reject(err);
-      console.log(`Errored worker ${worker.id} (${this.queue.size})`);
+      if (this.debug) console.log(`Errored worker ${worker.id} (${this.queue.size})`);
       this.runCallback();
       worker.worker.removeListener("error", onceError);
       worker.worker.removeListener("message", onceMessage);

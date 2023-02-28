@@ -256,12 +256,17 @@ export async function run({ getFullPaths = false, dijkstraOptions }: testOptions
 
     const def = new Deferred<typeof paths>();
 
-    const workerPool = new WorkerPool<typeof initialCallback>(__dirname + "/computePath.js", 8, {
-      adj: footGraph.adj,
-      weights: footGraph.weights,
-      stops: Array.from(stops.keys()),
-      options: dijkstraOptions,
-    });
+    const workerPool = new WorkerPool<typeof initialCallback>(
+      __dirname + "/computePath.js",
+      8,
+      {
+        adj: footGraph.adj,
+        weights: footGraph.weights,
+        stops: Array.from(stops.keys()),
+        options: dijkstraOptions,
+      },
+      true,
+    );
 
     let rejected = false;
 
