@@ -51,12 +51,16 @@ export class Duration {
     this.time = ms;
   }
 
+  get rMs() {
+    return this.time % 1000;
+  }
+
   get totalSeconds() {
     return Math.floor(this.time / 1000);
   }
 
   get rSeconds() {
-    return this.time % 1000;
+    return Math.floor(this.rMinuts / 1000);
   }
 
   get totalMinuts() {
@@ -68,8 +72,8 @@ export class Duration {
   }
 
   toString() {
-    return `${Duration.getLeadingZeros(this.totalMinuts, 2)}${this.totalMinuts}:${Duration.getLeadingZeros(this.totalSeconds, 2)}${
-      this.totalSeconds
-    }:${Duration.getLeadingZeros(Math.floor(this.rSeconds), 3)}${this.rSeconds}`;
+    return `${Duration.getLeadingZeros(this.totalMinuts, 2)}${this.totalMinuts}:${Duration.getLeadingZeros(this.rSeconds, 2)}${
+      this.rSeconds
+    }:${Duration.getLeadingZeros(Math.floor(this.rMs), 3)}${this.rMs}`;
   }
 }
