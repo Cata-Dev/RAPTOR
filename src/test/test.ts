@@ -251,10 +251,7 @@ export async function run({ getFullPaths = false, dijkstraOptions }: testOptions
   console.log("b4 ended");
 
   async function computePaths() {
-    //paths<source, <target, paths>>
-    const paths: Map<KeyOfMap<typeof stops>, Awaited<ReturnType<typeof computePath>>> = new Map();
-
-    const def = new Deferred<typeof paths>();
+    const def = new Deferred<void>();
 
     const workerPool = new WorkerPool<typeof initialCallback>(
       __dirname + "/computePath.js",
@@ -270,14 +267,32 @@ export async function run({ getFullPaths = false, dijkstraOptions }: testOptions
 
     let rejected = false;
 
+    await FootPathModel.deleteMany({});
+
+    // Number or done worker jobs
+    let computed = 0;
     for (const stopId of stops.keys()) {
       workerPool
         .run<typeof computePath>([approachedStopName(stopId), getFullPaths])
-        .then((sourcePaths) => {
-          paths.set(stopId, sourcePaths);
-          if (paths.size === approachedStops.size) def.resolve(paths);
+        .then(async (sourcePaths) => {
+          await benchmark(
+            FootPathModel.insertMany,
+            [
+              Array.from(sourcePaths).map<dbFootPaths>(([to, [path, distance]]) => ({
+                from: stopId,
+                to,
+                path: path.map((node) => (typeof node === "number" ? dbIntersectionId(node) : node)),
+                distance,
+              })),
+              { ordered: false, lean: true },
+            ] as unknown as [unknown], // Need to manually overxrite type, Parameters<> not taking right overload https://github.com/microsoft/TypeScript/issues/32164
+            FootPathModel,
+          );
+          computed++;
+          if (computed === approachedStops.size) def.resolve();
         })
         .catch((r) => {
+          computed++;
           if (rejected) return;
           rejected = true;
           def.reject(r);
@@ -318,17 +333,6 @@ export async function run({ getFullPaths = false, dijkstraOptions }: testOptions
           typeof section.rg_fv_graph_nd === "number" ? dbIntersectionId(section.rg_fv_graph_nd) : section.rg_fv_graph_nd,
           typeof section.rg_fv_graph_na === "number" ? dbIntersectionId(section.rg_fv_graph_na) : section.rg_fv_graph_na,
         ],
-      })),
-    );
-
-    await FootPathModel.deleteMany({});
-
-    await FootPathModel.insertMany(
-      Array.from(paths).map<dbFootPaths>(([from, [[to, [path, distance]]]]) => ({
-        from,
-        to,
-        path: path.map((node) => (typeof node === "number" ? dbIntersectionId(node) : node)),
-        distance,
       })),
     );
   }
