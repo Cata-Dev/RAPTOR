@@ -32,26 +32,34 @@ let footGraph: WeightedGraph<footGraphNodes> | undefined;
 let stops: initData["stops"] | undefined;
 let options: initData["options"] | undefined;
 
-export async function computePath(stopId: ReturnType<typeof approachedStopName>, returnPaths: boolean) {
+export async function computePath(
+  sourceStopId: ReturnType<typeof approachedStopName>,
+  returnPaths: boolean,
+  computedStops: Set<initData["stops"][number]> = new Set(),
+) {
   const sourcePaths: Map<initData["stops"][number], [path<unpackGraphNode<typeof footGraph>>, number]> = new Map();
 
   if (!footGraph || !stops) return sourcePaths;
 
   const [dist, prev] = options
-    ? await Dijkstra<footGraphNodes, typeof footGraph>(footGraph, [stopId], options)
-    : await Dijkstra<footGraphNodes, typeof footGraph>(footGraph, [stopId]);
+    ? await Dijkstra<footGraphNodes, typeof footGraph>(footGraph, [sourceStopId], options)
+    : await Dijkstra<footGraphNodes, typeof footGraph>(footGraph, [sourceStopId]);
 
   for (const stopId of stops) {
     const targetNode = approachedStopName(stopId);
 
-    if (dist.get(targetNode) !== undefined && dist.get(targetNode)! < Infinity)
+    if (dist.get(targetNode) !== undefined && dist.get(targetNode)! < Infinity && sourceStopId !== targetNode && !computedStops.has(stopId))
       sourcePaths.set(stopId, [returnPaths ? tracePath(prev, targetNode) : [], dist.get(targetNode)!]);
   }
 
   return sourcePaths;
 }
 
-export async function computePathBench(stopId: ReturnType<typeof approachedStopName>, returnPaths: boolean) {
+export async function computePathBench(
+  sourceStopId: ReturnType<typeof approachedStopName>,
+  returnPaths: boolean,
+  computedStops: Set<initData["stops"][number]> = new Set(),
+) {
   const sourcePaths: Map<initData["stops"][number], [path<unpackGraphNode<typeof footGraph>>, number]> = new Map();
 
   if (!footGraph || !stops) return sourcePaths;
@@ -61,16 +69,16 @@ export async function computePathBench(stopId: ReturnType<typeof approachedStopN
         await benchmark(
           Dijkstra as (
             G: typeof footGraph,
-            [s]: [typeof stopId],
+            [s]: [typeof sourceStopId],
             O: DijkstraOptions,
           ) => [Map<footGraphNodes, number>, Map<footGraphNodes, footGraphNodes>],
-          [footGraph, [stopId], options],
+          [footGraph, [sourceStopId], options],
         )
       ).lastReturn!
     : (
         await benchmark(
-          Dijkstra as (G: typeof footGraph, [s]: [typeof stopId]) => [Map<footGraphNodes, number>, Map<footGraphNodes, footGraphNodes>],
-          [footGraph, [stopId]],
+          Dijkstra as (G: typeof footGraph, [s]: [typeof sourceStopId]) => [Map<footGraphNodes, number>, Map<footGraphNodes, footGraphNodes>],
+          [footGraph, [sourceStopId]],
         )
       ).lastReturn!;
 
@@ -79,7 +87,7 @@ export async function computePathBench(stopId: ReturnType<typeof approachedStopN
       for (const stopId of s) {
         const targetNode = approachedStopName(stopId);
 
-        if (dist.get(targetNode) !== undefined && dist.get(targetNode)! < Infinity)
+        if (dist.get(targetNode) !== undefined && dist.get(targetNode)! < Infinity && sourceStopId !== targetNode && !computedStops.has(stopId))
           sourcePaths.set(stopId, [returnPaths ? tracePath(prev, targetNode) : [], dist.get(targetNode)!]);
       }
     },
