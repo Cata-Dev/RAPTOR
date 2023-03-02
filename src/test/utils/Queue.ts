@@ -40,3 +40,5 @@ export class Queue<Type> {
     return (this.front as Link<Type>).toArray();
   }
 }
+
+export type unpackQueue<Q> = Q extends Queue<infer T> ? T : never
