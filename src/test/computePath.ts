@@ -84,8 +84,6 @@ export async function computePathBench(stopId: ReturnType<typeof approachedStopN
       }
     },
     [stops],
-    1,
-    true,
   );
 
   return sourcePaths;
