@@ -1,7 +1,8 @@
 import { Worker } from "worker_threads";
 import { Deferred, rejectCb, resolveCb } from "./ultils";
 import { Duration } from "./benchmark";
-import { Queue } from "./Queue";
+import { Queue, unpackQueue } from "./Queue";
+import { TypedEventEmitter } from "./TypedEmitter";
 const nsPerMs = BigInt(1e6);
 
 enum Status {
@@ -9,20 +10,27 @@ enum Status {
   Busy,
 }
 
-interface poolWorker {
+interface poolWorker<T, R> {
   id: number;
   status: Status;
   worker: Worker;
-  work: queued | null;
+  work: queuedJob<T, R> | null;
 }
 
-type queued = [any, resolveCb<any>, rejectCb];
+type queuedJob<T = unknown, R = unknown> = [T, resolveCb<R>, rejectCb];
 
-export class WorkerPool<Icb extends (...args: any[]) => any> {
-  readonly pool: poolWorker[];
-  readonly queue: Queue<queued>;
+type workerPoolEvents<T, R> = {
+  queuedJob: (queueSize: number) => void;
+  running: (job: queuedJob<T, R>) => void;
+  ended: (success: boolean) => void;
+};
+
+export class WorkerPool<Icb extends (...args: any[]) => any, F extends (...args: any) => any> extends TypedEventEmitter<workerPoolEvents<Parameters<F>, Awaited<ReturnType<F>>>> {
+  readonly pool: poolWorker<Parameters<F>, Awaited<ReturnType<F>>>[];
+  readonly queue: Queue<queuedJob<Parameters<F>, Awaited<ReturnType<F>>>>;
 
   constructor(readonly script: string, readonly size: number, initData?: Parameters<Icb>[0], readonly debug = false) {
+    super()
     this.pool = new Array(this.size);
     this.queue = new Queue();
 
@@ -55,15 +63,15 @@ export class WorkerPool<Icb extends (...args: any[]) => any> {
     }
   }
 
-  run<F extends (...args: any) => any>(data: Parameters<F>, res: resolveCb<ReturnType<F>>, rej: rejectCb): void;
-  run<F extends (...args: any) => any>(data: Parameters<F>): Promise<Awaited<ReturnType<F>>>;
-  async run<F extends (...args: any) => any>(data: Parameters<F>, res?: resolveCb<Awaited<ReturnType<F>>>, rej?: rejectCb) {
-    let def: Deferred<ReturnType<F>> | null = null;
+  run(data: Parameters<F>, res: resolveCb<Awaited<ReturnType<F>>>, rej: rejectCb): void;
+  run(data: Parameters<F>): Promise<Awaited<ReturnType<F>>>;
+  async run(data: Parameters<F>, res?: resolveCb<Awaited<ReturnType<F>>>, rej?: rejectCb) {
+    let def: Deferred<Awaited<ReturnType<F>>> | null = null;
     let resolve: resolveCb<Awaited<ReturnType<F>>>;
     let reject: rejectCb;
 
     if (!res || !rej) {
-      def = new Deferred<ReturnType<F>>();
+      def = new Deferred<Awaited<ReturnType<F>>>();
       resolve = def.resolve;
       reject = def.reject;
     } else {
@@ -71,12 +79,12 @@ export class WorkerPool<Icb extends (...args: any[]) => any> {
       reject = rej;
     }
 
-    const job: queued = [data, resolve, reject];
+    const job: unpackQueue<typeof this.queue> = [data, resolve, reject];
 
     const worker = this.getIdleWorker();
     if (!worker) {
       this.queue.enqueue(job);
-      if (this.debug) console.log(`Delayed, queued (${this.queue.size})`);
+      if (this.debug) console.log(`Delayed, queuedJob (${this.queue.size})`);
       return def?.promise;
     }
 
@@ -112,7 +120,7 @@ export class WorkerPool<Icb extends (...args: any[]) => any> {
     if (!res || !rej) return def!.promise;
   }
 
-  protected runCallback(job?: queued) {
+  protected runCallback(job?: queuedJob<Parameters<F>, Awaited<ReturnType<F>>>) {
     if (!job) {
       if (!this.queue.size) return;
       job = this.queue.dequeue();
@@ -120,7 +128,11 @@ export class WorkerPool<Icb extends (...args: any[]) => any> {
     return this.run(...job);
   }
 
-  protected getIdleWorker(): poolWorker | undefined {
+  protected getIdleWorker(): poolWorker<Parameters<F>, Awaited<ReturnType<F>>> | undefined {
     return this.pool.find((w) => w.status === Status.Idle);
+  }
+
+  public get numberRunning(): number {
+    return this.pool.filter(w => w.status !== Status.Idle).length;
   }
 }
