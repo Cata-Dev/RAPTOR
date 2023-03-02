@@ -41,4 +41,4 @@ export class Queue<Type> {
   }
 }
 
-export type unpackQueue<Q> = Q extends Queue<infer T> ? T : never
+export type unpackQueue<Q> = Q extends Queue<infer T> ? T : never;
