@@ -10,7 +10,6 @@ import Segment from "../utils/Segment";
 
 export interface testOptions {
   getFullPaths?: boolean;
-  computeGEOJSONs?: boolean;
   dijkstraOptions?: DijkstraOptions;
 }
 export type id = number;
@@ -253,7 +252,7 @@ export async function run({ getFullPaths = false, dijkstraOptions }: testOptions
   async function computePaths() {
     const def = new Deferred<void>();
 
-    const workerPool = new WorkerPool<typeof initialCallback>(
+    const workerPool = new WorkerPool<typeof initialCallback, typeof computePath>(
       __dirname + "/computePath.js",
       8,
       {
@@ -271,9 +270,10 @@ export async function run({ getFullPaths = false, dijkstraOptions }: testOptions
 
     // Number or done worker jobs
     let computed = 0;
+    const computedStops = new Set<KeyOfMap<typeof stops>>();
     for (const stopId of stops.keys()) {
       workerPool
-        .run<typeof computePath>([approachedStopName(stopId), getFullPaths])
+        .run([approachedStopName(stopId), getFullPaths, computedStops])
         .then(async (sourcePaths) => {
           await benchmark(
             FootPathModel.insertMany,
@@ -285,17 +285,20 @@ export async function run({ getFullPaths = false, dijkstraOptions }: testOptions
                 distance,
               })),
               { ordered: false, lean: true },
-            ] as unknown as [unknown], // Need to manually overxrite type, Parameters<> not taking right overload https://github.com/microsoft/TypeScript/issues/32164
+            ] as unknown as [unknown], // Need to manually overwrite type, Parameters<> not taking right overload https://github.com/microsoft/TypeScript/issues/32164
             FootPathModel,
           );
-          computed++;
+
           if (computed === approachedStops.size) def.resolve();
         })
         .catch((r) => {
-          computed++;
           if (rejected) return;
           rejected = true;
           def.reject(r);
+        })
+        .finally(() => {
+          computedStops.add(stopId);
+          computed++;
         });
     }
 
@@ -303,8 +306,6 @@ export async function run({ getFullPaths = false, dijkstraOptions }: testOptions
   }
   const b5 = await benchmark(computePaths, []);
   console.log("b5 ended");
-  if (!b5.lastReturn) throw `b5 return null`;
-  const paths = b5.lastReturn;
 
   async function updateDb() {
     //Empty db
