@@ -8,7 +8,6 @@ import {
   deleteModelWithClass,
   getDiscriminatorModelForClass,
   getModelForClass,
-  index,
   prop,
   Ref,
 } from "@typegoose/typegoose";

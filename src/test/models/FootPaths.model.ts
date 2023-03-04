@@ -2,7 +2,6 @@
 //
 // See http://mongoosejs.com/docs/models.html
 
-import { TimeStamps } from "@typegoose/typegoose/lib/defaultClasses";
 import { addModelToTypegoose, buildSchema, deleteModelWithClass, getModelForClass, prop, Ref } from "@typegoose/typegoose";
 import { modelOptions } from "@typegoose/typegoose/lib/modelOptions";
 import { getName } from "@typegoose/typegoose/lib/internal/utils";
@@ -11,7 +10,7 @@ import { dbTBM_Stops } from "./TBM_stops.model";
 import { dbFootGraphNodes } from "./FootGraph.model";
 
 @modelOptions({ options: { customName: "footPaths" } })
-export class dbFootPaths extends TimeStamps {
+export class dbFootPaths {
   @prop({ required: true, index: true, ref: () => dbTBM_Stops, type: () => Number })
   public from!: Ref<dbTBM_Stops, number>;
 

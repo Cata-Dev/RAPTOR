@@ -337,7 +337,7 @@ export async function run({ getFullPaths = false, computeGEOJSONs = false, dijks
 
     const def = new Deferred<typeof paths>();
 
-    const workerPool = new WorkerPool<typeof initialCallback>(__dirname + "/computePath.js", 8, {
+    const workerPool = new WorkerPool<typeof initialCallback, typeof computePath>(__dirname + "/computePath.js", 8, {
       adj: footGraph.adj,
       weights: footGraph.weights,
       stops: Array.from(stops.keys()),
@@ -348,7 +348,7 @@ export async function run({ getFullPaths = false, computeGEOJSONs = false, dijks
 
     for (const stopId of stops.keys()) {
       workerPool
-        .run<typeof computePath>([approachedStopName(stopId), getFullPaths])
+        .run([approachedStopName(stopId), getFullPaths])
         .then((sourcePaths) => {
           paths.set(stopId, sourcePaths);
           if (paths.size === approachedStops.size) def.resolve(paths);
