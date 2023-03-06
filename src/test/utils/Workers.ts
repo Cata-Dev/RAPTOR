@@ -86,7 +86,7 @@ export class WorkerPool<Icb extends (...args: any[]) => any, F extends (...args:
     const worker = this.getIdleWorker();
     if (!worker) {
       this.queue.enqueue(job);
-      if (this.debug) console.log(`Delayed, queuedJob (${this.queue.size})`);
+      if (this.debug) console.log(`Delayed, queued (${this.queue.size})`);
       this.emit("queuedJob", this.queue.size);
       return def?.promise;
     }
