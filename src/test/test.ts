@@ -24,7 +24,7 @@ import { computePath, initialCallback } from "./computePath";
 import { DocumentType } from "@typegoose/typegoose";
 import { approachedStopName, euclidianDistance, Deferred, sectionId, unique, dbIntersectionId, dbSectionId, unpackRefType } from "./utils/ultils";
 import FootGraphModelInit, { dbFootGraphEdges, dbFootGraphNodes } from "./models/FootGraph.model";
-import FootPathsModelInit, { dbFootPaths } from "./models/FootPaths.model";
+import FootPathsModelInit, { dbFootPaths } from "./models/NonScheduledRoutes.model";
 import { KeyOfMap } from "../utils";
 import { DijkstraOptions } from "../FootPaths";
 
@@ -262,7 +262,7 @@ export async function run({ getFullPaths = false, dijkstraOptions }: testOptions
         stops: Array.from(stops.keys()),
         options: dijkstraOptions,
       },
-      true,
+      false,
     );
 
     let rejected = false;
@@ -276,30 +276,27 @@ export async function run({ getFullPaths = false, dijkstraOptions }: testOptions
       workerPool
         .run([approachedStopName(stopId), getFullPaths, computedStops])
         .then(async (sourcePaths) => {
-          await benchmark(
-            FootPathModel.insertMany,
-            [
-              Array.from(sourcePaths).map<dbFootPaths>(([to, [path, distance]]) => ({
-                from: stopId,
-                to,
-                path: path.map((node) => (typeof node === "number" ? dbIntersectionId(node) : node)),
-                distance,
-              })),
-              { ordered: false, lean: true },
-            ] as unknown as any, // Need to manually overwrite type, Parameters<> not taking right overload https://github.com/microsoft/TypeScript/issues/32164
-            FootPathModel,
+          await FootPathModel.insertMany(
+            Array.from(sourcePaths).map<dbFootPaths>(([to, [path, distance]]) => ({
+              from: stopId,
+              to,
+              path: path.map((node) => (typeof node === "number" ? dbIntersectionId(node) : node)),
+              distance,
+            })),
+            { ordered: false, lean: true },
           );
 
+          computedStops.add(stopId);
+          computed++;
           if (computed === approachedStops.size) def.resolve();
         })
         .catch((r) => {
+          computedStops.add(stopId);
+          computed++;
+
           if (rejected) return;
           rejected = true;
           def.reject(r);
-        })
-        .finally(() => {
-          computedStops.add(stopId);
-          computed++;
         });
     }
 
