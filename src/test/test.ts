@@ -276,6 +276,8 @@ export async function run({ getFullPaths = false, dijkstraOptions }: testOptions
       workerPool
         .run([approachedStopName(stopId), getFullPaths, computedStops])
         .then(async (sourcePaths) => {
+          computedStops.add(stopId);
+
           await FootPathModel.insertMany(
             Array.from(sourcePaths).map<dbFootPaths>(([to, [path, distance]]) => ({
               from: stopId,
@@ -286,9 +288,8 @@ export async function run({ getFullPaths = false, dijkstraOptions }: testOptions
             { ordered: false, lean: true },
           );
 
-          computedStops.add(stopId);
           computed++;
-          if (computed === approachedStops.size) def.resolve();
+          if (!rejected && computed === approachedStops.size) def.resolve();
         })
         .catch((r) => {
           computedStops.add(stopId);
