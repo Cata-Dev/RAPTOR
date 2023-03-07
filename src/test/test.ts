@@ -155,36 +155,38 @@ export async function run({ getFullPaths = false, dijkstraOptions }: testOptions
 
   //Compute approached stops
   function computeApproachedStops() {
-    //Pre-generate segments to fasten the process (and not redundant computing)
-    //A segment describes a portion of a section (oriented)
-    const segments: Map<KeyOfMap<typeof sections>, { n: number; seg: Segment }> = new Map();
-    for (const arc of footGraph.arcs) {
-      const sId = sectionId({ rg_fv_graph_nd: arc[0], rg_fv_graph_na: arc[1] });
-      const section = sections.get(sId);
+    //Pre-generate mapped segments to fasten the process (and not redundant computing)
+    //A segment describes a portion of a section (NOT oriented)
+    const mappedSegments: Map<(typeof footGraph.edges)[number], Segment[]> = new Map();
+    for (const edge of footGraph.edges) {
+      const section = getSection(...edge);
       if (!section) continue; // Added for ts mental health
-      for (let i = 0; i < section.coords.length - 1; i++) {
-        segments.set(sId, {
-          n: i,
-          seg: new Segment(new Point(...section.coords[i]), new Point(...section.coords[i + 1])),
-        });
-      }
+      mappedSegments.set(
+        edge,
+        section.coords.reduce<Segment[]>(
+          (acc, v, i) => (i >= section.coords.length - 1 ? acc : [...acc, new Segment(new Point(...v), new Point(...section.coords[i + 1]))]),
+          [],
+        ),
+      );
     }
 
     /**@description [closest point, section containing this point, indice of segment composing the section] */
-    const approachedStops: Map<ReturnType<typeof approachedStopName>, [Point, KeyOfMap<typeof sections>, number]> = new Map();
+    const approachedStops: Map<ReturnType<typeof approachedStopName>, [Point, (typeof footGraph.edges)[number], number]> = new Map();
     for (const [stopId, stop] of stops) {
       /**@description [distance to closest point, closest point, section containing this point, indice of segment composing the section (i;i+1 in Section coords)] */
-      let closestPoint: [number, Point | null, KeyOfMap<typeof sections> | null, number | null] = [Infinity, null, null, null];
+      let closestPoint: [number, Point | null, (typeof footGraph.edges)[number] | null, number | null] = [Infinity, null, null, null];
 
-      for (const [sectionKey, { n, seg }] of segments) {
-        const stopPoint: Point = new Point(...stop.coords);
-        const localClosestPoint: Point = seg.closestPointFromPoint(stopPoint);
-        const distance: number = Point.distance(stopPoint, localClosestPoint);
-        if (distance < closestPoint[0]) {
-          closestPoint[0] = distance;
-          closestPoint[1] = localClosestPoint;
-          closestPoint[2] = sectionKey;
-          closestPoint[3] = n;
+      for (const [edge, segs] of mappedSegments) {
+        for (const [n, seg] of segs.entries()) {
+          const stopPoint: Point = new Point(...stop.coords);
+          const localClosestPoint: Point = seg.closestPointFromPoint(stopPoint);
+          const distance: number = Point.distance(stopPoint, localClosestPoint);
+          if (distance < closestPoint[0]) {
+            closestPoint[0] = distance;
+            closestPoint[1] = localClosestPoint;
+            closestPoint[2] = edge;
+            closestPoint[3] = n;
+          }
         }
       }
 
@@ -203,8 +205,8 @@ export async function run({ getFullPaths = false, dijkstraOptions }: testOptions
   /** Update {@link footGraph} & {@link sections} */
   function refreshWithApproachedStops() {
     //Pushes new approached stops into graph, just like a proxy on a section
-    for (const [stopId, [closestPoint, sectionKey, n]] of approachedStops) {
-      const section = sections.get(sectionKey);
+    for (const [stopId, [closestPoint, edge, n]] of approachedStops) {
+      const section = getSection(...edge);
       if (!section) continue; // Added to ts mental health
       //Compute distance from section start to approachedStop
       const toApproadchedStop: number =
@@ -222,7 +224,6 @@ export async function run({ getFullPaths = false, dijkstraOptions }: testOptions
 
       //Remove edge from p1 to p2
       footGraph.remove_edge(section.rg_fv_graph_nd, section.rg_fv_graph_na);
-      sections.delete(sectionId(section));
 
       const insertedNode = stopId;
       //Insert new node approachedStop
@@ -266,9 +267,9 @@ export async function run({ getFullPaths = false, dijkstraOptions }: testOptions
 
     let rejected = false;
 
-    await FootPathModel.deleteMany({});
+    await benchmark(FootPathModel.deleteMany, [{}] as unknown as any, FootPathModel);
 
-    // Number or done worker jobs
+    // Number of done worker jobs
     let computed = 0;
     const computedStops = new Set<KeyOfMap<typeof stops>>();
     for (const stopId of stops.keys()) {
@@ -285,7 +286,7 @@ export async function run({ getFullPaths = false, dijkstraOptions }: testOptions
                 distance,
               })),
               { ordered: false, lean: true },
-            ] as unknown as [unknown], // Need to manually overwrite type, Parameters<> not taking right overload https://github.com/microsoft/TypeScript/issues/32164
+            ] as unknown as any, // Need to manually overwrite type, Parameters<> not taking right overload https://github.com/microsoft/TypeScript/issues/32164
             FootPathModel,
           );
 
