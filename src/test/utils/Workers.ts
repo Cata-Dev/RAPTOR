@@ -50,7 +50,6 @@ export class WorkerPool<Icb extends (...args: any[]) => any, F extends (...args:
 
         if (this.debug) console.log(`Initializing worker ${worker.id}`);
 
-        worker.worker.postMessage({ ...initData });
         worker.worker.once("message", (v) => {
           if (v === true) {
             worker.status = Status.Idle;
@@ -61,6 +60,8 @@ export class WorkerPool<Icb extends (...args: any[]) => any, F extends (...args:
           }
         });
         worker.worker.once("error", console.error);
+
+        worker.worker.postMessage({ ...initData });
       }
     }
   }
