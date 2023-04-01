@@ -1,5 +1,5 @@
-import { path, Dijkstra, tracePath, DijkstraOptions } from "../FootPaths";
-import { unpackGraphNode, WeightedGraph } from "../utils/Graph";
+import { path, Dijkstra, tracePath, DijkstraOptions } from "../../FootPaths";
+import { unpackGraphNode, WeightedGraph } from "../../utils/Graph";
 import type { footGraphNodes, id } from "./test";
 
 import { parentPort } from "worker_threads";
