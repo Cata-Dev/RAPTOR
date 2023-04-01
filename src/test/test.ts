@@ -24,7 +24,7 @@ import { computePath, initialCallback } from "./computePath";
 import { DocumentType } from "@typegoose/typegoose";
 import { approachedStopName, euclidianDistance, Deferred, sectionId, unique, dbIntersectionId, dbSectionId, unpackRefType } from "./utils/ultils";
 import FootGraphModelInit, { dbFootGraphEdges, dbFootGraphNodes } from "./models/FootGraph.model";
-import FootPathsModelInit, { dbFootPaths } from "./models/NonScheduledRoutes.model";
+import NonScheduledRoutesModelInit, { dbFootPaths } from "./models/NonScheduledRoutes.model";
 import { KeyOfMap } from "../utils";
 import { DijkstraOptions } from "../FootPaths";
 
@@ -48,7 +48,7 @@ export async function run({ getFullPaths = false, dijkstraOptions }: testOptions
   const sectionsModel = sectionsModelInit(db);
   const stopsModel = stopsModelInit(db);
   const [FootGraphModel, FootGraphNodesModel, FootGraphEdgesModel] = FootGraphModelInit(db);
-  const FootPathModel = FootPathsModelInit(db);
+  const NonScheduledRoutesModel = NonScheduledRoutesModelInit(db);
 
   // const limitTop = new Point(44.813926, -0.581271).fromWGSToLambert93();
   // const limitBot = new Point(44.793123, -0.632578).fromWGSToLambert93();
@@ -251,7 +251,7 @@ export async function run({ getFullPaths = false, dijkstraOptions }: testOptions
   console.log("b4 ended");
 
   async function computePaths() {
-    const def = new Deferred<void>();
+    const def = new Deferred<number>();
 
     const workerPool = new WorkerPool<typeof initialCallback, typeof computePath>(
       __dirname + "/computePath.js",
@@ -267,7 +267,9 @@ export async function run({ getFullPaths = false, dijkstraOptions }: testOptions
 
     let rejected = false;
 
-    await benchmark(FootPathModel.deleteMany, [{}] as unknown as any, FootPathModel);
+    await benchmark(NonScheduledRoutesModel.deleteMany, [{}] as unknown as any, NonScheduledRoutesModel);
+
+    let totalPaths = 0;
 
     // Number of done worker jobs
     let computed = 0;
@@ -278,18 +280,19 @@ export async function run({ getFullPaths = false, dijkstraOptions }: testOptions
         .then(async (sourcePaths) => {
           computedStops.add(stopId);
 
-          await FootPathModel.insertMany(
+          totalPaths += sourcePaths.size;
+
+          await NonScheduledRoutesModel.insertMany(
             Array.from(sourcePaths).map<dbFootPaths>(([to, [path, distance]]) => ({
               from: stopId,
               to,
               path: path.map((node) => (typeof node === "number" ? dbIntersectionId(node) : node)),
               distance,
             })),
-            { ordered: false, lean: true },
           );
 
           computed++;
-          if (!rejected && computed === approachedStops.size) def.resolve();
+          if (!rejected && computed === approachedStops.size) def.resolve(totalPaths);
         })
         .catch((r) => {
           computedStops.add(stopId);
