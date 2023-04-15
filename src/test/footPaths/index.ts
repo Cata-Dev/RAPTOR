@@ -1,5 +1,5 @@
 import { run } from "./test";
-import { benchmark } from "./utils/benchmark";
+import { benchmark } from "../utils/benchmark";
 
 const args = process.argv.slice(2);
 const getFullPaths = JSON.parse(args[0]);

@@ -1,6 +1,6 @@
 import { Ref } from "@typegoose/typegoose";
 import { RefType } from "@typegoose/typegoose/lib/types";
-import { node } from "../../../utils/Graph";
+import { node } from "../../utils/Graph";
 
 export type resolveCb<T = void> = (value: T) => void;
 export type rejectCb = (reason?: any) => void;

@@ -1,7 +1,7 @@
 import { HydratedDocument } from "mongoose";
-import initDB from "./utils/mongoose";
-import { benchmark } from "./utils/benchmark";
-import { WorkerPool } from "./utils/Workers";
+import initDB from "../utils/mongoose";
+import { benchmark } from "../utils/benchmark";
+import { WorkerPool } from "../utils/Workers";
 
 import { node, WeightedGraph } from "../../utils/Graph";
 
@@ -18,13 +18,13 @@ export type footGraphNodes = number | ReturnType<typeof approachedStopName>;
 // Needed to solve "Reflect.getMetadata is not a function" error of typegoose
 import "@abraham/reflection";
 
-import sectionsModelInit, { dbSections } from "./models/sections.model";
-import stopsModelInit, { dbTBM_Stops } from "./models/TBM_stops.model";
+import sectionsModelInit, { dbSections } from "../models/sections.model";
+import stopsModelInit, { dbTBM_Stops } from "../models/TBM_stops.model";
 import { computePath, initialCallback } from "./computePath";
 import { DocumentType } from "@typegoose/typegoose";
-import { approachedStopName, euclidianDistance, Deferred, sectionId, unique, dbIntersectionId, dbSectionId, unpackRefType } from "./utils/ultils";
-import FootGraphModelInit, { dbFootGraphEdges, dbFootGraphNodes } from "./models/FootGraph.model";
-import NonScheduledRoutesModelInit, { dbFootPaths } from "./models/NonScheduledRoutes.model";
+import { approachedStopName, euclidianDistance, Deferred, sectionId, unique, dbIntersectionId, dbSectionId, unpackRefType } from "../utils/ultils";
+import FootGraphModelInit, { dbFootGraphEdges, dbFootGraphNodes } from "../models/FootGraph.model";
+import NonScheduledRoutesModelInit, { dbFootPaths } from "../models/NonScheduledRoutes.model";
 import { KeyOfMap } from "../../utils";
 import { DijkstraOptions } from "../../FootPaths";
 
