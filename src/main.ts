@@ -35,6 +35,7 @@ export default class RAPTOR {
   readonly stops: Map<stopId, Stop>;
   readonly routes: Map<routeId, Route>;
 
+  /** @description A {@link Label} T*(stopId) represents the earliest known arrival time at stop stopId. */
   protected bestLabels: Map<stopId, Label<LabelType>> = new Map();
   /** @description A {@link Label} Ti(stopId) represents the earliest known arrival time at stop stopId with up to i trips. */
   protected multiLabel: Array<typeof this.bestLabels> = [];
@@ -51,7 +52,7 @@ export default class RAPTOR {
    * @param length Length of the path.
    * @param walkSpeed Walk speed, in ms/km
    */
-  walkDuration(length: number, walkSpeed: number): number {
+  protected walkDuration(length: number, walkSpeed: number): number {
     return length * walkSpeed;
   }
 
@@ -62,7 +63,7 @@ export default class RAPTOR {
    * @param k Current round.
    * @returns The earliest {@link Trip} on the route (and its index) r at the stop p, or null if no one is catchable.
    */
-  et(r: routeId, p: stopId, k: number): [Trip, number] | null {
+  protected et(r: routeId, p: stopId, k: number): [Trip, number] | null {
     const route = this.routes.get(r);
 
     if (route === undefined) return null;
@@ -167,5 +168,26 @@ export default class RAPTOR {
       //Stopping criterion
       if (Q.size === 0) break;
     }
+  }
+
+  getBestJourney(ps: stopId, pt: stopId): Label<"FIRST" | "TRANSFER" | "FULL">[] {
+
+    let journey: Label<"FIRST" | "TRANSFER" | "FULL">[] = []
+    let previousStop: stopId = pt
+
+    while (previousStop != ps) {
+
+      const previousLabel = this.bestLabels.get(previousStop)
+      if (!previousLabel || previousLabel.time === Infinity) {
+        /** Number of round is a parameter of {@link run} **/
+        throw new Error(`Journey is not possible to ${pt}.`)
+      }
+
+      journey = [previousLabel, ...journey]
+
+    }
+
+    return journey
+
   }
 }
