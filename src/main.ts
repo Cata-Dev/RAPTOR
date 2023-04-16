@@ -152,11 +152,7 @@ export default class RAPTOR {
         const stop = this.stops.get(p);
         if (stop === undefined) continue;
 
-        // Added for ts mental health
-        const transfers = stop.transfers.get(p);
-        if (transfers === undefined) continue;
-
-        for (const transfer of transfers) {
+        for (const transfer of stop.transfers) {
           const arrivalTime: timestamp = (this.multiLabel[k].get(p)?.time ?? Infinity) + this.walkDuration(transfer.length, settings.walkSpeed);
 
           if (arrivalTime < (this.multiLabel[k].get(transfer.to)?.time ?? Infinity))
@@ -171,23 +167,19 @@ export default class RAPTOR {
   }
 
   getBestJourney(ps: stopId, pt: stopId): Label<"FIRST" | "TRANSFER" | "FULL">[] {
-
-    let journey: Label<"FIRST" | "TRANSFER" | "FULL">[] = []
-    let previousStop: stopId = pt
+    let journey: Label<"FIRST" | "TRANSFER" | "FULL">[] = [];
+    let previousStop: stopId = pt;
 
     while (previousStop != ps) {
-
-      const previousLabel = this.bestLabels.get(previousStop)
+      const previousLabel = this.bestLabels.get(previousStop);
       if (!previousLabel || previousLabel.time === Infinity) {
         /** Number of round is a parameter of {@link run} **/
-        throw new Error(`Journey is not possible to ${pt}.`)
+        throw new Error(`Journey is not possible to ${pt}.`);
       }
 
-      journey = [previousLabel, ...journey]
-
+      journey = [previousLabel, ...journey];
     }
 
-    return journey
-
+    return journey;
   }
 }

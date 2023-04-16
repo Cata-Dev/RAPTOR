@@ -13,7 +13,7 @@ export interface Trip {
   times: [timestamp, timestamp][];
 }
 
-export type footPaths = Map<stopId, Array<{ to: stopId; length: number }>>;
+export type footPaths = { to: stopId; length: number }[];
 
 export type stopId = Id;
 /**
