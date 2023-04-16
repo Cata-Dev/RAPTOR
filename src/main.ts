@@ -20,10 +20,10 @@ export type Label<T extends LabelType> = T extends "FULL"
     }
   : T extends "FIRST"
   ? {
-      time: timestamp;
+      time: number;
     }
   : T extends "DEFAULT"
-  ? { time: number }
+  ? { time: typeof Infinity }
   : never;
 
 /**
@@ -83,7 +83,7 @@ export default class RAPTOR {
    * @param rounds Maximal number of transfers
    */
   run(ps: stopId, pt: stopId, departureTime: timestamp, settings: { walkSpeed: number }, rounds: number = RAPTOR.defaultRounds) {
-    this.multiLabel = new Array(rounds).map(() => new Map());
+    this.multiLabel = Array.from({ length: rounds }, () => new Map());
     this.bestLabels = new Map();
 
     /** Set<{@link stopId} in {@link stops}> */
@@ -168,16 +168,16 @@ export default class RAPTOR {
 
   getBestJourney(ps: stopId, pt: stopId): Label<"FIRST" | "TRANSFER" | "FULL">[] {
     let journey: Label<"FIRST" | "TRANSFER" | "FULL">[] = [];
-    let previousStop: stopId = pt;
+    let previousStop: stopId | null = pt;
 
-    while (previousStop != ps) {
+    while (previousStop != null) {
       const previousLabel = this.bestLabels.get(previousStop);
-      if (!previousLabel || previousLabel.time === Infinity) {
-        /** Number of round is a parameter of {@link run} **/
-        throw new Error(`Journey is not possible to ${pt}.`);
-      }
+      if (!previousLabel || previousLabel.time === Infinity) throw new Error(`Journey is not possible to ${pt}.`);
 
       journey = [previousLabel, ...journey];
+      if ("boardedAt" in previousLabel) previousStop = previousLabel.boardedAt;
+      else if (previousStop != ps) throw new Error(`Journey is not possible to ${pt}.`);
+      else previousStop = null;
     }
 
     return journey;
