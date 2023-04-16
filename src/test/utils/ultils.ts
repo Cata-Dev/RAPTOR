@@ -92,12 +92,12 @@ export function binaryFilter<T, C>(arr: T[], el: C, compare: (a: C, b: T) => num
   const binarySearchResult = binarySearch(arr, el, compare);
   if (binarySearchResult < 0) return [];
   let low = binarySearchResult;
-  while (compare(el, arr[low]) === 0) {
+  while (low >= 0 && compare(el, arr[low]) === 0) {
     low--;
   }
   let high = binarySearchResult;
-  while (compare(el, arr[high]) === 0) {
-    high--;
+  while (high < arr.length && compare(el, arr[high]) === 0) {
+    high++;
   }
   return arr.slice(low, high + 1);
 }
