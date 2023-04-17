@@ -1,4 +1,4 @@
-import { Stop, Trip, Route, stopId, routeId, footPaths, timestamp } from "./utils/Structures";
+import { Stop, Trip, Route, stopId, routeId, footPaths, timestamp, MAX_SAFE_TIMESTAMP } from "./utils/Structures";
 
 export type LabelType = "DEFAULT" | "FIRST" | "TRANSFER" | "FULL";
 export type Label<T extends LabelType> = T extends "FULL"
@@ -23,7 +23,7 @@ export type Label<T extends LabelType> = T extends "FULL"
       time: number;
     }
   : T extends "DEFAULT"
-  ? { time: typeof Infinity }
+  ? { time: typeof MAX_SAFE_TIMESTAMP }
   : never;
 
 /**
@@ -70,7 +70,7 @@ export default class RAPTOR {
 
     for (let t: number = 0; t < route.trips.length; t++) {
       //Catchable
-      if (route.departureTime(t, p) >= (this.multiLabel[k - 1].get(p)?.time ?? Infinity)) return [route.trips[t], t];
+      if (route.departureTime(t, p) < MAX_SAFE_TIMESTAMP && route.departureTime(t, p) >= (this.multiLabel[k - 1].get(p)?.time ?? Infinity)) return [route.trips[t], t];
     }
     return null;
   }
@@ -123,7 +123,7 @@ export default class RAPTOR {
 
       //Traverse each route
       for (const [r, p] of Q) {
-        let t: [Trip, number] | null = this.et(r, p, k);
+        let t: [Trip, number] | null = null;
 
         const route: Route = this.routes.get(r)!;
 
@@ -166,16 +166,22 @@ export default class RAPTOR {
     }
   }
 
-  getBestJourney(ps: stopId, pt: stopId): Label<"FIRST" | "TRANSFER" | "FULL">[] {
+  getBestJourney(ps: stopId, pt: stopId, rounds: number = RAPTOR.defaultRounds): Label<"FIRST" | "TRANSFER" | "FULL">[] {
     let journey: Label<"FIRST" | "TRANSFER" | "FULL">[] = [];
     let previousStop: stopId | null = pt;
 
+    if (rounds > this.multiLabel.length) throw new Error(`Current RAPTOR didn't ran with ${rounds} rounds.`)
+
     while (previousStop != null) {
-      const previousLabel = this.bestLabels.get(previousStop);
-      if (!previousLabel || previousLabel.time === Infinity) throw new Error(`Journey is not possible to ${pt}.`);
+      const previousLabel = this.multiLabel[rounds - 1].get(previousStop);
+      if (!previousLabel || previousLabel.time >= MAX_SAFE_TIMESTAMP) throw new Error(`Journey is not possible to ${pt}.`);
 
       journey = [previousLabel, ...journey];
-      if ("boardedAt" in previousLabel) previousStop = previousLabel.boardedAt;
+      if ("boardedAt" in previousLabel) {
+        // Cyclic
+        if (previousLabel.boardedAt === previousStop) throw new Error(`Journey is not possible to ${pt}.`);
+        previousStop = previousLabel.boardedAt;
+      }
       else if (previousStop != ps) throw new Error(`Journey is not possible to ${pt}.`);
       else previousStop = null;
     }

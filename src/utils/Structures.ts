@@ -2,6 +2,8 @@
 export type timestamp = number;
 export type Id = number | string;
 
+export const MAX_SAFE_TIMESTAMP: timestamp = 8_640_000_000_000_000
+
 /**
  * @description A Trip, i.e. a succession of stop times.
  */
