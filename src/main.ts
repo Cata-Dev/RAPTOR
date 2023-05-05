@@ -50,10 +50,11 @@ export default class RAPTOR {
 
   /**
    * @param length Length of the path.
-   * @param walkSpeed Walk speed, in ms/km
+   * @param walkSpeed Walk speed, in m/s
+   * @returns Duration in ms
    */
   protected walkDuration(length: number, walkSpeed: number): number {
-    return length * walkSpeed;
+    return length / walkSpeed * 1000;
   }
 
   /**
@@ -148,7 +149,7 @@ export default class RAPTOR {
       }
 
       //Look at foot-paths
-      for (const p of Q.values()) {
+      for (const p of Marked) {
         const stop = this.stops.get(p);
         if (stop === undefined) continue;
 
