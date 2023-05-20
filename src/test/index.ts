@@ -9,7 +9,7 @@ import TBMScheduledRoutesModelInit, { dbTBM_ScheduledRoutes } from "./models/TBM
 import NonScheduledRoutesModelInit, { dbFootPaths } from "./models/NonScheduledRoutes.model";
 import RAPTOR from "../main";
 import { HydratedDocument } from "mongoose";
-import { DocumentType, isDocument } from "@typegoose/typegoose";
+import { DocumentType } from "@typegoose/typegoose";
 import { binaryFilter, unpackRefType } from "./utils/ultils";
 import { stopId } from "../utils/Structures";
 import { benchmark } from "./utils/benchmark";
