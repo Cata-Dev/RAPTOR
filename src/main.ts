@@ -1,4 +1,4 @@
-import { Stop, Trip, Route, stopId, routeId, footPaths, timestamp, MAX_SAFE_TIMESTAMP } from "./utils/Structures";
+import { Stop, Trip, Route, stopId, routeId, timestamp, MAX_SAFE_TIMESTAMP, FootPath } from "./utils/Structures";
 
 export type LabelType = "DEFAULT" | "FIRST" | "TRANSFER" | "FULL";
 export type Label<T extends LabelType = LabelType> = T extends "FULL"
@@ -15,7 +15,7 @@ export type Label<T extends LabelType = LabelType> = T extends "FULL"
       /** @param boardedAt {@link stopId} in {@link RAPTOR.stops} */
       boardedAt: stopId;
       /** @param boardedAt {@link stopId} in {@link RAPTOR.stops} */
-      transferId: stopId;
+      transfer: FootPath;
       time: timestamp;
     }
   : T extends "FIRST"
@@ -44,7 +44,7 @@ export default class RAPTOR {
   /**
    * @description Creates a new RAPTOR instance for a defined network.
    */
-  constructor(stops: Array<[stopId, number, number, routeId[], footPaths]>, routes: Array<[routeId, [stopId[], Trip[]]]>) {
+  constructor(stops: Array<[stopId, number, number, routeId[], FootPath[]]>, routes: Array<[routeId, [stopId[], Trip[]]]>) {
     this.stops = new Map(stops.map(([id, lat, long, connectedRoutes, transfers]) => [id, { id, lat, long, connectedRoutes, transfers }]));
     this.routes = new Map(routes.map(([rId, r]) => [rId, new Route(rId, ...r)]));
   }
@@ -157,7 +157,7 @@ export default class RAPTOR {
           const arrivalTime: timestamp = (this.multiLabel[k].get(p)?.time ?? Infinity) + this.walkDuration(transfer.length, settings.walkSpeed);
 
           if (arrivalTime < (this.multiLabel[k].get(transfer.to)?.time ?? Infinity))
-            this.multiLabel[k].set(transfer.to, { boardedAt: p, transferId: p, time: arrivalTime });
+            this.multiLabel[k].set(transfer.to, { boardedAt: p, transfer, time: arrivalTime });
 
           Marked.add(transfer.to);
         }

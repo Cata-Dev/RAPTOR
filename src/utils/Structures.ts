@@ -15,7 +15,7 @@ export interface Trip {
   times: [timestamp, timestamp][];
 }
 
-export type footPaths = { to: stopId; length: number }[];
+export type FootPath = { to: stopId; length: number };
 
 export type stopId = Id;
 /**
@@ -26,7 +26,7 @@ export interface Stop {
   readonly lat: number;
   readonly long: number;
   readonly connectedRoutes: Array<routeId>;
-  readonly transfers: footPaths;
+  readonly transfers: FootPath[];
 }
 
 export type routeId = Id;
