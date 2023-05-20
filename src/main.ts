@@ -177,7 +177,7 @@ export default class RAPTOR {
 
       if ("boardedAt" in previousLabel) {
         // Cyclic
-        if (journey.find((j) => "boardedAt" in j && j.boardedAt === previousLabel.boardedAt))
+        if (journey.find((j) => "boardedAt" in j && j.boardedAt === previousLabel.boardedAt && j.time === previousLabel.time))
           throw new Error(`Journey is not possible to ${pt} (cyclic).`);
         previousStop = previousLabel.boardedAt;
       } else throw new Error(`Journey is not possible to ${pt} (unreachable).`);
