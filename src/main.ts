@@ -1,7 +1,7 @@
 import { Stop, Trip, Route, stopId, routeId, footPaths, timestamp, MAX_SAFE_TIMESTAMP } from "./utils/Structures";
 
 export type LabelType = "DEFAULT" | "FIRST" | "TRANSFER" | "FULL";
-export type Label<T extends LabelType> = T extends "FULL"
+export type Label<T extends LabelType = LabelType> = T extends "FULL"
   ? {
       /** @param boardedAt {@link stopId} in {@link RAPTOR.stops} */
       boardedAt: stopId;
@@ -25,6 +25,7 @@ export type Label<T extends LabelType> = T extends "FULL"
   : T extends "DEFAULT"
   ? { time: typeof MAX_SAFE_TIMESTAMP }
   : never;
+export type Journey = Label[];
 
 /**
  * @description A RAPTOR instance
@@ -188,5 +189,17 @@ export default class RAPTOR {
     }
 
     return journey;
+  }
+
+  getBestJourneys(ps: stopId, pt: stopId): (null | Journey)[] {
+    const journeys: (null | Journey)[] = Array.from({ length: this.multiLabel.length }, () => null);
+
+    for (let k = 0; k < journeys.length; k++) {
+      try {
+        journeys[k] = this.getBestJourney(ps, pt, k);
+      } catch (_) {}
+    }
+
+    return journeys;
   }
 }
