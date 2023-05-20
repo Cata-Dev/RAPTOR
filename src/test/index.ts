@@ -125,7 +125,7 @@ import { benchmark } from "./utils/benchmark";
   if (!b3.lastReturn) throw `b3 return null`;
 
   function resultRAPTOR() {
-    return RAPTORInstance.getBestJourney(ps, pt);
+    return RAPTORInstance.getBestJourneys(ps, pt);
   }
   const b4 = await benchmark(resultRAPTOR, []);
   console.log("b4 ended");
