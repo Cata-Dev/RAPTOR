@@ -151,6 +151,7 @@ export default class RAPTOR {
         if (stop === undefined) continue;
 
         for (const transfer of stop.transfers) {
+          if (transfer.to === p) continue;
           const arrivalTime: timestamp = (this.multiLabel[k].get(p)?.time ?? Infinity) + this.walkDuration(transfer.length, settings.walkSpeed);
 
           if (arrivalTime < (this.multiLabel[k].get(transfer.to)?.time ?? Infinity))
