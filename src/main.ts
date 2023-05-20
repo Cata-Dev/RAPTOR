@@ -64,14 +64,11 @@ export default class RAPTOR {
    * @param k Current round.
    * @returns The earliest {@link Trip} on the route (and its index) r at the stop p, or null if no one is catchable.
    */
-  protected et(r: routeId, p: stopId, k: number): [Trip, number] | null {
-    const route = this.routes.get(r);
-
-    if (route === undefined) return null;
-
-    for (let t: number = 0; t < route.trips.length; t++) {
+  protected et(route: Route, p: stopId, k: number): [Trip, number] | null {
+    for (let t = 0; t < route.trips.length; t++) {
       //Catchable
-      if (route.departureTime(t, p) < MAX_SAFE_TIMESTAMP && route.departureTime(t, p) >= (this.multiLabel[k - 1].get(p)?.time ?? Infinity)) return [route.trips[t], t];
+      let tDep = route.departureTime(t, p);
+      if (tDep < MAX_SAFE_TIMESTAMP && tDep >= (this.multiLabel[k - 1].get(p)?.time ?? Infinity)) return [route.trips[t], t];
     }
     return null;
   }
@@ -144,7 +141,7 @@ export default class RAPTOR {
           }
 
           //Catch an earlier trip at pi ?
-          t = this.et(r, pi, k) ?? t;
+          t = this.et(route, pi, k) ?? t;
         }
       }
 
