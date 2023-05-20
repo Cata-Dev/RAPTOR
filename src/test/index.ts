@@ -109,9 +109,10 @@ import { benchmark } from "./utils/benchmark";
   const ps: stopId = 128738;
   const pt: stopId = 126798;
 
-  let minSchedule: number = Infinity;
+  let minSchedule = Infinity;
   for (const schedule of dbScheduledRoutes.flatMap(({ trips }) => trips.flatMap(({ schedules }) => schedules))) {
-    if ("hor_estime" in schedule && schedule.hor_estime.getTime() < minSchedule) minSchedule = schedule.hor_estime.getTime();
+    if ("hor_estime" in schedule && schedule.hor_estime.getTime() < minSchedule && schedule.hor_estime.getTime() > 0)
+      minSchedule = schedule.hor_estime.getTime();
   }
 
   function runRAPTOR() {
