@@ -115,7 +115,7 @@ export default class RAPTOR {
         for (const r of connectedRoutes) {
           const p2 = Q.get(r);
           if (p2) {
-            if (this.routes.get(r)!.stops.indexOf(p) < this.routes.get(r)!.stops.indexOf(p2)) Q.set(r, p);
+            if ((this.routes.get(r)?.stops ?? []).indexOf(p) < (this.routes.get(r)?.stops ?? []).indexOf(p2)) Q.set(r, p);
           } else Q.set(r, p);
         }
 
