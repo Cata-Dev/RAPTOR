@@ -89,6 +89,7 @@ export async function run({ getFullPaths = false, dijkstraOptions }: testOptions
             intersectionId,
             {
               _id: intersectionId,
+              // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
               coords: (Array.from(sections.values()).find((s) => s.rg_fv_graph_nd === intersectionId)?.coords[0] ??
                 Array.from(sections.values())
                   .find((s) => s.rg_fv_graph_na === intersectionId)
@@ -174,7 +175,7 @@ export async function run({ getFullPaths = false, dijkstraOptions }: testOptions
     const approachedStops: Map<ReturnType<typeof approachedStopName>, [Point, (typeof footGraph.edges)[number], number]> = new Map();
     for (const [stopId, stop] of stops) {
       /**@description [distance to closest point, closest point, section containing this point, indice of segment composing the section (i;i+1 in Section coords)] */
-      let closestPoint: [number, Point | null, (typeof footGraph.edges)[number] | null, number | null] = [Infinity, null, null, null];
+      const closestPoint: [number, Point | null, (typeof footGraph.edges)[number] | null, number | null] = [Infinity, null, null, null];
 
       for (const [edge, segs] of mappedSegments) {
         for (const [n, seg] of segs.entries()) {
@@ -267,7 +268,7 @@ export async function run({ getFullPaths = false, dijkstraOptions }: testOptions
 
     let rejected = false;
 
-    await benchmark(NonScheduledRoutesModel.deleteMany, [{}] as unknown as any, NonScheduledRoutesModel);
+    await benchmark(NonScheduledRoutesModel.deleteMany, [{}] as never, NonScheduledRoutesModel);
 
     let totalPaths = 0;
 

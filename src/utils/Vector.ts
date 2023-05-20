@@ -3,8 +3,8 @@ import Point from "./Point";
 export type direction = 0 | 1;
 
 export default class Vector2 {
-  x: number = NaN;
-  y: number = NaN;
+  x = NaN;
+  y = NaN;
 
   /**
    * @description Create a new vector from 2 points

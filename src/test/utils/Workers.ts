@@ -25,7 +25,8 @@ type workerPoolEvents<T, R> = {
   jobEnded: (result: R | unknown) => void;
 };
 
-export class WorkerPool<Icb extends (...args: any[]) => any, F extends (...args: any) => any> extends TypedEventEmitter<
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export class WorkerPool<Icb extends (...args: any[]) => unknown, F extends (...args: any[]) => unknown> extends TypedEventEmitter<
   workerPoolEvents<Parameters<F>, Awaited<ReturnType<F>>>
 > {
   readonly pool: poolWorker<Parameters<F>, Awaited<ReturnType<F>>>[];
@@ -124,6 +125,7 @@ export class WorkerPool<Icb extends (...args: any[]) => any, F extends (...args:
     worker.worker.once("message", onceMessage);
     worker.worker.once("error", onceError);
 
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     if (!res || !rej) return def!.promise;
   }
 

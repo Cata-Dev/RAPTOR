@@ -1,4 +1,4 @@
-import { node, nodeOrNullNode, nullNode, unpackGraphNode, WeightedGraph } from "./utils/Graph";
+import { node, nodeOrNullNode, nullNode, WeightedGraph } from "./utils/Graph";
 import { FibonacciHeap, INode } from "@tyriar/fibonacci-heap";
 
 export type path<N extends node = node> = N[];
@@ -57,19 +57,24 @@ export function Dijkstra<N extends node, G extends WeightedGraph<N>>(
   }
 
   while (!Q.isEmpty()) {
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const min = Q.extractMinimum()!; // Can't be null otherwise Q is empty
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     QMapping.set(min.value!, null);
 
     if (t !== undefined && min.value === t) break;
 
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     for (const v of G.neighborsIterator(min.value!) ?? []) {
       /**@description New alternative distance found from min, from a + (a,b) instead of b */
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       const alt = min.key + G.weight(min.value!, v);
 
       if (O && alt > O.maxCumulWeight) continue;
 
       if (alt < (dist.get(v) ?? Infinity)) {
         dist.set(v, alt);
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         prev.set(v, min.value!);
         const vINode = QMapping.get(v);
         if (vINode != null) Q.decreaseKey(vINode, alt);

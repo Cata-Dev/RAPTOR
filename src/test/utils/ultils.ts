@@ -3,7 +3,7 @@ import { RefType } from "@typegoose/typegoose/lib/types";
 import { node } from "../../utils/Graph";
 
 export type resolveCb<T = void> = (value: T) => void;
-export type rejectCb = (reason?: any) => void;
+export type rejectCb = (reason?: unknown) => void;
 
 export class Deferred<T = unknown> {
   public promise: Promise<T>;

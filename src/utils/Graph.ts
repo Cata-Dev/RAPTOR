@@ -175,7 +175,7 @@ export class Graph<N extends node = node> {
    * @description A list including the nodes that are connected (source or target) with the node n
    * @param n A node of the graph
    */
-  connections(n: N): Array<any> {
+  connections(n: N): N[] {
     return this.nodes.filter((n1) => this.adjacent(n, n1));
   }
 }
@@ -200,7 +200,7 @@ export class WeightedGraph<N extends node = node> extends Graph<N> {
    * @param n2 A node of the graph
    * @param w The weight of this arc
    */
-  add_arc(n1: N, n2: N, w: number = 0): this {
+  add_arc(n1: N, n2: N, w = 0): this {
     super.add_arc(n1, n2);
     this.weights.set(`${n1}-${n2}`, w);
     return this;
@@ -242,8 +242,9 @@ export class WeightedGraph<N extends node = node> extends Graph<N> {
 
   weight(n1: N, n2: N): number {
     if (!this.arc(n1, n2)) throw new Error("Invalid nodes");
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     return this.weights.get(`${n1}-${n2}`)!;
   }
 }
 
-export type unpackGraphNode<G> = G extends Graph<infer N> ? KeyOfMap<G["adj"]> : never;
+export type unpackGraphNode<G> = G extends Graph ? KeyOfMap<G["adj"]> : never;

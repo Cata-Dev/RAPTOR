@@ -67,7 +67,7 @@ export default class RAPTOR {
   protected et(route: Route, p: stopId, k: number): [Trip, number] | null {
     for (let t = 0; t < route.trips.length; t++) {
       //Catchable
-      let tDep = route.departureTime(t, p);
+      const tDep = route.departureTime(t, p);
       if (tDep < MAX_SAFE_TIMESTAMP && tDep >= (this.multiLabel[k - 1].get(p)?.time ?? Infinity)) return [route.trips[t], t];
     }
     return null;
@@ -123,6 +123,7 @@ export default class RAPTOR {
       for (const [r, p] of Q) {
         let t: [Trip, number] | null = null;
 
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         const route: Route = this.routes.get(r)!;
 
         for (let i = route.stops.indexOf(p); i < route.stops.length; i++) {
