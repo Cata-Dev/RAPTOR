@@ -161,7 +161,7 @@ export default class RAPTOR {
       }
 
       //Stopping criterion
-      if (Q.size === 0) break;
+      if (Marked.size === 0) break;
     }
   }
 
