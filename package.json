@@ -6,6 +6,7 @@
   "scripts": {
     "build": "tsc",
     "prettier": "npx prettier \"**/*.ts\" --write",
+    "lint": "eslint ./src/",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",
@@ -14,11 +15,12 @@
     "@abraham/reflection": "^0.12.0",
     "@typegoose/typegoose": "^10.2.0-beta.3",
     "@tyriar/fibonacci-heap": "^2.0.9",
-    "mongodb": "^5.0.1",
-    "proj4": "^2.8.1"
+    "mongodb": "^5.0.1"
   },
   "devDependencies": {
-    "@types/proj4": "^2.5.2",
+    "@typescript-eslint/eslint-plugin": "^5.59.6",
+    "@typescript-eslint/parser": "^5.59.6",
+    "eslint": "^8.41.0",
     "prettier": "^2.8.4",
     "ts-node": "^10.9.1",
     "typescript": "^4.9.5"
