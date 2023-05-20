@@ -167,22 +167,22 @@ export default class RAPTOR {
 
   getBestJourney(ps: stopId, pt: stopId, rounds: number = RAPTOR.defaultRounds): Label<"FIRST" | "TRANSFER" | "FULL">[] {
     let journey: Label<"FIRST" | "TRANSFER" | "FULL">[] = [];
+
+    if (rounds > this.multiLabel.length) throw new Error(`Current RAPTOR didn't ran with ${rounds} rounds.`);
+
     let previousStop: stopId | null = pt;
-
-    if (rounds > this.multiLabel.length) throw new Error(`Current RAPTOR didn't ran with ${rounds} rounds.`)
-
-    while (previousStop != null) {
+    while (previousStop != ps) {
       const previousLabel = this.multiLabel[rounds - 1].get(previousStop);
       if (!previousLabel || previousLabel.time >= MAX_SAFE_TIMESTAMP) throw new Error(`Journey is not possible to ${pt}.`);
 
-      journey = [previousLabel, ...journey];
       if ("boardedAt" in previousLabel) {
         // Cyclic
-        if (previousLabel.boardedAt === previousStop) throw new Error(`Journey is not possible to ${pt}.`);
+        if (journey.find((j) => "boardedAt" in j && j.boardedAt === previousLabel.boardedAt))
+          throw new Error(`Journey is not possible to ${pt} (cyclic).`);
         previousStop = previousLabel.boardedAt;
-      }
-      else if (previousStop != ps) throw new Error(`Journey is not possible to ${pt}.`);
-      else previousStop = null;
+      } else throw new Error(`Journey is not possible to ${pt} (unreachable).`);
+
+      journey = [previousLabel, ...journey];
     }
 
     return journey;
