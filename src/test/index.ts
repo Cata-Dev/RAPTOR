@@ -11,7 +11,7 @@ import RAPTOR from "../main";
 import { HydratedDocument } from "mongoose";
 import { DocumentType } from "@typegoose/typegoose";
 import { binaryFilter, unpackRefType } from "./utils/ultils";
-import { stopId } from "../utils/Structures";
+import { MAX_SAFE_TIMESTAMP, stopId } from "../utils/Structures";
 import { benchmark } from "./utils/benchmark";
 
 // Main IIFE test function
@@ -91,7 +91,9 @@ import { benchmark } from "./utils/benchmark";
           trips.map(({ tripId, schedules }) => ({
             id: tripId,
             times: schedules.map((schedule) =>
-              "hor_estime" in schedule ? [schedule.hor_estime.getTime(), schedule.hor_estime.getTime()] : [Infinity, Infinity],
+              "hor_estime" in schedule
+                ? [schedule.hor_estime.getTime() || MAX_SAFE_TIMESTAMP, schedule.hor_estime.getTime() || MAX_SAFE_TIMESTAMP]
+                : [Infinity, Infinity],
             ),
           })),
         ],
