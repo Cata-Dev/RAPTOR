@@ -54,7 +54,7 @@ export default class RAPTOR {
    * @returns Duration in ms
    */
   protected walkDuration(length: number, walkSpeed: number): number {
-    return length / walkSpeed * 1000;
+    return (length / walkSpeed) * 1000;
   }
 
   /**
@@ -156,6 +156,7 @@ export default class RAPTOR {
 
           if (arrivalTime < (this.multiLabel[k].get(transfer.to)?.time ?? Infinity))
             this.multiLabel[k].set(transfer.to, { boardedAt: p, transferId: p, time: arrivalTime });
+
           Marked.add(transfer.to);
         }
       }
