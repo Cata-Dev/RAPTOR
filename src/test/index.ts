@@ -118,7 +118,7 @@ import { benchmark } from "./utils/benchmark";
   }
 
   function runRAPTOR() {
-    RAPTORInstance.run(ps, pt, minSchedule, { walkSpeed: 8 });
+    RAPTORInstance.run(ps, pt, minSchedule, { walkSpeed: 1.5 });
 
     return true as const;
   }
