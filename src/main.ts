@@ -147,7 +147,7 @@ export default class RAPTOR {
       }
 
       //Look at foot-paths
-      for (const p of Marked) {
+      for (const p of new Set(Marked)) {
         const stop = this.stops.get(p);
         if (stop === undefined) continue;
 
