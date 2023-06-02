@@ -65,11 +65,11 @@ export default class RAPTOR {
    * @param k Current round.
    * @returns The earliest {@link Trip} on the route (and its index) r at the stop p, or null if no one is catchable.
    */
-  protected et(route: Route, p: stopId, k: number): [Trip, number] | null {
+  protected et(route: Route, p: stopId, k: number): { tripIndex: number; boardedAt: stopId } | null {
     for (let t = 0; t < route.trips.length; t++) {
       //Catchable
       const tDep = route.departureTime(t, p);
-      if (tDep < MAX_SAFE_TIMESTAMP && tDep >= (this.multiLabel[k - 1].get(p)?.time ?? Infinity)) return [route.trips[t], t];
+      if (tDep < MAX_SAFE_TIMESTAMP && tDep >= (this.multiLabel[k - 1].get(p)?.time ?? Infinity)) return { tripIndex: t, boardedAt: p };
     }
     return null;
   }
@@ -122,7 +122,7 @@ export default class RAPTOR {
 
       //Traverse each route
       for (const [r, p] of Q) {
-        let t: [Trip, number] | null = null;
+        let t: ReturnType<typeof this.et> | null = null;
 
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         const route: Route = this.routes.get(r)!;
@@ -132,12 +132,11 @@ export default class RAPTOR {
 
           //Improve periods, local & target pruning
           if (t !== null) {
-            const arrivalTime: timestamp = t[0].times[i][0];
-
+            const arrivalTime: timestamp = route.trips[t.tripIndex].times[i][0];
             if (arrivalTime < Math.min(this.bestLabels.get(pi)?.time ?? Infinity, this.bestLabels.get(pt)?.time ?? Infinity)) {
               //local & target pruning
-              this.multiLabel[k].set(pi, { boardedAt: p, route, tripIndex: t[1], time: arrivalTime });
-              this.bestLabels.set(pi, { boardedAt: p, route, tripIndex: t[1], time: arrivalTime });
+              this.multiLabel[k].set(pi, { boardedAt: t.boardedAt, route, tripIndex: t.tripIndex, time: arrivalTime });
+              this.bestLabels.set(pi, { boardedAt: t.boardedAt, route, tripIndex: t.tripIndex, time: arrivalTime });
               Marked.add(pi);
             }
           }
