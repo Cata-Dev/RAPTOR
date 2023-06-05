@@ -10,6 +10,7 @@ import Segment from "./utils/Segment";
 
 export interface testOptions {
   getFullPaths?: boolean;
+  computeGEOJSONs?: boolean;
   dijkstraOptions?: DijkstraOptions;
 }
 export type id = number;
@@ -22,14 +23,26 @@ import sectionsModelInit, { dbSections } from "../models/sections.model";
 import stopsModelInit, { dbTBM_Stops } from "../models/TBM_stops.model";
 import { computePath, initialCallback } from "./computePath";
 import { DocumentType } from "@typegoose/typegoose";
-import { approachedStopName, euclidianDistance, sectionId, dbIntersectionId, dbSectionId, unpackRefType } from "./utils/ultils";
+import {
+  approachedStopName,
+  euclidianDistance,
+  computeGEOJSON,
+  GEOJSON,
+  sectionId,
+  toWGS,
+  dbIntersectionId,
+  dbSectionId,
+  unpackRefType,
+} from "./utils/ultils";
+import { writeFile } from "fs/promises";
+import { TemplateCoordinates } from "proj4";
 import FootGraphModelInit, { dbFootGraphEdges, dbFootGraphNodes } from "../models/FootGraph.model";
-import NonScheduledRoutesModelInit, { dbFootPaths } from "../models/NonScheduledRoutes.model";
+import FootPathsModelInit, { dbFootPaths } from "../models/FootPaths.model";
 import { KeyOfMap } from "./utils";
 import { DijkstraOptions } from "./FootPaths";
 import { unique, Deferred } from "../utils";
 
-const sectionProjection = { coords: 1, distance: 1, rg_fv_graph_nd: 1, rg_fv_graph_na: 1 };
+const sectionProjection = { coords: 1, distance: 1, rg_fv_graph_nd: 1, rg_fv_graph_na: 1, nom_voie: 1 };
 export type dbSection = Pick<dbSections, keyof typeof sectionProjection>;
 type SectionOverwritten = {
   /** Will never be populated, so force to be RefType */
@@ -42,17 +55,22 @@ export type Section = Omit<dbSection, keyof SectionOverwritten> & SectionOverwri
 const stopProjection = { _id: 1, coords: 1, libelle: 1 };
 export type Stop = Pick<dbTBM_Stops, keyof typeof stopProjection>;
 
-export async function run({ getFullPaths = false, dijkstraOptions }: testOptions) {
+export async function run({ getFullPaths = false, computeGEOJSONs = false, dijkstraOptions }: testOptions) {
+  /** Data displaying.
+   * Uses {@link proj4} with crs {@link https://epsg.io/2154}.
+   */
+  const GEOJSONs: GEOJSON[] = [];
+
   //Grab required data
   const db = await initDB();
 
   const sectionsModel = sectionsModelInit(db);
   const stopsModel = stopsModelInit(db);
   const [FootGraphModel, FootGraphNodesModel, FootGraphEdgesModel] = FootGraphModelInit(db);
-  const NonScheduledRoutesModel = NonScheduledRoutesModelInit(db);
+  const FootPathModel = FootPathsModelInit(db);
 
-  // const limitTop = new Point(44.813926, -0.581271).fromWGSToLambert93();
-  // const limitBot = new Point(44.793123, -0.632578).fromWGSToLambert93();
+  const limitTop = new Point(44.813926, -0.581271).fromWGSToLambert93();
+  const limitBot = new Point(44.793123, -0.632578).fromWGSToLambert93();
 
   async function queryData() {
     //Important : sections are oriented => 2 entries per section
@@ -62,12 +80,12 @@ export async function run({ getFullPaths = false, dijkstraOptions }: testOptions
           .find<HydratedDocument<DocumentType<Section>>>(
             {
               //Restrict domain
-              // $and: [
-              //   { "coords.0.0": { $lte: limitTop.x } },
-              //   { "coords.0.0": { $gte: limitBot.x } },
-              //   { "coords.0.1": { $lte: limitTop.y } },
-              //   { "coords.0.1": { $gte: limitBot.y } },
-              // ],
+              $and: [
+                { "coords.0.0": { $lte: limitTop.x } },
+                { "coords.0.0": { $gte: limitBot.x } },
+                { "coords.0.1": { $lte: limitTop.y } },
+                { "coords.0.1": { $gte: limitBot.y } },
+              ],
               cat_dig: {
                 $in: [2, 3, 4, 5, 7, 9],
               },
@@ -90,7 +108,6 @@ export async function run({ getFullPaths = false, dijkstraOptions }: testOptions
             intersectionId,
             {
               _id: intersectionId,
-              // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
               coords: (Array.from(sections.values()).find((s) => s.rg_fv_graph_nd === intersectionId)?.coords[0] ??
                 Array.from(sections.values())
                   .find((s) => s.rg_fv_graph_na === intersectionId)
@@ -108,10 +125,10 @@ export async function run({ getFullPaths = false, dijkstraOptions }: testOptions
               $and: [
                 { coords: { $not: { $elemMatch: { $eq: Infinity } } } },
                 //Restrict domain
-                // { "coords.0": { $lte: limitTop.x } },
-                // { "coords.0": { $gte: limitBot.x } },
-                // { "coords.1": { $lte: limitTop.y } },
-                // { "coords.1": { $gte: limitBot.y } },
+                { "coords.0": { $lte: limitTop.x } },
+                { "coords.0": { $gte: limitBot.x } },
+                { "coords.1": { $lte: limitTop.y } },
+                { "coords.1": { $gte: limitBot.y } },
               ],
             },
             stopProjection,
@@ -155,40 +172,63 @@ export async function run({ getFullPaths = false, dijkstraOptions }: testOptions
   if (!b2.lastReturn) throw `b2 return null`;
   const footGraph = b2.lastReturn;
 
+  if (computeGEOJSONs)
+    GEOJSONs.push(
+      computeGEOJSON(
+        // footGraph.nodes,
+        [],
+        footGraph.arcs,
+        () => [],
+        // (node) =>
+        //   toWGS(typeof node === "number" ? validIntersections.get(node)?.coords ?? [0, 0] : stops.get(parseInt(node.split("-")[0]))?.coords ?? [0, 0]),
+        (arc) =>
+          sections.get(sectionId({ rg_fv_graph_nd: arc[0], rg_fv_graph_na: arc[1] }))?.coords.map((coords) => toWGS(coords)) ?? [
+            [0, 0],
+            [0, 0],
+          ],
+        (node) => ({
+          id: node,
+          "marker-color": "#5a5a5a",
+          "marker-size": "small",
+        }),
+        (arc) => ({
+          nom: Array.from(sections.values()).find((s) => s.rg_fv_graph_nd === arc[0] && s.rg_fv_graph_na === arc[1])?.nom_voie || "Unknown",
+        }),
+      ),
+    );
+
   //Compute approached stops
   function computeApproachedStops() {
-    //Pre-generate mapped segments to fasten the process (and not redundant computing)
-    //A segment describes a portion of a section (NOT oriented)
-    const mappedSegments: Map<(typeof footGraph.edges)[number], Segment[]> = new Map();
-    for (const edge of footGraph.edges) {
-      const section = getSection(...edge);
+    //Pre-generate segments to fasten the process (and not redundant computing)
+    //A segment describes a portion of a section (oriented)
+    const segments: Map<KeyOfMap<typeof sections>, { n: number; seg: Segment }> = new Map();
+    for (const arc of footGraph.arcs) {
+      const sId = sectionId({ rg_fv_graph_nd: arc[0], rg_fv_graph_na: arc[1] });
+      const section = sections.get(sId);
       if (!section) continue; // Added for ts mental health
-      mappedSegments.set(
-        edge,
-        section.coords.reduce<Segment[]>(
-          (acc, v, i) => (i >= section.coords.length - 1 ? acc : [...acc, new Segment(new Point(...v), new Point(...section.coords[i + 1]))]),
-          [],
-        ),
-      );
+      for (let i = 0; i < section.coords.length - 1; i++) {
+        segments.set(sId, {
+          n: i,
+          seg: new Segment(new Point(...section.coords[i]), new Point(...section.coords[i + 1])),
+        });
+      }
     }
 
     /**@description [closest point, section containing this point, indice of segment composing the section] */
-    const approachedStops: Map<ReturnType<typeof approachedStopName>, [Point, (typeof footGraph.edges)[number], number]> = new Map();
+    const approachedStops: Map<ReturnType<typeof approachedStopName>, [Point, KeyOfMap<typeof sections>, number]> = new Map();
     for (const [stopId, stop] of stops) {
       /**@description [distance to closest point, closest point, section containing this point, indice of segment composing the section (i;i+1 in Section coords)] */
-      const closestPoint: [number, Point | null, (typeof footGraph.edges)[number] | null, number | null] = [Infinity, null, null, null];
+      let closestPoint: [number, Point | null, KeyOfMap<typeof sections> | null, number | null] = [Infinity, null, null, null];
 
-      for (const [edge, segs] of mappedSegments) {
-        for (const [n, seg] of segs.entries()) {
-          const stopPoint: Point = new Point(...stop.coords);
-          const localClosestPoint: Point = seg.closestPointFromPoint(stopPoint);
-          const distance: number = Point.distance(stopPoint, localClosestPoint);
-          if (distance < closestPoint[0]) {
-            closestPoint[0] = distance;
-            closestPoint[1] = localClosestPoint;
-            closestPoint[2] = edge;
-            closestPoint[3] = n;
-          }
+      for (const [sectionKey, { n, seg }] of segments) {
+        const stopPoint: Point = new Point(...stop.coords);
+        const localClosestPoint: Point = seg.closestPointFromPoint(stopPoint);
+        const distance: number = Point.distance(stopPoint, localClosestPoint);
+        if (distance < closestPoint[0]) {
+          closestPoint[0] = distance;
+          closestPoint[1] = localClosestPoint;
+          closestPoint[2] = sectionKey;
+          closestPoint[3] = n;
         }
       }
 
@@ -207,8 +247,8 @@ export async function run({ getFullPaths = false, dijkstraOptions }: testOptions
   /** Update {@link footGraph} & {@link sections} */
   function refreshWithApproachedStops() {
     //Pushes new approached stops into graph, just like a proxy on a section
-    for (const [stopId, [closestPoint, edge, n]] of approachedStops) {
-      const section = getSection(...edge);
+    for (const [stopId, [closestPoint, sectionKey, n]] of approachedStops) {
+      const section = sections.get(sectionKey);
       if (!section) continue; // Added to ts mental health
       //Compute distance from section start to approachedStop
       const toApproadchedStop: number =
@@ -226,6 +266,7 @@ export async function run({ getFullPaths = false, dijkstraOptions }: testOptions
 
       //Remove edge from p1 to p2
       footGraph.remove_edge(section.rg_fv_graph_nd, section.rg_fv_graph_na);
+      sections.delete(sectionId(section));
 
       const insertedNode = stopId;
       //Insert new node approachedStop
@@ -233,6 +274,7 @@ export async function run({ getFullPaths = false, dijkstraOptions }: testOptions
       const subsectionToApproachedStop: Section = {
         coords: [...section.coords.slice(0, n + 1), [closestPoint.x, closestPoint.y]],
         distance: toApproadchedStop,
+        nom_voie: section.nom_voie,
         rg_fv_graph_nd: section.rg_fv_graph_nd,
         rg_fv_graph_na: insertedNode,
       };
@@ -242,6 +284,7 @@ export async function run({ getFullPaths = false, dijkstraOptions }: testOptions
       const subsectionFromApproachedStop: Section = {
         coords: [[closestPoint.x, closestPoint.y], ...section.coords.slice(n + 1)],
         distance: fromApproachedStop,
+        nom_voie: section.nom_voie,
         rg_fv_graph_nd: insertedNode,
         rg_fv_graph_na: section.rg_fv_graph_na,
       };
@@ -252,54 +295,64 @@ export async function run({ getFullPaths = false, dijkstraOptions }: testOptions
   const b4 = await benchmark(refreshWithApproachedStops, []);
   console.log("b4 ended");
 
-  async function computePaths() {
-    const def = new Deferred<number>();
-
-    const workerPool = new WorkerPool<typeof initialCallback, typeof computePath>(
-      __dirname + "/computePath.js",
-      8,
-      {
-        adj: footGraph.adj,
-        weights: footGraph.weights,
-        stops: Array.from(stops.keys()),
-        options: dijkstraOptions,
-      },
-      false,
+  if (computeGEOJSONs)
+    GEOJSONs.push(
+      computeGEOJSON(
+        footGraph.nodes,
+        footGraph.arcs,
+        // () => [],
+        (node) => {
+          let coords: [number, number] = [0, 0];
+          if (typeof node === "number") coords = validIntersections.get(node)?.coords ?? [0, 0];
+          else {
+            const approachedStopPoint = approachedStops.get(node as ReturnType<typeof approachedStopName>)?.[0];
+            if (approachedStopPoint) coords = [approachedStopPoint.x, approachedStopPoint.y];
+          }
+          return toWGS(coords);
+        },
+        (arc) =>
+          getSection(arc[0], arc[1])?.coords.map((coords) => toWGS(coords)) ?? [
+            [0, 0],
+            [0, 0],
+          ],
+        (node) => ({
+          id: node,
+          name: stops.get(typeof node === "string" ? parseInt(node.split("=")[1]) : node)?.libelle ?? "Unknown",
+          "marker-color": typeof node === "string" ? "#ff0000" : "#5a5a5a",
+          "marker-size": typeof node === "string" ? "medium" : "small",
+        }),
+        (arc) => ({
+          name: getSection(arc[0], arc[1])?.nom_voie || "Unknown",
+          distance: getSection(arc[0], arc[1])?.distance || "Unknown",
+          sectionId: sectionId({ rg_fv_graph_nd: arc[0], rg_fv_graph_na: arc[1] }),
+          stroke: typeof arc[0] === "string" || typeof arc[1] === "string" ? "#e60000" : "#5a5a5a",
+        }),
+      ),
     );
+
+  async function computePaths() {
+    //paths<source, <target, paths>>
+    const paths: Map<KeyOfMap<typeof stops>, Awaited<ReturnType<typeof computePath>>> = new Map();
+
+    const def = new Deferred<typeof paths>();
+
+    const workerPool = new WorkerPool<typeof initialCallback, typeof computePath>(__dirname + "/computePath.js", 8, {
+      adj: footGraph.adj,
+      weights: footGraph.weights,
+      stops: Array.from(stops.keys()),
+      options: dijkstraOptions,
+    });
 
     let rejected = false;
 
-    await benchmark(NonScheduledRoutesModel.deleteMany, [{}] as never, NonScheduledRoutesModel);
-
-    let totalPaths = 0;
-
-    // Number of done worker jobs
-    let computed = 0;
-    const computedStops = new Set<KeyOfMap<typeof stops>>();
     for (const stopId of stops.keys()) {
       workerPool
-        .run([approachedStopName(stopId), getFullPaths, computedStops])
-        .then(async (sourcePaths) => {
-          computedStops.add(stopId);
-
-          totalPaths += sourcePaths.size;
-
-          await NonScheduledRoutesModel.insertMany(
-            Array.from(sourcePaths).map<dbFootPaths>(([to, [path, distance]]) => ({
-              from: stopId,
-              to,
-              path: path.map((node) => (typeof node === "number" ? dbIntersectionId(node) : node)),
-              distance,
-            })),
-          );
-
-          computed++;
-          if (!rejected && computed === approachedStops.size) def.resolve(totalPaths);
+        .run([approachedStopName(stopId), getFullPaths])
+        .then((sourcePaths) => {
+          paths.set(stopId, sourcePaths);
+          if (paths.size === approachedStops.size) def.resolve(paths);
         })
         .catch((r) => {
-          computedStops.add(stopId);
-          computed++;
-
           if (rejected) return;
           rejected = true;
           def.reject(r);
@@ -310,6 +363,100 @@ export async function run({ getFullPaths = false, dijkstraOptions }: testOptions
   }
   const b5 = await benchmark(computePaths, []);
   console.log("b5 ended");
+  if (!b5.lastReturn) throw `b5 return null`;
+  const paths = b5.lastReturn;
+
+  // From "Les Harmonies"
+  if (computeGEOJSONs)
+    GEOJSONs.push(
+      computeGEOJSON(
+        footGraph.nodes,
+        Array.from(paths.get(128738)!).filter(([_, [path]]) => path.length),
+        (node) => {
+          let coords: [number, number] = [0, 0];
+          if (typeof node === "number") coords = validIntersections.get(node)?.coords ?? [0, 0];
+          else {
+            const approachedStopPoint = approachedStops.get(node as ReturnType<typeof approachedStopName>)?.[0];
+            if (approachedStopPoint) coords = [approachedStopPoint.x, approachedStopPoint.y];
+          }
+          return toWGS(coords);
+        },
+        ([_, [path]]) =>
+          path.reduce<TemplateCoordinates[]>(
+            (acc, v, i) =>
+              i < path.length - 1
+                ? [
+                    ...acc,
+                    ...((
+                      sections.get(sectionId({ rg_fv_graph_nd: v, rg_fv_graph_na: path[i + 1] }))?.coords ??
+                      sections
+                        .get(sectionId({ rg_fv_graph_nd: path[i + 1], rg_fv_graph_na: v }))
+                        ?.coords // Make a copy & reverse to get coords in the right order, tricky
+                        .slice()
+                        .reverse()
+                    )?.map((coords) => toWGS(coords)) ?? [
+                      [0, 0],
+                      [0, 0],
+                    ]),
+                  ]
+                : acc,
+            [],
+          ),
+        (node) => ({
+          id: node,
+          name: stops.get(typeof node === "string" ? parseInt(node.split("=")[1]) : node)?.libelle ?? "Unknown",
+          "marker-color": typeof node === "string" ? "#ff0000" : "#5a5a5a",
+          "marker-size": typeof node === "string" ? "medium" : "small",
+        }),
+        ([dest, [path, distance]]) => ({
+          path: `${path[0]}-${dest}`,
+          distance,
+          stroke: "#8080ff",
+        }),
+      ),
+    );
+
+  //From "Les Harmonies" to "Peixotto"
+  const specificPath = paths.get(128738)!.get(126798)!;
+  if (computeGEOJSONs)
+    GEOJSONs.push(
+      computeGEOJSON(
+        footGraph.nodes,
+        specificPath[0].reduce<[node, node][]>((acc, node, i, path) => (i < path.length - 1 ? [...acc, [node, path[i + 1]]] : acc), []),
+        (node) => {
+          let coords: [number, number] = [0, 0];
+          if (typeof node === "number") coords = validIntersections.get(node)?.coords ?? [0, 0];
+          else {
+            const approachedStopPoint = approachedStops.get(node as ReturnType<typeof approachedStopName>)?.[0];
+            if (approachedStopPoint) coords = [approachedStopPoint.x, approachedStopPoint.y];
+          }
+          return toWGS(coords);
+        },
+        (path) =>
+          path.reduce<TemplateCoordinates[]>(
+            (acc, v, i) =>
+              i === 0
+                ? getSection(v, path[i + 1])?.coords.map((coords) => toWGS(coords)) ?? [
+                    [0, 0],
+                    [0, 0],
+                  ]
+                : acc,
+            [],
+          ),
+        (node) => ({
+          id: node,
+          name: stops.get(typeof node === "string" ? parseInt(node.split("=")[1]) : node)?.libelle ?? "Unknown",
+          "marker-color": typeof node === "string" ? "#ff0000" : "#5a5a5a",
+          "marker-size": typeof node === "string" ? "medium" : "small",
+        }),
+        (path) => ({
+          path: `${path[0]}-${path[path.length - 1]}`,
+          totalDistance: specificPath[1],
+          stroke: "#8080ff",
+        }),
+      ),
+    );
+  if (computeGEOJSONs) for (let i = 0; i < GEOJSONs.length; i++) await writeFile(__dirname + `/../../out-${i}.geojson`, JSON.stringify(GEOJSONs[i]));
 
   async function updateDb() {
     //Empty db
@@ -338,6 +485,17 @@ export async function run({ getFullPaths = false, dijkstraOptions }: testOptions
           typeof section.rg_fv_graph_nd === "number" ? dbIntersectionId(section.rg_fv_graph_nd) : section.rg_fv_graph_nd,
           typeof section.rg_fv_graph_na === "number" ? dbIntersectionId(section.rg_fv_graph_na) : section.rg_fv_graph_na,
         ],
+      })),
+    );
+
+    await FootPathModel.deleteMany({});
+
+    await FootPathModel.insertMany(
+      Array.from(paths).map<dbFootPaths>(([from, [[to, [path, distance]]]]) => ({
+        from,
+        to,
+        path: path.map((node) => (typeof node === "number" ? dbIntersectionId(node) : node)),
+        distance,
       })),
     );
   }
