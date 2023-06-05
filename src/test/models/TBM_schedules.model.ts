@@ -3,6 +3,7 @@
 // See http://mongoosejs.com/docs/models.html
 
 export enum RtScheduleState {
+  Annule = "ANNULE",
   Non_realise = "NON_REALISE",
   Realise = "REALISE",
   Devie = "DEVIE",
