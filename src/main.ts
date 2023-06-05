@@ -133,8 +133,8 @@ export default class RAPTOR {
             const arrivalTime: timestamp = route.trips[t.tripIndex].times[i][0];
             if (arrivalTime < Math.min(this.bestLabels.get(pi)?.time ?? Infinity, this.bestLabels.get(pt)?.time ?? Infinity)) {
               //local & target pruning
-              this.multiLabel[k].set(pi, { boardedAt: t.boardedAt, route, tripIndex: t.tripIndex, time: arrivalTime });
-              this.bestLabels.set(pi, { boardedAt: t.boardedAt, route, tripIndex: t.tripIndex, time: arrivalTime });
+              this.multiLabel[k].set(pi, { ...t, route, time: arrivalTime });
+              this.bestLabels.set(pi, { ...t, route, time: arrivalTime });
               Marked.add(pi);
             }
           }
