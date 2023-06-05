@@ -139,8 +139,14 @@ export default class RAPTOR {
             }
           }
 
+          if (!t) t = this.et(route, pi, k);
           //Catch an earlier trip at pi ?
-          t = this.et(route, pi, k) ?? t;
+          else if ((this.multiLabel[k - 1].get(pi)?.time ?? Infinity) <= route.departureTime(t.tripIndex, pi)) {
+            const newEt = this.et(route, pi, k);
+            if (t.tripIndex !== newEt?.tripIndex) {
+              t = newEt;
+            }
+          }
         }
       }
 
