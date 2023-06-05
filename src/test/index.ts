@@ -79,10 +79,12 @@ import { benchmark } from "./utils/benchmark";
         _id,
         ...coords,
         dbScheduledRoutes.filter((ScheduledRoute) => ScheduledRoute.stops.find((stopId) => stopId === _id)).map(({ _id }) => _id),
-        binaryFilter(dbNonScheduledRoutes, _id, (stopFrom, NonScheduledRoute) => stopFrom - NonScheduledRoute.from).map(({ to, distance }) => ({
-          to,
-          length: distance,
-        })),
+        binaryFilter(dbNonScheduledRoutes, _id, (stopFrom, NonScheduledRoute) => stopFrom - NonScheduledRoute.from)
+          .filter(({ distance }) => distance <= 500)
+          .map(({ to, distance }) => ({
+            to,
+            length: distance,
+          })),
       ]),
       dbScheduledRoutes.map(({ _id, stops, trips }) => [
         _id,
