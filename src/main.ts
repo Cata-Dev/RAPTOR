@@ -204,12 +204,12 @@ export default class RAPTOR {
     return trace;
   }
 
-  getBestJourneys(ps: stopId, pt: stopId): (null | Journey)[] {
+  getBestJourneys(pt: stopId): (null | Journey)[] {
     const journeys: (null | Journey)[] = Array.from({ length: this.multiLabel.length }, () => null);
 
-    for (let k = 0; k < journeys.length; k++) {
+    for (let k = 1; k <= journeys.length; k++) {
       try {
-        journeys[k] = this.getBestJourney(ps, pt, k);
+        journeys[k] = this.traceBack(pt, k);
       } catch (_) {}
     }
 
