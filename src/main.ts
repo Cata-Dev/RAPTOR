@@ -171,27 +171,37 @@ export default class RAPTOR {
     }
   }
 
-  getBestJourney(ps: stopId, pt: stopId, rounds: number = RAPTOR.defaultRounds): Label<"FIRST" | "TRANSFER" | "FULL">[] {
-    let journey: Label<"FIRST" | "TRANSFER" | "FULL">[] = [];
+  protected traceBack(from: stopId, initRound: number): Label<"DEPARTURE" | "FOOT" | "VEHICLE">[] {
+    if (initRound < 1 || initRound > this.multiLabel.length) throw new Error(`Invalid round (${initRound}) provided.`);
 
-    if (rounds > this.multiLabel.length) throw new Error(`Current RAPTOR didn't ran with ${rounds} rounds.`);
+    let k = initRound;
+    let trace: Label<"DEPARTURE" | "FOOT" | "VEHICLE">[] = [];
 
-    let previousStop: stopId | null = pt;
-    while (previousStop != ps) {
-      const previousLabel = this.multiLabel[rounds - 1].get(previousStop);
-      if (!previousLabel || previousLabel.time >= MAX_SAFE_TIMESTAMP) throw new Error(`Journey is not possible to ${pt}.`);
+    let previousStop: stopId | null = from;
+    while (previousStop !== null) {
+      if (k < 0) throw new Error(`No journey in round ${initRound}.`); // Unable to get back to source
 
-      if ("boardedAt" in previousLabel) {
-        // Cyclic
-        if (journey.find((j) => "boardedAt" in j && j.boardedAt === previousLabel.boardedAt && j.time === previousLabel.time))
-          throw new Error(`Journey is not possible to ${pt} (cyclic).`);
+      const previousLabel = this.multiLabel[k].get(previousStop);
+      if (!previousLabel) throw new Error(`Invalid stop ${previousStop}.`); // Should never get here, unless invalid "from" stop
+
+      if (!("boardedAt" in previousLabel)) {
+        if (previousLabel.time >= MAX_SAFE_TIMESTAMP) {
+          k--;
+          continue;
+        }
+
+        previousStop = null;
+      } else {
+        if (trace.find((j) => "boardedAt" in j && j.boardedAt === previousLabel.boardedAt && j.time === previousLabel.time))
+          throw new Error(`Impossible journey (cyclic).`);
+
         previousStop = previousLabel.boardedAt;
-      } else throw new Error(`Journey is not possible to ${pt} (unreachable).`);
+      }
 
-      journey = [previousLabel, ...journey];
+      trace = [previousLabel, ...trace];
     }
 
-    return journey;
+    return trace;
   }
 
   getBestJourneys(ps: stopId, pt: stopId): (null | Journey)[] {
