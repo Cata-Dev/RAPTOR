@@ -1,7 +1,7 @@
 import { Stop, Trip, Route, stopId, routeId, timestamp, MAX_SAFE_TIMESTAMP, FootPath } from "./utils/Structures";
 
-export type LabelType = "DEFAULT" | "FIRST" | "TRANSFER" | "FULL";
-export type Label<T extends LabelType = LabelType> = T extends "FULL"
+export type LabelType = "DEFAULT" | "DEPARTURE" | "FOOT" | "VEHICLE";
+export type Label<T extends LabelType = LabelType> = T extends "VEHICLE"
   ? {
       /** @param boardedAt {@link stopId} in {@link RAPTOR.stops} */
       boardedAt: stopId;
@@ -10,7 +10,7 @@ export type Label<T extends LabelType = LabelType> = T extends "FULL"
       tripIndex: number;
       time: timestamp; //arrival time
     }
-  : T extends "TRANSFER"
+  : T extends "FOOT"
   ? {
       /** @param boardedAt {@link stopId} in {@link RAPTOR.stops} */
       boardedAt: stopId;
@@ -18,14 +18,14 @@ export type Label<T extends LabelType = LabelType> = T extends "FULL"
       transfer: FootPath;
       time: timestamp;
     }
-  : T extends "FIRST"
+  : T extends "DEPARTURE"
   ? {
       time: number;
     }
   : T extends "DEFAULT"
   ? { time: typeof MAX_SAFE_TIMESTAMP }
   : never;
-export type Journey = Label[];
+export type Journey = Label<"DEPARTURE" | "VEHICLE" | "FOOT">[];
 
 /**
  * @description A RAPTOR instance
