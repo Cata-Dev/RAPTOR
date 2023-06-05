@@ -1,4 +1,4 @@
-import { LinkOrEmpty, Link } from "./Link";
+import { LinkOrEmpty, Link } from "../footPaths/utils/Link";
 
 export class Queue<Type> {
   private front: LinkOrEmpty;

@@ -14,7 +14,7 @@ import {
 import { modelOptions } from "@typegoose/typegoose/lib/modelOptions";
 import { getName } from "@typegoose/typegoose/lib/internal/utils";
 import { Mongoose } from "mongoose";
-import { approachedStopName, dbIntersectionId, dbSectionId } from "../utils/ultils";
+import { approachedStopName, dbIntersectionId, dbSectionId } from "../footPaths/utils/ultils";
 
 @modelOptions({ options: { customName: "FootGraph" } })
 export class dbFootGraph {

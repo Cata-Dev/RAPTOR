@@ -1,8 +1,8 @@
 import { Worker } from "worker_threads";
-import { Deferred, rejectCb, resolveCb } from "./ultils";
 import { Duration } from "./benchmark";
 import { Queue, unpackQueue } from "./Queue";
 import { TypedEventEmitter } from "./TypedEmitter";
+import { resolveCb, rejectCb, Deferred } from ".";
 const nsPerMs = BigInt(1e6);
 
 enum Status {

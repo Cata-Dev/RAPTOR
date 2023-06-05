@@ -1,7 +1,7 @@
 import initDB from "./utils/mongoose";
 
 // Needed to solve "Reflect.getMetadata is not a function" error of typegoose
-import "@abraham/reflection";
+import "core-js/features/reflect";
 
 import stopsModelInit, { dbTBM_Stops } from "./models/TBM_stops.model";
 import TBMSchedulesModelInit from "./models/TBM_schedules.model";
@@ -10,9 +10,10 @@ import NonScheduledRoutesModelInit, { dbFootPaths } from "./models/NonScheduledR
 import RAPTOR from "../main";
 import { HydratedDocument } from "mongoose";
 import { DocumentType } from "@typegoose/typegoose";
-import { binaryFilter, unpackRefType } from "./utils/ultils";
-import { MAX_SAFE_TIMESTAMP, stopId } from "../utils/Structures";
+import { unpackRefType } from "./footPaths/utils/ultils";
+import { MAX_SAFE_TIMESTAMP, stopId } from "../Structures";
 import { benchmark } from "./utils/benchmark";
+import { binaryFilter } from "./utils";
 
 // Main IIFE test function
 (async () => {

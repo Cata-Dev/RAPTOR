@@ -1,4 +1,4 @@
-import { Stop, Trip, Route, stopId, routeId, timestamp, MAX_SAFE_TIMESTAMP, FootPath } from "./utils/Structures";
+import { Stop, Trip, Route, stopId, routeId, timestamp, MAX_SAFE_TIMESTAMP, FootPath } from "./Structures";
 
 export type LabelType = "DEFAULT" | "DEPARTURE" | "FOOT" | "VEHICLE";
 export type Label<T extends LabelType = LabelType> = T extends "VEHICLE"

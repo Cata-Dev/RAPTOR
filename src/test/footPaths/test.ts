@@ -3,10 +3,10 @@ import initDB from "../utils/mongoose";
 import { benchmark } from "../utils/benchmark";
 import { WorkerPool } from "../utils/Workers";
 
-import { node, WeightedGraph } from "../../utils/Graph";
+import { node, WeightedGraph } from "./utils/Graph";
 
-import Point from "../../utils/Point";
-import Segment from "../../utils/Segment";
+import Point from "./utils/Point";
+import Segment from "./utils/Segment";
 
 export interface testOptions {
   getFullPaths?: boolean;
@@ -22,11 +22,12 @@ import sectionsModelInit, { dbSections } from "../models/sections.model";
 import stopsModelInit, { dbTBM_Stops } from "../models/TBM_stops.model";
 import { computePath, initialCallback } from "./computePath";
 import { DocumentType } from "@typegoose/typegoose";
-import { approachedStopName, euclidianDistance, Deferred, sectionId, unique, dbIntersectionId, dbSectionId, unpackRefType } from "../utils/ultils";
+import { approachedStopName, euclidianDistance, sectionId, dbIntersectionId, dbSectionId, unpackRefType } from "./utils/ultils";
 import FootGraphModelInit, { dbFootGraphEdges, dbFootGraphNodes } from "../models/FootGraph.model";
 import NonScheduledRoutesModelInit, { dbFootPaths } from "../models/NonScheduledRoutes.model";
-import { KeyOfMap } from "../../utils";
-import { DijkstraOptions } from "../../FootPaths";
+import { KeyOfMap } from "./utils";
+import { DijkstraOptions } from "./FootPaths";
+import { unique, Deferred } from "../utils";
 
 const sectionProjection = { coords: 1, distance: 1, rg_fv_graph_nd: 1, rg_fv_graph_na: 1 };
 export type dbSection = Pick<dbSections, keyof typeof sectionProjection>;

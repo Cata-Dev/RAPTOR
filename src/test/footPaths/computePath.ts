@@ -1,10 +1,10 @@
-import { path, Dijkstra, tracePath, DijkstraOptions } from "../../FootPaths";
-import { unpackGraphNode, WeightedGraph } from "../../utils/Graph";
+import { path, Dijkstra, tracePath, DijkstraOptions } from "./FootPaths";
+import { unpackGraphNode, WeightedGraph } from "./utils/Graph";
 import type { footGraphNodes, id } from "./test";
 
 import { parentPort } from "worker_threads";
 import { benchmark } from "../utils/benchmark";
-import { approachedStopName } from "../utils/ultils";
+import { approachedStopName } from "./utils/ultils";
 
 export interface initData {
   adj: Required<ConstructorParameters<typeof WeightedGraph<footGraphNodes>>>[0];
