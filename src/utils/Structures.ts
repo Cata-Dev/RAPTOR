@@ -1,8 +1,10 @@
-//A timestamp representation of a Date ; in milliseconds.
+/**
+ * A timestamp representation of a Date ; in milliseconds.
+ */
 export type timestamp = number;
 export type Id = number | string;
 
-export const MAX_SAFE_TIMESTAMP: timestamp = 8_640_000_000_000_000;
+export const MAX_SAFE_TIMESTAMP = 8_640_000_000_000_000;
 
 /**
  * @description A Trip, i.e. a succession of stop times.
