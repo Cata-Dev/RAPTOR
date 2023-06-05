@@ -218,7 +218,7 @@ export async function run({ getFullPaths = false, computeGEOJSONs = false, dijks
     const approachedStops: Map<ReturnType<typeof approachedStopName>, [Point, KeyOfMap<typeof sections>, number]> = new Map();
     for (const [stopId, stop] of stops) {
       /**@description [distance to closest point, closest point, section containing this point, indice of segment composing the section (i;i+1 in Section coords)] */
-      let closestPoint: [number, Point | null, KeyOfMap<typeof sections> | null, number | null] = [Infinity, null, null, null];
+      const closestPoint: [number, Point | null, KeyOfMap<typeof sections> | null, number | null] = [Infinity, null, null, null];
 
       for (const [sectionKey, { n, seg }] of segments) {
         const stopPoint: Point = new Point(...stop.coords);
