@@ -7,14 +7,14 @@ import {
   buildSchema,
   deleteModelWithClass,
   getDiscriminatorModelForClass,
-  getModelForClass,
+  getModelWithString,
   prop,
   Ref,
 } from "@typegoose/typegoose";
 import { modelOptions } from "@typegoose/typegoose/lib/modelOptions";
 import { getName } from "@typegoose/typegoose/lib/internal/utils";
 import { Mongoose } from "mongoose";
-import { approachedStopName, dbIntersectionId, dbSectionId } from "../utils/ultils";
+import { approachedStopName, dbIntersectionId, dbSectionId } from "../footPaths/utils/ultils";
 
 @modelOptions({ options: { customName: "FootGraph" } })
 export class dbFootGraph {
@@ -50,9 +50,9 @@ export class dbFootGraphEdges extends dbFootGraph {
 }
 
 export default function init(db: Mongoose) {
-  if (getModelForClass(dbFootGraph, { existingMongoose: db })) deleteModelWithClass(dbFootGraph);
-  if (getModelForClass(dbFootGraphNodes, { existingMongoose: db })) deleteModelWithClass(dbFootGraphNodes);
-  if (getModelForClass(dbFootGraphEdges, { existingMongoose: db })) deleteModelWithClass(dbFootGraphEdges);
+  if (getModelWithString(getName(dbFootGraph))) deleteModelWithClass(dbFootGraph);
+  if (getModelWithString(getName(dbFootGraphNodes))) deleteModelWithClass(dbFootGraphNodes);
+  if (getModelWithString(getName(dbFootGraphEdges))) deleteModelWithClass(dbFootGraphEdges);
 
   const dbFootGraphSchema = buildSchema(dbFootGraph, { existingMongoose: db });
   const dbFootGraphModelRaw = db.model(getName(dbFootGraph), dbFootGraphSchema);

@@ -1,6 +1,10 @@
-//A timestamp representation of a Date ; in milliseconds.
+/**
+ * A timestamp representation of a Date ; in milliseconds.
+ */
 export type timestamp = number;
 export type Id = number | string;
+
+export const MAX_SAFE_TIMESTAMP = 8_640_000_000_000_000;
 
 /**
  * @description A Trip, i.e. a succession of stop times.
@@ -13,7 +17,7 @@ export interface Trip {
   times: [timestamp, timestamp][];
 }
 
-export type footPaths = Map<stopId, Array<{ to: stopId; length: number }>>;
+export type FootPath = { to: stopId; length: number };
 
 export type stopId = Id;
 /**
@@ -24,7 +28,7 @@ export interface Stop {
   readonly lat: number;
   readonly long: number;
   readonly connectedRoutes: Array<routeId>;
-  readonly transfers: footPaths;
+  readonly transfers: FootPath[];
 }
 
 export type routeId = Id;

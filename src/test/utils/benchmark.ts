@@ -6,12 +6,13 @@
  * @param times Number of times to repeat the benchmark
  * @param logStats Wheter to log to the bench to the console at its end, or not
  */
-export async function benchmark<F extends (...args: any[]) => any>(
-  this: any,
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function benchmark<F extends (...args: any[]) => any, ThisType>(
+  this: ThisType,
   f: F,
   args: Parameters<F>,
   thisArg: unknown = this,
-  times: number = 1,
+  times = 1,
   logStats = true,
 ) {
   const starts: number[] = new Array(times);

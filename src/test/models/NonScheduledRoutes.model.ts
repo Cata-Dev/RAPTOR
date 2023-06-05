@@ -9,7 +9,7 @@ import { Mongoose } from "mongoose";
 import { dbTBM_Stops } from "./TBM_stops.model";
 import { dbFootGraphNodes } from "./FootGraph.model";
 
-@modelOptions({ options: { customName: "footPaths" } })
+@modelOptions({ options: { customName: "NonScheduledRoutes" } })
 export class dbFootPaths {
   @prop({ required: true, index: true, ref: () => dbTBM_Stops, type: () => Number })
   public from!: Ref<dbTBM_Stops, number>;

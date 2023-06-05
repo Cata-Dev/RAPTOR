@@ -6,7 +6,7 @@ import { TimeStamps } from "@typegoose/typegoose/lib/defaultClasses";
 import { addModelToTypegoose, buildSchema, deleteModelWithClass, getModelForClass, prop, Ref } from "@typegoose/typegoose";
 import { modelOptions } from "@typegoose/typegoose/lib/modelOptions";
 import { getName } from "@typegoose/typegoose/lib/internal/utils";
-import { dbTBM_Schedules } from "./TBM_schedules.model";
+import { dbTBM_Schedules_rt } from "./TBM_schedules.model";
 import { dbTBM_Stops } from "./TBM_stops.model";
 import { TBMEndpoints } from ".";
 import { Mongoose } from "mongoose";
@@ -16,8 +16,8 @@ export class TripOfScheduledRoute {
   @prop({ required: true })
   public tripId!: number;
 
-  @prop({ required: true, ref: () => dbTBM_Schedules })
-  public schedules!: Ref<dbTBM_Schedules>[];
+  @prop({ required: true, ref: () => dbTBM_Schedules_rt })
+  public schedules!: Ref<dbTBM_Schedules_rt>[];
 }
 
 @modelOptions({ options: { customName: TBMEndpoints.ScheduledRoutes } })

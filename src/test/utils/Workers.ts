@@ -1,8 +1,8 @@
 import { Worker } from "worker_threads";
-import { Deferred, rejectCb, resolveCb } from "./ultils";
 import { Duration } from "./benchmark";
 import { Queue, unpackQueue } from "./Queue";
 import { TypedEventEmitter } from "./TypedEmitter";
+import { resolveCb, rejectCb, Deferred } from ".";
 const nsPerMs = BigInt(1e6);
 
 enum Status {
@@ -25,7 +25,8 @@ type workerPoolEvents<T, R> = {
   jobEnded: (result: R | unknown) => void;
 };
 
-export class WorkerPool<Icb extends (...args: any[]) => any, F extends (...args: any) => any> extends TypedEventEmitter<
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export class WorkerPool<Icb extends (...args: any[]) => unknown, F extends (...args: any[]) => unknown> extends TypedEventEmitter<
   workerPoolEvents<Parameters<F>, Awaited<ReturnType<F>>>
 > {
   readonly pool: poolWorker<Parameters<F>, Awaited<ReturnType<F>>>[];
@@ -50,7 +51,6 @@ export class WorkerPool<Icb extends (...args: any[]) => any, F extends (...args:
 
         if (this.debug) console.log(`Initializing worker ${worker.id}`);
 
-        worker.worker.postMessage({ ...initData });
         worker.worker.once("message", (v) => {
           if (v === true) {
             worker.status = Status.Idle;
@@ -61,6 +61,8 @@ export class WorkerPool<Icb extends (...args: any[]) => any, F extends (...args:
           }
         });
         worker.worker.once("error", console.error);
+
+        worker.worker.postMessage({ ...initData });
       }
     }
   }
@@ -86,7 +88,7 @@ export class WorkerPool<Icb extends (...args: any[]) => any, F extends (...args:
     const worker = this.getIdleWorker();
     if (!worker) {
       this.queue.enqueue(job);
-      if (this.debug) console.log(`Delayed, queuedJob (${this.queue.size})`);
+      if (this.debug) console.log(`Delayed, queued (${this.queue.size})`);
       this.emit("queuedJob", this.queue.size);
       return def?.promise;
     }
@@ -123,6 +125,7 @@ export class WorkerPool<Icb extends (...args: any[]) => any, F extends (...args:
     worker.worker.once("message", onceMessage);
     worker.worker.once("error", onceError);
 
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     if (!res || !rej) return def!.promise;
   }
 
