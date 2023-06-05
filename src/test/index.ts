@@ -109,9 +109,19 @@ import { benchmark } from "./utils/benchmark";
   if (!b2.lastReturn) throw `b2 return null`;
   const { RAPTORInstance } = b2.lastReturn;
 
-  //From "Les Harmonies" to "Peixotto"
-  const ps: stopId = 128738;
-  const pt: stopId = 126798;
+  const args = process.argv.slice(2);
+  let ps: stopId;
+  try {
+    ps = JSON.parse(args[0]);
+  } catch (_) {
+    ps = 2832;
+  }
+  let pt: stopId;
+  try {
+    pt = JSON.parse(args[1]);
+  } catch (_) {
+    pt = 2168;
+  }
 
   let minSchedule = Infinity;
   for (const schedule of dbScheduledRoutes.flatMap(({ trips }) => trips.flatMap(({ schedules }) => schedules))) {
