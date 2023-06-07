@@ -1,6 +1,6 @@
 import { Ref } from "@typegoose/typegoose";
 import { RefType } from "@typegoose/typegoose/lib/types";
-import { node } from "./Graph";
+import { node } from "@catatomik/dijkstra/lib/utils/Graph";
 
 export function euclidianDistance(x1: number, y1: number, x2: number, y2: number): number {
   return Math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2);

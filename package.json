@@ -12,8 +12,8 @@
   "author": "Catatomik",
   "license": "ISC",
   "dependencies": {
-    "@typegoose/typegoose": "^10.2.0-beta.3",
-    "@tyriar/fibonacci-heap": "^2.0.9",
+    "@catatomik/dijkstra": "github:catatomik/dijkstra",
+    "@typegoose/typegoose": "^11.2.0",
     "core-js": "^3.30.2",
     "mongodb": "^5.0.1"
   },
