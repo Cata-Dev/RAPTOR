@@ -108,3 +108,5 @@ $RECYCLE.BIN/
 
 # Others
 lib/
+# Outputs
+*.geojson
