@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "outDir": "./built",
+    "outDir": "./lib",
     "moduleResolution": "Node",
     "module": "CommonJS",
     "experimentalDecorators": true,

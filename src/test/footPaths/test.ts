@@ -3,7 +3,7 @@ import initDB from "../utils/mongoose";
 import { benchmark } from "../utils/benchmark";
 import { WorkerPool } from "../utils/Workers";
 
-import { node, WeightedGraph } from "./utils/Graph";
+import { node, WeightedGraph } from "@catatomik/dijkstra/lib/utils/Graph";
 
 import Point from "./utils/Point";
 import Segment from "./utils/Segment";
@@ -39,7 +39,7 @@ import { TemplateCoordinates } from "proj4";
 import FootGraphModelInit, { dbFootGraphEdges, dbFootGraphNodes } from "../models/FootGraph.model";
 import FootPathsModelInit, { dbFootPaths } from "../models/FootPaths.model";
 import { KeyOfMap } from "./utils";
-import { DijkstraOptions } from "./FootPaths";
+import { DijkstraOptions } from "@catatomik/dijkstra";
 import { unique, Deferred } from "../utils";
 
 const sectionProjection = { coords: 1, distance: 1, rg_fv_graph_nd: 1, rg_fv_graph_na: 1, nom_voie: 1 };
@@ -162,7 +162,7 @@ export async function run({ getFullPaths = false, computeGEOJSONs = false, dijks
 
     for (const s of sections.values()) {
       //Oriented but don't care (foot graph)
-      footGraph.add_edge(s.rg_fv_graph_nd, s.rg_fv_graph_na, s.distance);
+      footGraph.addEdge(s.rg_fv_graph_nd, s.rg_fv_graph_na, s.distance);
     }
 
     return footGraph;
@@ -265,7 +265,7 @@ export async function run({ getFullPaths = false, computeGEOJSONs = false, dijks
         }, 0) + Point.distance(closestPoint, new Point(...section.coords[n]));
 
       //Remove edge from p1 to p2
-      footGraph.remove_edge(section.rg_fv_graph_nd, section.rg_fv_graph_na);
+      footGraph.removeEdge(section.rg_fv_graph_nd, section.rg_fv_graph_na);
       sections.delete(sectionId(section));
 
       const insertedNode = stopId;
@@ -278,7 +278,7 @@ export async function run({ getFullPaths = false, computeGEOJSONs = false, dijks
         rg_fv_graph_nd: section.rg_fv_graph_nd,
         rg_fv_graph_na: insertedNode,
       };
-      footGraph.add_edge(section.rg_fv_graph_nd, insertedNode, toApproadchedStop);
+      footGraph.addEdge(section.rg_fv_graph_nd, insertedNode, toApproadchedStop);
       sections.set(sectionId({ rg_fv_graph_nd: section.rg_fv_graph_nd, rg_fv_graph_na: insertedNode }), subsectionToApproachedStop);
 
       const subsectionFromApproachedStop: Section = {
@@ -288,7 +288,7 @@ export async function run({ getFullPaths = false, computeGEOJSONs = false, dijks
         rg_fv_graph_nd: insertedNode,
         rg_fv_graph_na: section.rg_fv_graph_na,
       };
-      footGraph.add_edge(insertedNode, section.rg_fv_graph_na, fromApproachedStop);
+      footGraph.addEdge(insertedNode, section.rg_fv_graph_na, fromApproachedStop);
       sections.set(sectionId({ rg_fv_graph_nd: insertedNode, rg_fv_graph_na: section.rg_fv_graph_na }), subsectionFromApproachedStop);
     }
   }
