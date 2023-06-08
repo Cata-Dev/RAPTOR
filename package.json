@@ -2,15 +2,25 @@
   "name": "raptor",
   "version": "0.2.0",
   "description": "RAPTOR typescript/Node.js implementation",
-  "main": "built/main.js",
+  "main": "lib/main.js",
+  "types": "lib/main.d.ts",
+  "files": [
+    "lib/**/*.js",
+    "lib/**/*.d.ts"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Cata-Dev/RAPTOR.git"
+  },
   "scripts": {
     "build": "tsc",
-    "prettier": "npx prettier \"**/*.ts\" --write",
+    "prettier": "prettier \"**/*.ts\" --write",
     "lint": "eslint ./src/",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "prepare": "npm run build"
   },
   "author": "Catatomik",
-  "license": "ISC",
+  "license": "MIT",
   "dependencies": {
     "@catatomik/dijkstra": "github:catatomik/dijkstra",
     "@typegoose/typegoose": "^11.2.0",
@@ -22,7 +32,6 @@
     "@typescript-eslint/parser": "^5.59.8",
     "eslint": "^8.42.0",
     "prettier": "^2.8.4",
-    "ts-node": "^10.9.1",
     "typescript": "5.0.4"
   }
 }
