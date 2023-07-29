@@ -17,7 +17,10 @@ export interface Trip {
   times: [timestamp, timestamp][];
 }
 
-export type FootPath = { to: stopId; length: number };
+export interface FootPath {
+  to: stopId;
+  length: number;
+}
 
 export type stopId = Id;
 /**
@@ -27,7 +30,7 @@ export interface Stop {
   readonly id: stopId;
   readonly lat: number;
   readonly long: number;
-  readonly connectedRoutes: Array<routeId>;
+  readonly connectedRoutes: routeId[];
   readonly transfers: FootPath[];
 }
 
@@ -39,7 +42,7 @@ export class Route {
   /**
    * @description Creates a new Route. Note that stops and trips are linked : they are cross-connected.
    */
-  constructor(readonly id: Id, readonly stops: Array<stopId>, readonly trips: Array<Trip>) {}
+  constructor(readonly id: Id, readonly stops: stopId[], readonly trips: Trip[]) {}
 
   /**
    * @description Computes the departure time on a trip at stop p.
