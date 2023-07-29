@@ -32,7 +32,12 @@ export class WorkerPool<Icb extends (...args: any[]) => unknown, F extends (...a
   readonly pool: poolWorker<Parameters<F>, Awaited<ReturnType<F>>>[];
   readonly queue: Queue<queuedJob<Parameters<F>, Awaited<ReturnType<F>>>>;
 
-  constructor(readonly script: string, readonly size: number, initData?: Parameters<Icb>[0], readonly debug = false) {
+  constructor(
+    readonly script: string,
+    readonly size: number,
+    initData?: Parameters<Icb>[0],
+    readonly debug = false,
+  ) {
     super();
     this.pool = new Array(this.size);
     this.queue = new Queue();

@@ -4,7 +4,10 @@ import Vector2 from "./Vector";
 export default class Segment {
   protected AB: Vector2;
 
-  constructor(protected A: Point, protected B: Point) {
+  constructor(
+    protected A: Point,
+    protected B: Point,
+  ) {
     this.AB = new Vector2(A, B);
   }
 
