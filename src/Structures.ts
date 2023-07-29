@@ -42,7 +42,11 @@ export class Route {
   /**
    * @description Creates a new Route. Note that stops and trips are linked : they are cross-connected.
    */
-  constructor(readonly id: Id, readonly stops: stopId[], readonly trips: Trip[]) {}
+  constructor(
+    readonly id: Id,
+    readonly stops: stopId[],
+    readonly trips: Trip[],
+  ) {}
 
   /**
    * @description Computes the departure time on a trip at stop p.
