@@ -37,14 +37,14 @@ export default class RAPTOR {
   readonly routes: Map<routeId, Route>;
 
   /** @description A {@link Label} T*(stopId) represents the earliest known arrival time at stop stopId. */
-  protected bestLabels: Map<stopId, Label<LabelType>> = new Map();
+  protected bestLabels = new Map<stopId, Label<LabelType>>();
   /** @description A {@link Label} Ti(stopId) represents the earliest known arrival time at stop stopId with up to i trips. */
-  protected multiLabel: Array<typeof this.bestLabels> = [];
+  protected multiLabel: (typeof this.bestLabels)[] = [];
 
   /**
    * @description Creates a new RAPTOR instance for a defined network.
    */
-  constructor(stops: Array<[stopId, number, number, routeId[], FootPath[]]>, routes: Array<[routeId, [stopId[], Trip[]]]>) {
+  constructor(stops: [stopId, number, number, routeId[], FootPath[]][], routes: [routeId, [stopId[], Trip[]]][]) {
     this.stops = new Map(stops.map(([id, lat, long, connectedRoutes, transfers]) => [id, { id, lat, long, connectedRoutes, transfers }]));
     this.routes = new Map(routes.map(([rId, r]) => [rId, new Route(rId, ...r)]));
   }
@@ -82,11 +82,11 @@ export default class RAPTOR {
    * @param rounds Maximal number of transfers
    */
   run(ps: stopId, pt: stopId, departureTime: timestamp, settings: { walkSpeed: number }, rounds: number = RAPTOR.defaultRounds) {
-    this.multiLabel = Array.from({ length: rounds }, () => new Map());
+    this.multiLabel = Array.from({ length: rounds }, () => new Map<stopId, Label<LabelType>>());
     this.bestLabels = new Map();
 
     /** Set<{@link stopId} in {@link stops}> */
-    const Marked: Set<stopId> = new Set();
+    const Marked = new Set<stopId>();
 
     //Initialization
     for (const stopId of this.stops.keys()) {
@@ -101,7 +101,7 @@ export default class RAPTOR {
     Marked.add(ps);
 
     /** Map<{@link routeId} in {@link routes}, {@link stopId} in {@link stops}> */
-    const Q: Map<routeId, stopId> = new Map();
+    const Q = new Map<routeId, stopId>();
 
     //Step 1
     //Mark improvement
