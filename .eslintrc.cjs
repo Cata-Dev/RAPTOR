@@ -13,6 +13,7 @@ module.exports = {
   plugins: ['@typescript-eslint'],
   root: true,
   rules: {
-    "no-empty": [ "error", { allowEmptyCatch: true } ]
+    "no-empty": [ "error", { allowEmptyCatch: true } ],
+    "@typescript-eslint/restrict-template-expressions": "warn"
   }
 };
