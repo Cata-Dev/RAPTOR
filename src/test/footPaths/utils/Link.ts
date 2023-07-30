@@ -52,12 +52,12 @@ export class Link<Type> {
    */
   get depth(): number {
     if (!Link.isLink(this._next)) return 1;
-    return 1 + (this._next as Link<Type>).depth;
+    return 1 + this._next.depth;
   }
 
   toArrayRec(): Type[] {
     if (!Link.isLink(this.next)) return [this.value];
-    const next = (this.next as Link<Type>).toArrayRec();
+    const next = this.next.toArrayRec();
     return [this.value, ...next];
   }
 
@@ -113,7 +113,7 @@ export class Link<Type> {
    * @description Create chained array from array
    * @param {Array} a The array to convert into chained array
    */
-  static fromArray<T>(a: Array<T> = []): LinkOrEmpty<T> {
+  static fromArray<T>(a: T[] = []): LinkOrEmpty<T> {
     let m: LinkOrEmpty<T> = Link.emptyLink;
     for (let i = a.length - 1; i >= 0; i--) {
       m = new this(a[i], m);

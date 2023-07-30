@@ -19,10 +19,11 @@ interface poolWorker<T, R> {
 
 type queuedJob<T = unknown, R = unknown> = [T, resolveCb<R>, rejectCb];
 
+// eslint-disable-next-line @typescript-eslint/consistent-type-definitions
 type workerPoolEvents<T, R> = {
   queuedJob: (queueSize: number) => void;
   runningJob: (job: queuedJob<T, R>) => void;
-  jobEnded: (result: R | unknown) => void;
+  jobEnded: (result: R | object) => void;
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -39,7 +40,7 @@ export class WorkerPool<Icb extends (...args: any[]) => unknown, F extends (...a
     readonly debug = false,
   ) {
     super();
-    this.pool = new Array(this.size);
+    this.pool = new Array<(typeof this.pool)[number]>(this.size);
     this.queue = new Queue();
 
     for (let i = 0; i < this.size; i++) {
@@ -121,7 +122,7 @@ export class WorkerPool<Icb extends (...args: any[]) => unknown, F extends (...a
       worker.status = Status.Idle;
       reject(err);
       if (this.debug) console.log(`Errored worker ${worker.id} (${this.queue.size})`);
-      this.emit("jobEnded", err);
+      this.emit("jobEnded", err as object);
       this.runCallback();
       worker.worker.removeListener("error", onceError);
       worker.worker.removeListener("message", onceMessage);

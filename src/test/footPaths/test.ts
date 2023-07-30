@@ -31,12 +31,12 @@ import { unique, Deferred } from "../utils";
 
 const sectionProjection = { coords: 1, distance: 1, rg_fv_graph_nd: 1, rg_fv_graph_na: 1 };
 export type dbSection = Pick<dbSections, keyof typeof sectionProjection>;
-type SectionOverwritten = {
+interface SectionOverwritten {
   /** Will never be populated, so force to be RefType */
   rg_fv_graph_nd: unpackRefType<dbSection["rg_fv_graph_nd"]> | ReturnType<typeof approachedStopName>;
   /** Will never be populated, so force to be RefType */
   rg_fv_graph_na: unpackRefType<dbSection["rg_fv_graph_nd"]> | ReturnType<typeof approachedStopName>;
-};
+}
 export type Section = Omit<dbSection, keyof SectionOverwritten> & SectionOverwritten;
 
 const stopProjection = { _id: 1, coords: 1, libelle: 1 };
@@ -141,7 +141,7 @@ export async function run({ getFullPaths = false, dijkstraOptions }: testOptions
   }
 
   function makeGraph() {
-    const footGraph: WeightedGraph<footGraphNodes> = new WeightedGraph();
+    const footGraph = new WeightedGraph<footGraphNodes>();
 
     for (const s of sections.values()) {
       //Oriented but don't care (foot graph)
@@ -159,7 +159,7 @@ export async function run({ getFullPaths = false, dijkstraOptions }: testOptions
   function computeApproachedStops() {
     //Pre-generate mapped segments to fasten the process (and not redundant computing)
     //A segment describes a portion of a section (NOT oriented)
-    const mappedSegments: Map<(typeof footGraph.edges)[number], Segment[]> = new Map();
+    const mappedSegments = new Map<(typeof footGraph.edges)[number], Segment[]>();
     for (const edge of footGraph.edges) {
       const section = getSection(...edge);
       if (!section) continue; // Added for ts mental health
@@ -173,7 +173,7 @@ export async function run({ getFullPaths = false, dijkstraOptions }: testOptions
     }
 
     /**@description [closest point, section containing this point, indice of segment composing the section] */
-    const approachedStops: Map<ReturnType<typeof approachedStopName>, [Point, (typeof footGraph.edges)[number], number]> = new Map();
+    const approachedStops = new Map<ReturnType<typeof approachedStopName>, [Point, (typeof footGraph.edges)[number], number]>();
     for (const [stopId, stop] of stops) {
       /**@description [distance to closest point, closest point, section containing this point, indice of segment composing the section (i;i+1 in Section coords)] */
       const closestPoint: [number, Point | null, (typeof footGraph.edges)[number] | null, number | null] = [Infinity, null, null, null];
@@ -269,7 +269,7 @@ export async function run({ getFullPaths = false, dijkstraOptions }: testOptions
 
     let rejected = false;
 
-    await benchmark(NonScheduledRoutesModel.deleteMany, [{}] as never, NonScheduledRoutesModel);
+    await benchmark((...args: Parameters<typeof NonScheduledRoutesModel.deleteMany>) => NonScheduledRoutesModel.deleteMany(args), [{}] as never);
 
     let totalPaths = 0;
 

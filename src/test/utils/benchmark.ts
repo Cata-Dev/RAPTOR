@@ -11,16 +11,16 @@ export async function benchmark<F extends (...args: any[]) => any, ThisType>(
   this: ThisType,
   f: F,
   args: Parameters<F>,
-  thisArg: unknown = this,
+  thisArg: unknown = this, // TODO : deeper look on thisArg + ThisType
   times = 1,
   logStats = true,
 ) {
-  const starts: number[] = new Array(times);
-  const ends: number[] = new Array(times);
+  const starts = new Array<number>(times);
+  const ends = new Array<number>(times);
   let lastReturn: Awaited<ReturnType<F>> | null = null;
   for (let i = 0; i < times; i++) {
     starts[i] = performance.now();
-    lastReturn = await f.call(thisArg, ...args);
+    lastReturn = (await f.call(thisArg, ...args)) as Awaited<ReturnType<F>>;
     ends[i] = performance.now();
   }
   const durations = ends.map((e, i) => new Duration(e - starts[i]));
