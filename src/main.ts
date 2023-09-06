@@ -155,15 +155,12 @@ export default class RAPTOR {
         for (const transfer of stop.transfers) {
           if (transfer.to === p) continue;
 
-          // Prevent cyclic labels
-          const trace = this.traceBack(p, k);
-          if (trace.find((label) => "boardedAt" in label && label.boardedAt === transfer.to)) continue;
-
           const arrivalTime: timestamp = (this.multiLabel[k].get(p)?.time ?? Infinity) + this.walkDuration(transfer.length, settings.walkSpeed);
-          if (arrivalTime < (this.multiLabel[k].get(transfer.to)?.time ?? Infinity))
+          if (arrivalTime < (this.multiLabel[k].get(transfer.to)?.time ?? Infinity)) {
             this.multiLabel[k].set(transfer.to, { boardedAt: p, transfer, time: arrivalTime });
 
-          Marked.add(transfer.to);
+            Marked.add(transfer.to);
+          }
         }
       }
 
