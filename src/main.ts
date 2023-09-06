@@ -36,10 +36,8 @@ export default class RAPTOR {
   readonly stops: Map<stopId, Stop>;
   readonly routes: Map<routeId, Route>;
 
-  /** @description A {@link Label} T*(stopId) represents the earliest known arrival time at stop stopId. */
-  protected bestLabels = new Map<stopId, Label<LabelType>>();
   /** @description A {@link Label} Ti(stopId) represents the earliest known arrival time at stop stopId with up to i trips. */
-  protected multiLabel: (typeof this.bestLabels)[] = [];
+  protected multiLabel: Map<stopId, Label<LabelType>>[] = [];
 
   /**
    * @description Creates a new RAPTOR instance for a defined network.
@@ -83,18 +81,13 @@ export default class RAPTOR {
    */
   run(ps: stopId, pt: stopId, departureTime: timestamp, settings: { walkSpeed: number }, rounds: number = RAPTOR.defaultRounds) {
     this.multiLabel = Array.from({ length: rounds }, () => new Map<stopId, Label<LabelType>>());
-    this.bestLabels = new Map();
 
     /** Set<{@link stopId} in {@link stops}> */
     const Marked = new Set<stopId>();
 
     //Initialization
     for (const stopId of this.stops.keys()) {
-      for (let k = 0; k < rounds; k++) {
-        this.multiLabel[k].set(stopId, { time: Infinity });
-      }
-
-      this.bestLabels.set(stopId, { time: Infinity });
+      this.multiLabel[0].set(stopId, { time: Infinity });
     }
 
     this.multiLabel[0].set(ps, { time: departureTime });
@@ -103,9 +96,14 @@ export default class RAPTOR {
     /** Map<{@link routeId} in {@link routes}, {@link stopId} in {@link stops}> */
     const Q = new Map<routeId, stopId>();
 
-    //Step 1
-    //Mark improvement
     for (let k = 1; k < rounds; k++) {
+      //Copying
+      for (const stopId of this.stops.keys()) {
+        const value = this.multiLabel[k-1].get(stopId)
+        this.multiLabel[k].set(stopId, value ? structuredClone(value) : { time: Infinity });
+      }
+
+      //Mark improvement
       Q.clear();
       for (const p of Marked) {
         const connectedRoutes: routeId[] = this.stops.get(p)?.connectedRoutes ?? [];
@@ -131,10 +129,9 @@ export default class RAPTOR {
           //Improve periods, local & target pruning
           if (t !== null) {
             const arrivalTime: timestamp = route.trips[t.tripIndex].times[i][0];
-            if (arrivalTime < Math.min(this.bestLabels.get(pi)?.time ?? Infinity, this.bestLabels.get(pt)?.time ?? Infinity)) {
+            if (arrivalTime < Math.min(this.multiLabel[k].get(pi)?.time ?? Infinity, this.multiLabel[k].get(pt)?.time ?? Infinity)) {
               //local & target pruning
               this.multiLabel[k].set(pi, { ...t, route, time: arrivalTime });
-              this.bestLabels.set(pi, { ...t, route, time: arrivalTime });
               Marked.add(pi);
             }
           }
