@@ -66,7 +66,7 @@ export function computeGEOJSON<P, L>(
               type: "Point",
               coordinates: pointCoords(point),
             },
-          } as const),
+          }) as const,
       ),
       ...lines.map(
         (line) =>
@@ -79,7 +79,7 @@ export function computeGEOJSON<P, L>(
               type: "LineString",
               coordinates: lineCoords(line),
             },
-          } as const),
+          }) as const,
       ),
     ] as const,
   };

@@ -21,7 +21,10 @@ const n = Math.log((gN2 * Math.cos(phi2)) / (gN1 * Math.cos(phi1))) / (gl1 - gl2
 const c = ((gN1 * Math.cos(phi1)) / n) * Math.exp(n * gl1);
 
 export default class Point {
-  constructor(protected _x: number, protected _y: number) {}
+  constructor(
+    protected _x: number,
+    protected _y: number,
+  ) {}
 
   public get x() {
     return this._x;
