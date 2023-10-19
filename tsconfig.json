@@ -8,11 +8,13 @@
     "esModuleInterop": true,
     "allowJs": true,
     "sourceMap": true,
+    "declaration": true,
     "target": "es6",
     "strict": true,
     "skipLibCheck": true,
   },
   "include": [
-    "./src/**/*"
+    "./src/**/*",
+    ".eslintrc.cjs"
   ]
 }
