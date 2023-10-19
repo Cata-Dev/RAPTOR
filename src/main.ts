@@ -99,7 +99,7 @@ export default class RAPTOR {
     for (let k = 1; k < rounds; k++) {
       //Copying
       for (const stopId of this.stops.keys()) {
-        const value = this.multiLabel[k-1].get(stopId)
+        const value = this.multiLabel[k - 1].get(stopId);
         this.multiLabel[k].set(stopId, value ? structuredClone(value) : { time: Infinity });
       }
 
