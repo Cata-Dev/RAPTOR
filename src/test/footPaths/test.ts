@@ -269,7 +269,7 @@ export async function run({ getFullPaths = false, dijkstraOptions }: testOptions
 
     let rejected = false;
 
-    await benchmark((...args: Parameters<typeof NonScheduledRoutesModel.deleteMany>) => NonScheduledRoutesModel.deleteMany(args), [{}] as never);
+    await benchmark(() => NonScheduledRoutesModel.deleteMany({}), []);
 
     let totalPaths = 0;
 
