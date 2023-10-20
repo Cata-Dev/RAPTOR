@@ -16,7 +16,7 @@ export type id = number;
 export type footGraphNodes = number | ReturnType<typeof approachedStopName>;
 
 // Needed to solve "Reflect.getMetadata is not a function" error of typegoose
-import "@abraham/reflection";
+import "core-js/features/reflect";
 
 import sectionsModelInit, { dbSections } from "../models/sections.model";
 import stopsModelInit, { dbTBM_Stops } from "../models/TBM_stops.model";
