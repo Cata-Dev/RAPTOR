@@ -14,6 +14,7 @@ import { unpackRefType } from "./footPaths/utils/ultils";
 import { MAX_SAFE_TIMESTAMP, stopId } from "../Structures";
 import { benchmark } from "./utils/benchmark";
 import { binaryFilter } from "./utils";
+import { inspect } from "util";
 
 // Main IIFE test function
 (async () => {
@@ -144,8 +145,9 @@ import { binaryFilter } from "./utils";
   }
   const b4 = await benchmark(resultRAPTOR, []);
   console.log("b4 ended");
+
   if (!b4.lastReturn) throw `b4 return null`;
   return b4.lastReturn;
 })()
-  .then(console.log)
+  .then((r) => console.log(inspect(r, false, 3)))
   .catch(console.error);
