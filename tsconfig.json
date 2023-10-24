@@ -1,16 +1,13 @@
 {
   "compilerOptions": {
     "outDir": "./lib",
+    "rootDir": "./src",
     "moduleResolution": "Node",
     "module": "CommonJS",
-    "allowJs": true,
+    "target": "es6",
+    "strict": true,
+    "skipLibCheck": true,
     "sourceMap": true,
     "declaration": true,
-    "target": "es6",
-    "strict": true
   },
-  "include": [
-    "./src/**/*",
-    ".eslintrc.cjs"
-  ]
 }
