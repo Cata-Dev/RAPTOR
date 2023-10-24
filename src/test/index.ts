@@ -8,16 +8,16 @@ import TBMSchedulesModelInit from "./models/TBM_schedules.model";
 import TBMScheduledRoutesModelInit, { dbTBM_ScheduledRoutes } from "./models/TBMScheduledRoutes.model";
 import NonScheduledRoutesModelInit, { dbFootPaths } from "./models/NonScheduledRoutes.model";
 import RAPTOR from "../main";
-import { HydratedDocument } from "mongoose";
+import { MAX_SAFE_TIMESTAMP, Stop, stopId } from "../Structures";
+import { HydratedDocument, FilterQuery } from "mongoose";
 import { DocumentType } from "@typegoose/typegoose";
 import { unpackRefType } from "./footPaths/utils/ultils";
-import { MAX_SAFE_TIMESTAMP, stopId } from "../Structures";
 import { benchmark } from "./utils/benchmark";
-import { binaryFilter } from "./utils";
+import { mapAsync, wait } from "./utils";
 import { inspect } from "util";
 
 // Main IIFE test function
-(async () => {
+async function init() {
   const db = await initDB();
   const stopsModel = stopsModelInit(db);
   TBMSchedulesModelInit(db);
@@ -59,14 +59,16 @@ import { inspect } from "util";
     }
     type NonScheduledRoute = Omit<dbNonScheduledRoute, keyof NonScheduledRoutesOverwritten> & NonScheduledRoutesOverwritten;
 
-    const dbNonScheduledRoutes = (await NonScheduledRoutesModel.find<HydratedDocument<DocumentType<NonScheduledRoute>>>(
-      {},
-      dbNonScheduledRoutesProjection,
-    )
-      .sort({ from: 1 })
-      .lean()
-      // Coords field type lost...
-      .exec()) as NonScheduledRoute[];
+    //Query must associate (s, from) AND (from, s) forall s in stops !
+    const dbNonScheduledRoutes = async (stopId: NonScheduledRoutesOverwritten["from"], additionalQuery: FilterQuery<dbNonScheduledRoute> = {}) =>
+      (
+        (await NonScheduledRoutesModel.find<HydratedDocument<DocumentType<NonScheduledRoute>>>(
+          { $and: [{ $or: [{ from: stopId }, { to: stopId }] }, additionalQuery] },
+          dbNonScheduledRoutesProjection,
+        )
+          .lean()
+          .exec()) as NonScheduledRoute[]
+      ).map(({ from, to, distance }) => ({ distance, ...(to === stopId ? { to: from } : { to }) }));
 
     return { dbScheduledRoutes, dbStops, dbNonScheduledRoutes };
   }
@@ -75,32 +77,29 @@ import { inspect } from "util";
   if (!b1.lastReturn) throw `b1 return null`;
   const { dbScheduledRoutes, dbStops, dbNonScheduledRoutes } = b1.lastReturn;
 
-  function createRAPTOR() {
+  async function createRAPTOR() {
     const RAPTORInstance = new RAPTOR(
-      dbStops.map(({ _id, coords }) => [
-        _id,
-        ...coords,
-        dbScheduledRoutes.filter((ScheduledRoute) => ScheduledRoute.stops.find((stopId) => stopId === _id)).map(({ _id }) => _id),
-        binaryFilter(dbNonScheduledRoutes, _id, (stopFrom, NonScheduledRoute) => stopFrom - NonScheduledRoute.from)
-          .filter(({ distance }) => distance <= 500)
-          .map(({ to, distance }) => ({
-            to,
-            length: distance,
-          })),
-      ]),
+      await mapAsync<(typeof dbStops)[number], Stop>(dbStops, async ({ _id, coords }) => ({
+        id: _id,
+        lat: coords[0],
+        long: coords[1],
+        connectedRoutes: dbScheduledRoutes.filter((ScheduledRoute) => ScheduledRoute.stops.find((stopId) => stopId === _id)).map(({ _id }) => _id),
+        transfers: (await dbNonScheduledRoutes(_id, { distance: { $lte: 1_000 } })).map(({ to, distance }) => ({
+          to,
+          length: distance,
+        })),
+      })),
       dbScheduledRoutes.map(({ _id, stops, trips }) => [
         _id,
-        [
-          stops,
-          trips.map(({ tripId, schedules }) => ({
-            id: tripId,
-            times: schedules.map((schedule) =>
-              "hor_estime" in schedule
-                ? [schedule.hor_estime.getTime() || MAX_SAFE_TIMESTAMP, schedule.hor_estime.getTime() || MAX_SAFE_TIMESTAMP]
-                : [Infinity, Infinity],
-            ),
-          })),
-        ],
+        stops,
+        trips.map(({ tripId, schedules }) => ({
+          id: tripId,
+          times: schedules.map((schedule) =>
+            "hor_estime" in schedule
+              ? [schedule.hor_estime.getTime() || MAX_SAFE_TIMESTAMP, schedule.hor_estime.getTime() || MAX_SAFE_TIMESTAMP]
+              : [Infinity, Infinity],
+          ),
+        })),
       ]),
     );
 
@@ -111,6 +110,10 @@ import { inspect } from "util";
   if (!b2.lastReturn) throw `b2 return null`;
   const { RAPTORInstance } = b2.lastReturn;
 
+  return { RAPTORInstance, TBMScheduledRoutesModel };
+}
+
+async function run({ RAPTORInstance, TBMScheduledRoutesModel }: Awaited<ReturnType<typeof init>>) {
   const args = process.argv.slice(2);
   let ps: stopId;
   try {
@@ -125,11 +128,7 @@ import { inspect } from "util";
     pt = 2168;
   }
 
-  let minSchedule = Infinity;
-  for (const schedule of dbScheduledRoutes.flatMap(({ trips }) => trips.flatMap(({ schedules }) => schedules))) {
-    if ("hor_estime" in schedule && schedule.hor_estime.getTime() < minSchedule && schedule.hor_estime.getTime() > 0)
-      minSchedule = schedule.hor_estime.getTime();
-  }
+  const minSchedule = (await TBMScheduledRoutesModel.findOne({}).lean())?.updatedAt?.getTime() ?? Infinity;
 
   function runRAPTOR() {
     RAPTORInstance.run(ps, pt, minSchedule, { walkSpeed: 1.5 });
@@ -148,6 +147,17 @@ import { inspect } from "util";
 
   if (!b4.lastReturn) throw `b4 return null`;
   return b4.lastReturn;
+}
+
+(async () => {
+  const initr = await init();
+  // eslint-disable-next-line no-constant-condition
+  while (true) {
+    const r = await run(initr);
+    console.log(inspect(r, false, 3));
+    //Let time to debug
+    await wait(10_000);
+  }
 })()
-  .then((r) => console.log(inspect(r, false, 3)))
+  .then(() => true)
   .catch(console.error);
