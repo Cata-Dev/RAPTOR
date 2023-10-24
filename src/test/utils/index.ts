@@ -62,3 +62,17 @@ export function binaryFilter<T, C>(arr: T[], el: C, compare: (a: C, b: T) => num
   }
   return arr.slice(low, high + 1);
 }
+
+export async function mapAsync<I, O>(array: I[], callback: (value: I, index: number, array: I[]) => Promise<O>): Promise<O[]> {
+  return await Promise.all(array.map(callback));
+}
+
+export function wait(ms = 1000): Promise<unknown> {
+  const defP = new Deferred();
+
+  setTimeout(() => {
+    defP.resolve(null);
+  }, ms);
+
+  return defP.promise;
+}
