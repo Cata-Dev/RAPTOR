@@ -17,7 +17,7 @@ export type id = number;
 export type footGraphNodes = number | ReturnType<typeof approachedStopName>;
 
 // Needed to solve "Reflect.getMetadata is not a function" error of typegoose
-import "@abraham/reflection";
+import "core-js/features/reflect";
 
 import sectionsModelInit, { dbSections } from "../models/sections.model";
 import stopsModelInit, { dbTBM_Stops } from "../models/TBM_stops.model";
@@ -44,12 +44,12 @@ import { unique, Deferred } from "../utils";
 
 const sectionProjection = { coords: 1, distance: 1, rg_fv_graph_nd: 1, rg_fv_graph_na: 1, nom_voie: 1 };
 export type dbSection = Pick<dbSections, keyof typeof sectionProjection>;
-type SectionOverwritten = {
+interface SectionOverwritten {
   /** Will never be populated, so force to be RefType */
   rg_fv_graph_nd: unpackRefType<dbSection["rg_fv_graph_nd"]> | ReturnType<typeof approachedStopName>;
   /** Will never be populated, so force to be RefType */
   rg_fv_graph_na: unpackRefType<dbSection["rg_fv_graph_nd"]> | ReturnType<typeof approachedStopName>;
-};
+}
 export type Section = Omit<dbSection, keyof SectionOverwritten> & SectionOverwritten;
 
 const stopProjection = { _id: 1, coords: 1, libelle: 1 };
@@ -158,7 +158,7 @@ export async function run({ getFullPaths = false, computeGEOJSONs = false, dijks
   }
 
   function makeGraph() {
-    const footGraph: WeightedGraph<footGraphNodes> = new WeightedGraph();
+    const footGraph = new WeightedGraph<footGraphNodes>();
 
     for (const s of sections.values()) {
       //Oriented but don't care (foot graph)
@@ -201,7 +201,7 @@ export async function run({ getFullPaths = false, computeGEOJSONs = false, dijks
   function computeApproachedStops() {
     //Pre-generate segments to fasten the process (and not redundant computing)
     //A segment describes a portion of a section (oriented)
-    const segments: Map<KeyOfMap<typeof sections>, { n: number; seg: Segment }> = new Map();
+    const segments = new Map<KeyOfMap<typeof sections>, { n: number; seg: Segment }>();
     for (const arc of footGraph.arcs) {
       const sId = sectionId({ rg_fv_graph_nd: arc[0], rg_fv_graph_na: arc[1] });
       const section = sections.get(sId);
@@ -215,7 +215,7 @@ export async function run({ getFullPaths = false, computeGEOJSONs = false, dijks
     }
 
     /**@description [closest point, section containing this point, indice of segment composing the section] */
-    const approachedStops: Map<ReturnType<typeof approachedStopName>, [Point, KeyOfMap<typeof sections>, number]> = new Map();
+    const approachedStops = new Map<ReturnType<typeof approachedStopName>, [Point, KeyOfMap<typeof sections>, number]>();
     for (const [stopId, stop] of stops) {
       /**@description [distance to closest point, closest point, section containing this point, indice of segment composing the section (i;i+1 in Section coords)] */
       const closestPoint: [number, Point | null, KeyOfMap<typeof sections> | null, number | null] = [Infinity, null, null, null];

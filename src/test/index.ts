@@ -14,6 +14,7 @@ import { unpackRefType } from "./footPaths/utils/ultils";
 import { MAX_SAFE_TIMESTAMP, stopId } from "../Structures";
 import { benchmark } from "./utils/benchmark";
 import { binaryFilter } from "./utils";
+import { inspect } from "util";
 
 // Main IIFE test function
 (async () => {
@@ -26,9 +27,9 @@ import { binaryFilter } from "./utils";
   async function queryData() {
     const dbScheduledRoutesProjection: Partial<Record<keyof dbTBM_ScheduledRoutes, 1>> = { _id: 1, stops: 1, trips: 1 };
     type dbScheduledRoute = Pick<dbTBM_ScheduledRoutes, keyof typeof dbScheduledRoutesProjection>;
-    type ScheduledRoutesOverwritten = {
+    interface ScheduledRoutesOverwritten {
       stops: unpackRefType<dbScheduledRoute["stops"]>;
-    };
+    }
     type ScheduledRoute = Omit<dbScheduledRoute, keyof ScheduledRoutesOverwritten> & ScheduledRoutesOverwritten;
 
     const dbScheduledRoutes = (await TBMScheduledRoutesModel.find<HydratedDocument<DocumentType<ScheduledRoute>>>({}, dbScheduledRoutesProjection)
@@ -52,10 +53,10 @@ import { binaryFilter } from "./utils";
 
     const dbNonScheduledRoutesProjection: Partial<Record<keyof dbFootPaths, 1>> = { from: 1, to: 1, distance: 1 };
     type dbNonScheduledRoute = Pick<dbFootPaths, keyof typeof dbNonScheduledRoutesProjection>;
-    type NonScheduledRoutesOverwritten = {
+    interface NonScheduledRoutesOverwritten {
       from: unpackRefType<dbNonScheduledRoute["from"]>;
       to: unpackRefType<dbNonScheduledRoute["to"]>;
-    };
+    }
     type NonScheduledRoute = Omit<dbNonScheduledRoute, keyof NonScheduledRoutesOverwritten> & NonScheduledRoutesOverwritten;
 
     const dbNonScheduledRoutes = (await NonScheduledRoutesModel.find<HydratedDocument<DocumentType<NonScheduledRoute>>>(
@@ -113,13 +114,13 @@ import { binaryFilter } from "./utils";
   const args = process.argv.slice(2);
   let ps: stopId;
   try {
-    ps = JSON.parse(args[0]);
+    ps = JSON.parse(args[0]) as number;
   } catch (_) {
     ps = 2832;
   }
   let pt: stopId;
   try {
-    pt = JSON.parse(args[1]);
+    pt = JSON.parse(args[1]) as number;
   } catch (_) {
     pt = 2168;
   }
@@ -144,6 +145,9 @@ import { binaryFilter } from "./utils";
   }
   const b4 = await benchmark(resultRAPTOR, []);
   console.log("b4 ended");
+
   if (!b4.lastReturn) throw `b4 return null`;
   return b4.lastReturn;
-})().then(console.log);
+})()
+  .then((r) => console.log(inspect(r, false, 3)))
+  .catch(console.error);

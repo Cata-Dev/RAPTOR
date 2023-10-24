@@ -20,9 +20,9 @@ export function initialCallback(data: initData) {
 }
 
 if (parentPort)
-  parentPort.on("message", async (data: initData | Parameters<typeof computePath>) => {
+  parentPort.on("message", (data: initData | Parameters<typeof computePath>) => {
     if (data instanceof Array) {
-      if (parentPort) parentPort.postMessage(await computePath(...data));
+      if (parentPort) parentPort.postMessage(computePath(...data));
     } else {
       initialCallback(data);
     }
@@ -32,18 +32,18 @@ let footGraph: WeightedGraph<footGraphNodes> | undefined;
 let stops: initData["stops"] | undefined;
 let options: initData["options"] | undefined;
 
-export async function computePath(
+export function computePath(
   sourceStopId: ReturnType<typeof approachedStopName>,
   returnPaths: boolean,
-  computedStops: Set<initData["stops"][number]> = new Set(),
+  computedStops = new Set<initData["stops"][number]>(),
 ) {
-  const sourcePaths: Map<initData["stops"][number], [path<unpackGraphNode<typeof footGraph>>, number]> = new Map();
+  const sourcePaths = new Map<initData["stops"][number], [path<unpackGraphNode<typeof footGraph>>, number]>();
 
   if (!footGraph || !stops) return sourcePaths;
 
   const [dist, prev] = options
-    ? await Dijkstra<footGraphNodes, typeof footGraph>(footGraph, [sourceStopId], options)
-    : await Dijkstra<footGraphNodes, typeof footGraph>(footGraph, [sourceStopId]);
+    ? Dijkstra<footGraphNodes, typeof footGraph>(footGraph, [sourceStopId], options)
+    : Dijkstra<footGraphNodes, typeof footGraph>(footGraph, [sourceStopId]);
 
   for (const stopId of stops) {
     const targetNode = approachedStopName(stopId);
@@ -60,9 +60,9 @@ export async function computePath(
 export async function computePathBench(
   sourceStopId: ReturnType<typeof approachedStopName>,
   returnPaths: boolean,
-  computedStops: Set<initData["stops"][number]> = new Set(),
+  computedStops = new Set<initData["stops"][number]>(),
 ) {
-  const sourcePaths: Map<initData["stops"][number], [path<unpackGraphNode<typeof footGraph>>, number]> = new Map();
+  const sourcePaths = new Map<initData["stops"][number], [path<unpackGraphNode<typeof footGraph>>, number]>();
 
   if (!footGraph || !stops) return sourcePaths;
 

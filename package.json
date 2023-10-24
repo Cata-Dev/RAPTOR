@@ -23,16 +23,16 @@
   "license": "MIT",
   "dependencies": {
     "@catatomik/dijkstra": "github:catatomik/dijkstra",
-    "@typegoose/typegoose": "^11.2.0",
-    "core-js": "^3.30.2",
-    "mongodb": "^5.0.1",
+    "@typegoose/typegoose": "^11.6.0",
+    "core-js": "^3.33.0",
+    "mongodb": "^6.1.0",
     "proj4": "^2.9.0"
   },
   "devDependencies": {
     "@types/proj4": "^2.5.2",
-    "@typescript-eslint/eslint-plugin": "^6.7.5",
+    "@typescript-eslint/eslint-plugin": "^6.8.0",
     "@typescript-eslint/parser": "^6.8.0",
-    "eslint": "^8.51.0",
+    "eslint": "^8.52.0",
     "prettier": "^3.0.3",
     "typescript": "5.0.4"
   }
