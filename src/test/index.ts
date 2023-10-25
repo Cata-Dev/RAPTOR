@@ -16,7 +16,6 @@ import { benchmark } from "./utils/benchmark";
 import { mapAsync, wait } from "./utils";
 import { inspect } from "util";
 
-// Main IIFE test function
 async function init() {
   const db = await initDB();
   const stopsModel = stopsModelInit(db);
@@ -149,6 +148,7 @@ async function run({ RAPTORInstance, TBMScheduledRoutesModel }: Awaited<ReturnTy
   return b4.lastReturn;
 }
 
+// Main IIFE test function
 (async () => {
   const initr = await init();
   // eslint-disable-next-line no-constant-condition
