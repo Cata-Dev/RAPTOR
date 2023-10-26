@@ -17,7 +17,7 @@
     "prettier": "prettier \"**/*.ts\" --write",
     "type-check": "tsc -noEmit",
     "lint": "eslint ./src/ --ext .ts,.tsx,.cts,.mts --fix --ignore-path .gitignore",
-    "full-lint": "npm run lint & npm run type-check",
+    "full-lint": "npm run lint && npm run type-check",
     "test": "echo \"Error: no test specified\" && exit 1",
     "prepare": "npm run build"
   },
