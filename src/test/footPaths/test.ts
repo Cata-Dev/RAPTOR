@@ -332,7 +332,7 @@ export async function run({ getFullPaths = false, computeGEOJSONs = false, dijks
 
   async function computePaths() {
     //paths<source, <target, paths>>
-    const paths: Map<KeyOfMap<typeof stops>, Awaited<ReturnType<typeof computePath>>> = new Map();
+    const paths = new Map<KeyOfMap<typeof stops>, Awaited<ReturnType<typeof computePath>>>();
 
     const def = new Deferred<typeof paths>();
 
@@ -417,7 +417,8 @@ export async function run({ getFullPaths = false, computeGEOJSONs = false, dijks
     );
 
   //From "Les Harmonies" to "Peixotto"
-  const specificPath = paths.get(128738)!.get(126798)!;
+  const specificPath = paths.get(2832)?.get(2074);
+  if (!specificPath) throw new Error("Unable to retrieve stops");
   if (computeGEOJSONs)
     GEOJSONs.push(
       computeGEOJSON(
@@ -491,12 +492,14 @@ export async function run({ getFullPaths = false, computeGEOJSONs = false, dijks
     await FootPathModel.deleteMany({});
 
     await FootPathModel.insertMany(
-      Array.from(paths).map<dbFootPaths>(([from, [[to, [path, distance]]]]) => ({
-        from,
-        to,
-        path: path.map((node) => (typeof node === "number" ? dbIntersectionId(node) : node)),
-        distance,
-      })),
+      Array.from(paths)
+        .filter(([_, paths]) => paths.size)
+        .map<dbFootPaths>(([from, [[to, [path, distance]]]]) => ({
+          from,
+          to,
+          path: path.map((node) => (typeof node === "number" ? dbIntersectionId(node) : node)),
+          distance,
+        })),
     );
   }
   const b6 = await benchmark(updateDb, []);
