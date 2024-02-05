@@ -77,30 +77,29 @@ import { inspect } from "util";
 
   function createRAPTOR() {
     const RAPTORInstance = new RAPTOR(
-      dbStops.map(({ _id, coords }) => [
-        _id,
-        ...coords,
-        dbScheduledRoutes.filter((ScheduledRoute) => ScheduledRoute.stops.find((stopId) => stopId === _id)).map(({ _id }) => _id),
-        binaryFilter(dbNonScheduledRoutes, _id, (stopFrom, NonScheduledRoute) => stopFrom - NonScheduledRoute.from)
+      dbStops.map(({ _id, coords }) => ({
+        id: _id,
+        lat: coords[0],
+        long: coords[1],
+        connectedRoutes: dbScheduledRoutes.filter((ScheduledRoute) => ScheduledRoute.stops.find((stopId) => stopId === _id)).map(({ _id }) => _id),
+        transfers: binaryFilter(dbNonScheduledRoutes, _id, (stopFrom, NonScheduledRoute) => stopFrom - NonScheduledRoute.from)
           .filter(({ distance }) => distance <= 500)
           .map(({ to, distance }) => ({
             to,
             length: distance,
           })),
-      ]),
+      })),
       dbScheduledRoutes.map(({ _id, stops, trips }) => [
         _id,
-        [
-          stops,
-          trips.map(({ tripId, schedules }) => ({
-            id: tripId,
-            times: schedules.map((schedule) =>
-              "hor_estime" in schedule
-                ? [schedule.hor_estime.getTime() || MAX_SAFE_TIMESTAMP, schedule.hor_estime.getTime() || MAX_SAFE_TIMESTAMP]
-                : [Infinity, Infinity],
-            ),
-          })),
-        ],
+        stops,
+        trips.map(({ tripId, schedules }) => ({
+          id: tripId,
+          times: schedules.map((schedule) =>
+            "hor_estime" in schedule
+              ? [schedule.hor_estime.getTime() || MAX_SAFE_TIMESTAMP, schedule.hor_estime.getTime() || MAX_SAFE_TIMESTAMP]
+              : [Infinity, Infinity],
+          ),
+        })),
       ]),
     );
 
