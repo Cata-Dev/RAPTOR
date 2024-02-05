@@ -192,7 +192,7 @@ export async function run({ getFullPaths = false, computeGEOJSONs = false, dijks
           "marker-size": "small",
         }),
         (arc) => ({
-          nom: Array.from(sections.values()).find((s) => s.rg_fv_graph_nd === arc[0] && s.rg_fv_graph_na === arc[1])?.nom_voie || "Unknown",
+          nom: Array.from(sections.values()).find((s) => s.rg_fv_graph_nd === arc[0] && s.rg_fv_graph_na === arc[1])?.nom_voie ?? "Unknown",
         }),
       ),
     );
@@ -305,7 +305,7 @@ export async function run({ getFullPaths = false, computeGEOJSONs = false, dijks
           let coords: [number, number] = [0, 0];
           if (typeof node === "number") coords = validIntersections.get(node)?.coords ?? [0, 0];
           else {
-            const approachedStopPoint = approachedStops.get(node as ReturnType<typeof approachedStopName>)?.[0];
+            const approachedStopPoint = approachedStops.get(node)?.[0];
             if (approachedStopPoint) coords = [approachedStopPoint.x, approachedStopPoint.y];
           }
           return toWGS(coords);
@@ -322,8 +322,8 @@ export async function run({ getFullPaths = false, computeGEOJSONs = false, dijks
           "marker-size": typeof node === "string" ? "medium" : "small",
         }),
         (arc) => ({
-          name: getSection(arc[0], arc[1])?.nom_voie || "Unknown",
-          distance: getSection(arc[0], arc[1])?.distance || "Unknown",
+          name: getSection(arc[0], arc[1])?.nom_voie ?? "Unknown",
+          distance: getSection(arc[0], arc[1])?.distance ?? "Unknown",
           sectionId: sectionId({ rg_fv_graph_nd: arc[0], rg_fv_graph_na: arc[1] }),
           stroke: typeof arc[0] === "string" || typeof arc[1] === "string" ? "#e60000" : "#5a5a5a",
         }),
@@ -371,12 +371,12 @@ export async function run({ getFullPaths = false, computeGEOJSONs = false, dijks
     GEOJSONs.push(
       computeGEOJSON(
         footGraph.nodes,
-        Array.from(paths.get(128738)!).filter(([_, [path]]) => path.length),
+        Array.from(paths.get(2832)!).filter(([_, [path]]) => path.length),
         (node) => {
           let coords: [number, number] = [0, 0];
           if (typeof node === "number") coords = validIntersections.get(node)?.coords ?? [0, 0];
           else {
-            const approachedStopPoint = approachedStops.get(node as ReturnType<typeof approachedStopName>)?.[0];
+            const approachedStopPoint = approachedStops.get(node)?.[0];
             if (approachedStopPoint) coords = [approachedStopPoint.x, approachedStopPoint.y];
           }
           return toWGS(coords);
@@ -427,7 +427,7 @@ export async function run({ getFullPaths = false, computeGEOJSONs = false, dijks
           let coords: [number, number] = [0, 0];
           if (typeof node === "number") coords = validIntersections.get(node)?.coords ?? [0, 0];
           else {
-            const approachedStopPoint = approachedStops.get(node as ReturnType<typeof approachedStopName>)?.[0];
+            const approachedStopPoint = approachedStops.get(node)?.[0];
             if (approachedStopPoint) coords = [approachedStopPoint.x, approachedStopPoint.y];
           }
           return toWGS(coords);
