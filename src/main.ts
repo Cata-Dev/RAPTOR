@@ -223,7 +223,9 @@ export default class RAPTOR {
     for (let k = 1; k < journeys.length; k++) {
       try {
         journeys[k] = this.traceBack(pt, k);
-      } catch (_) {}
+      } catch {
+        /* empty */
+      }
     }
 
     return journeys;
