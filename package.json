@@ -16,18 +16,17 @@
     "build": "tsc",
     "prettier": "prettier \"**/*.ts\" --write",
     "type-check": "tsc -noEmit",
-    "lint": "eslint ./src/ --ext .ts,.tsx,.cts,.mts --fix --ignore-path .gitignore",
-    "full-lint": "npm run lint && npm run type-check",
+    "lint": "eslint ./src/ --fix",
+    "full-lint": "pnpm run lint && pnpm run type-check",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "prepare": "npm run build"
+    "prepare": "pnpm run build"
   },
   "author": "Catatomik",
   "license": "MIT",
   "devDependencies": {
-    "@typescript-eslint/eslint-plugin": "^7.0.0",
-    "@typescript-eslint/parser": "^6.20.0",
     "eslint": "^8.56.0",
     "prettier": "^3.2.5",
-    "typescript": "5.0.4"
+    "typescript": "5.0.4",
+    "typescript-eslint": "^7.1.0"
   }
 }
