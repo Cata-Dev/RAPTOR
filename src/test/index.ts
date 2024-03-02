@@ -8,7 +8,7 @@ import TBMSchedulesModelInit from "./models/TBM_schedules.model";
 import TBMScheduledRoutesModelInit, { dbTBM_ScheduledRoutes } from "./models/TBMScheduledRoutes.model";
 import NonScheduledRoutesModelInit, { dbFootPaths } from "./models/NonScheduledRoutes.model";
 import RAPTOR from "../main";
-import { MAX_SAFE_TIMESTAMP, Stop, stopId } from "../Structures";
+import { MAX_SAFE_TIMESTAMP, Stop } from "../Structures";
 import { HydratedDocument, FilterQuery } from "mongoose";
 import { DocumentType } from "@typegoose/typegoose";
 import { unpackRefType } from "./footPaths/utils/ultils";
@@ -78,7 +78,7 @@ async function init() {
 
   async function createRAPTOR() {
     const RAPTORInstance = new RAPTOR(
-      await mapAsync<(typeof dbStops)[number], Stop>(dbStops, async ({ _id, coords }) => ({
+      await mapAsync<(typeof dbStops)[number], Stop<number, number>>(dbStops, async ({ _id, coords }) => ({
         id: _id,
         lat: coords[0],
         long: coords[1],
@@ -114,13 +114,13 @@ async function init() {
 
 async function run({ RAPTORInstance, TBMScheduledRoutesModel }: Awaited<ReturnType<typeof init>>) {
   const args = process.argv.slice(2);
-  let ps: stopId;
+  let ps: number;
   try {
     ps = JSON.parse(args[0]) as number;
   } catch (_) {
     ps = 2832;
   }
-  let pt: stopId;
+  let pt: number;
   try {
     pt = JSON.parse(args[1]) as number;
   } catch (_) {
