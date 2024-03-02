@@ -17,34 +17,32 @@ export interface Trip {
   times: [timestamp, timestamp][];
 }
 
-export interface FootPath {
-  to: stopId;
+export interface FootPath<SI extends Id> {
+  to: SI;
   length: number;
 }
 
-export type stopId = Id;
 /**
  * @description A Stop, i.e. a geographical specific point that is connected to routes.
  */
-export interface Stop {
-  readonly id: stopId;
+export interface Stop<SI extends Id, RI extends Id> {
+  readonly id: SI;
   readonly lat: number;
   readonly long: number;
-  readonly connectedRoutes: routeId[];
-  readonly transfers: FootPath[];
+  readonly connectedRoutes: RI[];
+  readonly transfers: FootPath<SI>[];
 }
 
-export type routeId = Id;
 /**
  * @description A Route, i.e. a succession of geographical specific points (stops) alongside with their correspondings operated trips.
  */
-export class Route {
+export class Route<SI extends Id, RI extends Id> {
   /**
    * @description Creates a new Route. Note that stops and trips are linked : they are cross-connected.
    */
   constructor(
-    readonly id: Id,
-    readonly stops: stopId[],
+    readonly id: RI,
+    readonly stops: SI[],
     readonly trips: Trip[],
   ) {}
 
@@ -53,7 +51,7 @@ export class Route {
    * @param t Trip index in route.
    * @param p Stop index in route (trip).
    */
-  departureTime(t: number, p: stopId): timestamp {
+  departureTime(t: number, p: SI): timestamp {
     return this.trips[t].times[this.stops.indexOf(p)][0];
   }
 }
