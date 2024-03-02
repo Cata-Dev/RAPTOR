@@ -8,16 +8,15 @@ import TBMSchedulesModelInit from "./models/TBM_schedules.model";
 import TBMScheduledRoutesModelInit, { dbTBM_ScheduledRoutes } from "./models/TBMScheduledRoutes.model";
 import NonScheduledRoutesModelInit, { dbFootPaths } from "./models/NonScheduledRoutes.model";
 import RAPTOR from "../main";
+import { MAX_SAFE_TIMESTAMP } from "../Structures";
 import { HydratedDocument } from "mongoose";
 import { DocumentType } from "@typegoose/typegoose";
 import { unpackRefType } from "./footPaths/utils/ultils";
-import { MAX_SAFE_TIMESTAMP, stopId } from "../Structures";
 import { benchmark } from "./utils/benchmark";
-import { binaryFilter } from "./utils";
+import { binaryFilter, wait } from "./utils";
 import { inspect } from "util";
 
-// Main IIFE test function
-(async () => {
+async function init() {
   const db = await initDB();
   const stopsModel = stopsModelInit(db);
   TBMSchedulesModelInit(db);
@@ -110,25 +109,25 @@ import { inspect } from "util";
   if (!b2.lastReturn) throw `b2 return null`;
   const { RAPTORInstance } = b2.lastReturn;
 
+  return { RAPTORInstance, TBMScheduledRoutesModel };
+}
+
+async function run({ RAPTORInstance, TBMScheduledRoutesModel }: Awaited<ReturnType<typeof init>>) {
   const args = process.argv.slice(2);
-  let ps: stopId;
+  let ps: number;
   try {
     ps = JSON.parse(args[0]) as number;
   } catch (_) {
     ps = 2832;
   }
-  let pt: stopId;
+  let pt: number;
   try {
     pt = JSON.parse(args[1]) as number;
   } catch (_) {
     pt = 2168;
   }
 
-  let minSchedule = Infinity;
-  for (const schedule of dbScheduledRoutes.flatMap(({ trips }) => trips.flatMap(({ schedules }) => schedules))) {
-    if ("hor_estime" in schedule && schedule.hor_estime.getTime() < minSchedule && schedule.hor_estime.getTime() > 0)
-      minSchedule = schedule.hor_estime.getTime();
-  }
+  const minSchedule = (await TBMScheduledRoutesModel.findOne({}).lean())?.updatedAt?.getTime() ?? Infinity;
 
   function runRAPTOR() {
     RAPTORInstance.run(ps, pt, minSchedule, { walkSpeed: 1.5 });
@@ -147,6 +146,18 @@ import { inspect } from "util";
 
   if (!b4.lastReturn) throw `b4 return null`;
   return b4.lastReturn;
+}
+
+// Main IIFE test function
+(async () => {
+  const initr = await init();
+  // eslint-disable-next-line no-constant-condition
+  while (true) {
+    const r = await run(initr);
+    console.log(inspect(r, false, 3));
+    //Let time to debug
+    await wait(10_000);
+  }
 })()
-  .then((r) => console.log(inspect(r, false, 3)))
+  .then(() => true)
   .catch(console.error);

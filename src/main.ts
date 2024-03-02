@@ -1,31 +1,31 @@
-import { Stop, Route, stopId, routeId, timestamp, MAX_SAFE_TIMESTAMP, FootPath } from "./Structures";
+import { Stop, Route, timestamp, MAX_SAFE_TIMESTAMP, FootPath, Id } from "./Structures";
 
 export type LabelType = "DEFAULT" | "DEPARTURE" | "FOOT" | "VEHICLE";
-export type Label<T extends LabelType = LabelType> = T extends "VEHICLE"
+export type Label<SI extends Id, RI extends Id, T extends LabelType = LabelType> = T extends "VEHICLE"
   ? {
-      /** @param boardedAt {@link stopId} in {@link RAPTOR.stops} */
-      boardedAt: stopId;
+      /** @param boardedAt {@link SI} in {@link RAPTOR.stops} */
+      boardedAt: SI;
       /** @param route {@link Route} in {@link RAPTOR.routes} */
-      route: Route;
+      route: Route<SI, RI>;
       tripIndex: number;
       time: timestamp; //arrival time
     }
   : T extends "FOOT"
-  ? {
-      /** @param boardedAt {@link stopId} in {@link RAPTOR.stops} */
-      boardedAt: stopId;
-      /** @param boardedAt {@link stopId} in {@link RAPTOR.stops} */
-      transfer: FootPath;
-      time: timestamp;
-    }
-  : T extends "DEPARTURE"
-  ? {
-      time: number;
-    }
-  : T extends "DEFAULT"
-  ? { time: typeof MAX_SAFE_TIMESTAMP }
-  : never;
-export type Journey = Label<"DEPARTURE" | "VEHICLE" | "FOOT">[];
+    ? {
+        /** @param boardedAt {@link SI} in {@link RAPTOR.stops} */
+        boardedAt: SI;
+        /** @param boardedAt {@link SI} in {@link RAPTOR.stops} */
+        transfer: FootPath<SI>;
+        time: timestamp;
+      }
+    : T extends "DEPARTURE"
+      ? {
+          time: number;
+        }
+      : T extends "DEFAULT"
+        ? { time: typeof MAX_SAFE_TIMESTAMP }
+        : never;
+export type Journey<RI extends Id, SI extends Id> = Label<RI, SI, "DEPARTURE" | "VEHICLE" | "FOOT">[];
 
 export interface RAPTORRunSettings {
   walkSpeed: number;
@@ -34,25 +34,25 @@ export interface RAPTORRunSettings {
 /**
  * @description A RAPTOR instance
  */
-export default class RAPTOR {
+export default class RAPTOR<SI extends Id = Id, RI extends Id = Id> {
   static defaultRounds = 6;
 
-  readonly stops: Map<stopId, Stop>;
-  readonly routes: Map<routeId, Route>;
+  readonly stops: Map<SI, Stop<SI, RI>>;
+  readonly routes: Map<RI, Route<SI, RI>>;
 
-  /** @description A {@link Label} T*(stopId) represents the earliest known arrival time at stop stopId. */
-  protected bestLabels = new Map<stopId, Label<LabelType>>();
-  /** @description A {@link Label} Ti(stopId) represents the earliest known arrival time at stop stopId with up to i trips. */
+  /** @description A {@link Label} T*(SI) represents the earliest known arrival time at stop stopId. */
+  protected bestLabels = new Map<SI, Label<SI, RI>>();
+  /** @description A {@link Label} Ti(SI) represents the earliest known arrival time at stop stopId with up to i trips. */
   protected multiLabel: (typeof this.bestLabels)[] = [];
   /** Set<{@link stopId} in {@link stops}> */
-  protected marked = new Set<stopId>();
+  protected marked = new Set<SI>();
   /** Round k <=> at most k transfers */
   protected k = 0;
 
   /**
    * @description Creates a new RAPTOR instance for a defined network.
    */
-  constructor(stops: Stop[], routes: ConstructorParameters<typeof Route>[]) {
+  constructor(stops: Stop<SI, RI>[], routes: ConstructorParameters<typeof Route<SI, RI>>[]) {
     this.stops = new Map(stops.map((s) => [s.id, s]));
     this.routes = new Map(routes.map(([rId, stopsIds, trips]) => [rId, new Route(rId, stopsIds, trips)]));
   }
@@ -73,7 +73,7 @@ export default class RAPTOR {
    * @param k Current round.
    * @returns The earliest {@link Trip} on the route (and its index) r at the stop p, or null if no one is catchable.
    */
-  protected et(route: Route, p: stopId): { tripIndex: number; boardedAt: stopId } | null {
+  protected et(route: Route<SI, RI>, p: SI): { tripIndex: number; boardedAt: SI } | null {
     for (let t = 0; t < route.trips.length; t++) {
       //Catchable
       const tDep = route.departureTime(t, p);
@@ -107,16 +107,16 @@ export default class RAPTOR {
 
   /**
    * @description Main RAPTOR algorithm function.
-   * @param ps {@link stopId} in {@link stops}.
-   * @param pt {@link stopId} in {@link stops}.
+   * @param ps {@link SI} in {@link stops}.
+   * @param pt {@link SI} in {@link stops}.
    * @param Depature time.
    * @param rounds Maximal number of transfers
    */
-  run(ps: stopId, pt: stopId, departureTime: timestamp, settings: RAPTORRunSettings, rounds: number = RAPTOR.defaultRounds) {
+  run(ps: SI, pt: SI, departureTime: timestamp, settings: RAPTORRunSettings, rounds: number = RAPTOR.defaultRounds) {
     //Re-initialization
-    this.multiLabel = Array.from({ length: rounds }, () => new Map<stopId, Label<LabelType>>());
+    this.multiLabel = Array.from({ length: rounds }, () => new Map<SI, Label<SI, RI>>());
     this.bestLabels = new Map();
-    this.marked = new Set<stopId>();
+    this.marked = new Set<SI>();
     this.k = 0;
 
     //Initialization
@@ -133,15 +133,15 @@ export default class RAPTOR {
     //Preliminary foot-paths lookup to join stops close to ps => use them in first round as fake departure stops
     this.footPathsLookup(settings.walkSpeed);
 
-    /** Map<{@link routeId} in {@link routes}, {@link stopId} in {@link stops}> */
-    const Q = new Map<routeId, stopId>();
+    /** Map<{@link RI} in {@link routes}, {@link SI} in {@link stops}> */
+    const Q = new Map<RI, SI>();
 
     //Step 1
     //Mark improvement
     for (this.k = 1; this.k < rounds; this.k++) {
       Q.clear();
       for (const p of this.marked) {
-        const connectedRoutes: routeId[] = this.stops.get(p)?.connectedRoutes ?? [];
+        const connectedRoutes: RI[] = this.stops.get(p)?.connectedRoutes ?? [];
 
         for (const r of connectedRoutes) {
           const p2 = Q.get(r);
@@ -156,7 +156,7 @@ export default class RAPTOR {
         let t: ReturnType<typeof this.et> | null = null;
 
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        const route: Route = this.routes.get(r)!;
+        const route: Route<SI, RI> = this.routes.get(r)!;
 
         for (let i = route.stops.indexOf(p); i < route.stops.length; i++) {
           const pi = route.stops[i];
@@ -191,13 +191,13 @@ export default class RAPTOR {
     }
   }
 
-  protected traceBack(from: stopId, initRound: number): Journey {
+  protected traceBack(from: SI, initRound: number): Journey<SI, RI> {
     if (initRound < 1 || initRound > this.multiLabel.length) throw new Error(`Invalid round (${initRound}) provided.`);
 
     let k = initRound;
-    let trace: Journey = [];
+    let trace: Journey<SI, RI> = [];
 
-    let previousStop: stopId | null = from;
+    let previousStop: SI | null = from;
     while (previousStop !== null) {
       if (k < 0) throw new Error(`No journey in round ${initRound}.`); // Unable to get back to source
 
@@ -224,8 +224,8 @@ export default class RAPTOR {
     return trace;
   }
 
-  getBestJourneys(pt: stopId): (null | Journey)[] {
-    const journeys: (null | Journey)[] = Array.from({ length: this.multiLabel.length }, () => null);
+  getBestJourneys(pt: SI): (null | Journey<SI, RI>)[] {
+    const journeys: (null | Journey<SI, RI>)[] = Array.from({ length: this.multiLabel.length }, () => null);
 
     for (let k = 1; k < journeys.length; k++) {
       try {

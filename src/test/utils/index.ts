@@ -62,3 +62,13 @@ export function binaryFilter<T, C>(arr: T[], el: C, compare: (a: C, b: T) => num
   }
   return arr.slice(low, high + 1);
 }
+
+export function wait(ms = 1000): Promise<unknown> {
+  const defP = new Deferred();
+
+  setTimeout(() => {
+    defP.resolve(null);
+  }, ms);
+
+  return defP.promise;
+}
