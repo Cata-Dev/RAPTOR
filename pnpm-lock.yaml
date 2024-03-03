@@ -6,7 +6,7 @@ settings:
 
 devDependencies:
   eslint:
-    specifier: ^8.56.0
+    specifier: ^8.57.0
     version: 8.57.0
   prettier:
     specifier: ^3.2.5
