@@ -27,8 +27,6 @@ export interface FootPath<SI extends Id> {
  */
 export interface Stop<SI extends Id, RI extends Id> {
   readonly id: SI;
-  readonly lat: number;
-  readonly long: number;
   readonly connectedRoutes: RI[];
   readonly transfers: FootPath<SI>[];
 }
