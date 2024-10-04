@@ -155,7 +155,6 @@ export default class RAPTOR<SI extends Id = Id, RI extends Id = Id> {
       for (const [r, p] of Q) {
         let t: ReturnType<typeof this.et> | null = null;
 
-         
         const route: Route<SI, RI> = this.routes.get(r)!;
 
         for (let i = route.stops.indexOf(p); i < route.stops.length; i++) {
