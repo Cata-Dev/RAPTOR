@@ -1,4 +1,4 @@
-import { Stop, Route, timestamp, MAX_SAFE_TIMESTAMP, FootPath, Id } from "./Structures";
+import { Stop, Route, timestamp, MAX_SAFE_TIMESTAMP, FootPath, Id, RAPTORData, ArrayRead, MapRead } from "./Structures";
 
 export type LabelType = "DEFAULT" | "DEPARTURE" | "FOOT" | "VEHICLE";
 export type Label<SI extends Id, RI extends Id, T extends LabelType = LabelType> = T extends "VEHICLE"
@@ -34,11 +34,11 @@ export interface RAPTORRunSettings {
 /**
  * @description A RAPTOR instance
  */
-export default class RAPTOR<SI extends Id = Id, RI extends Id = Id> {
+export default class RAPTOR<SI extends Id = Id, RI extends Id = Id, TI extends Id = Id> {
   static defaultRounds = 6;
 
-  readonly stops: Map<SI, Stop<SI, RI>>;
-  readonly routes: Map<RI, Route<SI, RI>>;
+  readonly stops: MapRead<SI, Stop<SI, RI>>;
+  readonly routes: MapRead<RI, Route<SI, RI, TI>>;
 
   /** @description A {@link Label} Ti(SI) represents the earliest known arrival time at stop SI with up to i trips. */
   protected multiLabel: Map<SI, Label<SI, RI>>[] = [];
@@ -50,9 +50,9 @@ export default class RAPTOR<SI extends Id = Id, RI extends Id = Id> {
   /**
    * @description Creates a new RAPTOR instance for a defined network.
    */
-  constructor(stops: Stop<SI, RI>[], routes: ConstructorParameters<typeof Route<SI, RI>>[]) {
-    this.stops = new Map(stops.map((s) => [s.id, s]));
-    this.routes = new Map(routes.map(([rId, stopsIds, trips]) => [rId, new Route(rId, stopsIds, trips)]));
+  constructor(data: RAPTORData<SI, RI, TI>) {
+    this.stops = data.stops;
+    this.routes = data.routes;
   }
 
   /**
@@ -113,7 +113,7 @@ export default class RAPTOR<SI extends Id = Id, RI extends Id = Id> {
     this.k = 0;
 
     // Initialization
-    for (const stopId of this.stops.keys()) {
+    for (const [stopId] of this.stops) {
       this.multiLabel[this.k].set(stopId, { time: Infinity });
     }
     this.multiLabel[this.k].set(ps, { time: departureTime });
@@ -126,20 +126,24 @@ export default class RAPTOR<SI extends Id = Id, RI extends Id = Id> {
     const Q = new Map<RI, SI>();
 
     for (this.k = 1; this.k < rounds; this.k++) {
-      //Copying
-      for (const stopId of this.stops.keys()) {
+      // Copying
+      for (const [stopId] of this.stops) {
         const value = this.multiLabel[this.k - 1].get(stopId);
         this.multiLabel[this.k].set(stopId, value ? structuredClone(value) : { time: Infinity });
       }
 
-      //Mark improvement
+      // Mark improvement
       Q.clear();
       for (const p of this.marked) {
-        const connectedRoutes: RI[] = this.stops.get(p)?.connectedRoutes ?? [];
+        const connectedRoutes = (this.stops.get(p)?.connectedRoutes ?? ([] as RI[])) satisfies ArrayRead<RI>;
 
         for (const r of connectedRoutes) {
           const p2 = Q.get(r);
-          if (!p2 || (this.routes.get(r)?.stops ?? []).indexOf(p) < (this.routes.get(r)?.stops ?? []).indexOf(p2)) Q.set(r, p);
+          if (
+            !p2 ||
+            (this.routes.get(r)?.stops ?? ([] as ArrayRead<SI>)).indexOf(p) < (this.routes.get(r)?.stops ?? ([] as ArrayRead<SI>)).indexOf(p2)
+          )
+            Q.set(r, p);
         }
 
         this.marked.delete(p);
