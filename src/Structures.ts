@@ -9,8 +9,8 @@ export const MAX_SAFE_TIMESTAMP = 8_640_000_000_000_000;
 /**
  * @description A Trip, i.e. a succession of stop times.
  */
-export interface Trip {
-  id: Id;
+export interface Trip<TI extends Id = Id> {
+  id: TI;
   /**
    * @param stopTimes Time of arrival & departure at each stop.
    */
@@ -32,16 +32,16 @@ export interface Stop<SI extends Id, RI extends Id> {
 }
 
 /**
- * @description A Route, i.e. a succession of geographical specific points (stops) alongside with their correspondings operated trips.
+ * @description A Route, i.e. a succession of geographical specific points (stops) alongside with their corresponding operated trips.
  */
-export class Route<SI extends Id, RI extends Id> {
+export class Route<SI extends Id, RI extends Id, TI extends Id = Id> {
   /**
    * @description Creates a new Route. Note that stops and trips are linked : they are cross-connected.
    */
   constructor(
     readonly id: RI,
     readonly stops: SI[],
-    readonly trips: Trip[],
+    readonly trips: Trip<TI>[],
   ) {}
 
   /**
