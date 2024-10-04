@@ -1,4 +1,4 @@
-import { FootPath, Stop, Trip, Route } from "./Structures";
+import { FootPath, Stop, Trip, Route, ArrayRead, MapRead } from "./Structures";
 
 /**
  * Helper type to override type `T` with type `O`
@@ -13,12 +13,14 @@ type Override<T, O> = Omit<T, keyof O> & O;
  * console.log(inst[0]); // Works !
  * ```
  */
-class ArrayView<T> {
+export class ArrayView<T> implements ArrayRead<T> {
+  [x: number]: T;
+
   constructor(
     /**
      * Length of array
      */
-    protected readonly length: number,
+    readonly length: number,
     /**
      * Accessor to an array element at index `idx`
      */
@@ -36,7 +38,7 @@ class ArrayView<T> {
    * Throws over {@link ArrayView._get}.
    * @param idx Index of element to access, must be positive and strictly inferior to array length
    */
-  get(idx: number): T {
+  protected get(idx: number): T {
     // Throws instead of returning undefined (for a Map)
     if (isNaN(idx) || idx < 0 || idx >= this.length) throw new Error("Invalid access");
     return this._get(idx);
@@ -47,6 +49,8 @@ class ArrayView<T> {
    */
   *[Symbol.iterator]() {
     for (let idx = 0; idx < this.length; idx++) yield this._get(idx);
+
+    return undefined;
   }
 
   /**
@@ -56,6 +60,17 @@ class ArrayView<T> {
     for (; fromIndex < this.length; fromIndex++) if (this._equal(this._get(fromIndex), el)) return fromIndex;
     return -1;
   }
+
+  map<U>(callbackfn: (value: T, index: number, array: ArrayRead<T>) => U): ArrayRead<U> {
+    const acc: U[] = [];
+    for (let idx = 0; idx < this.length; idx++) acc.push(callbackfn(this._get(idx), idx, this));
+    return acc;
+  }
+
+  reduce<U>(callbackfn: (previousValue: U, currentValue: T, currentIndex: number, array: ArrayRead<T>) => U, initialValue: U): U {
+    for (let idx = 0; idx < this.length; idx++) callbackfn(initialValue, this._get(idx), idx, this);
+    return initialValue;
+  }
 }
 
 enum PtrType {
@@ -64,16 +79,16 @@ enum PtrType {
 }
 
 /**
- * A DataView built on top of {@link RAPTORData} internals to ease & enhance data manipulation
+ * A DataView built on top of {@link SharedRAPTORData} internals to ease & enhance data manipulation
  */
 class Retriever<T extends PtrType> {
   constructor(
     /**
-     * View on stops, same as {@link RAPTORData.sDataView}
+     * View on stops, same as {@link SharedRAPTORData.sDataView}
      */
     protected readonly sDataView: Uint32Array,
     /**
-     * View on routes, same as {@link RAPTORData.rDataView}
+     * View on routes, same as {@link SharedRAPTORData.rDataView}
      */
     protected readonly rDataView: Uint32Array,
     // Not readonly : a pointer is already often exposed, and moreover, permits access in O(1) without any overhead
@@ -109,7 +124,10 @@ class FootPathRetriever extends Retriever<PtrType.Stop> implements FootPath<numb
 //
 
 interface SharedStop {
-  connectedRoutes: ArrayView<RouteRetriever>;
+  /**
+   * Array of route pointers
+   */
+  connectedRoutes: ArrayView<number>;
   transfers: ArrayView<FootPathRetriever>;
 }
 
@@ -121,8 +139,8 @@ class StopRetriever extends Retriever<PtrType.Stop> implements Override<Stop<num
   get connectedRoutes() {
     return new ArrayView(
       this.sDataView[this.ptr + 1],
-      (idx) => new RouteRetriever(this.sDataView, this.rDataView, this.sDataView[this.ptr + 1 + idx + 1], PtrType.Route),
-      (a, b) => a.id === b.id,
+      (idx) => this.ptr + 1 + idx + 1,
+      (a, b) => a === b,
     );
   }
 
@@ -147,9 +165,10 @@ class StopRetriever extends Retriever<PtrType.Stop> implements Override<Stop<num
 
 interface SharedTrip {
   /**
-   * Length 2 : `[arrival timestamp, departure timestamp]`
+   * Length 2 : `[arrival timestamp, departure timestamp]`.
+   * Defined as `[number, number]` to match {@link Trip} interface, but is in fact a `Uint32Array`
    */
-  times: ArrayView<Uint32Array>;
+  times: ArrayRead<[number, number]>;
 }
 
 class TripRetriever extends Retriever<PtrType.Route> implements Override<Trip<number>, SharedTrip> {
@@ -160,8 +179,11 @@ class TripRetriever extends Retriever<PtrType.Route> implements Override<Trip<nu
   get times() {
     return new ArrayView(
       this.rDataView[this.ptr + 1],
-      (idx) => this.rDataView.subarray(this.ptr + 2 + idx, this.ptr + 2 + idx + 2 + 1),
-      (a, b) => a.byteOffset === b.byteOffset && a.length === b.length && a.buffer === b.buffer,
+      (idx) => this.rDataView.subarray(this.ptr + 2 + idx, this.ptr + 2 + idx + 2) as unknown as [number, number],
+      (a, b) =>
+        (a as unknown as Uint32Array).byteOffset === (b as unknown as Uint32Array).byteOffset &&
+        a.length === b.length &&
+        (a as unknown as Uint32Array).buffer === (b as unknown as Uint32Array).buffer,
     );
   }
 }
@@ -171,8 +193,11 @@ class TripRetriever extends Retriever<PtrType.Route> implements Override<Trip<nu
 //
 
 interface SharedRoute {
-  stops: ArrayView<StopRetriever>;
-  trips: ArrayView<TripRetriever>;
+  /**
+   * Array of stop pointers
+   */
+  stops: ArrayView<number>;
+  trips: ArrayView<Override<Trip<number>, SharedTrip>>;
 }
 
 class RouteRetriever extends Retriever<PtrType.Route> implements Override<Route<number, number, number>, SharedRoute> {
@@ -183,13 +208,13 @@ class RouteRetriever extends Retriever<PtrType.Route> implements Override<Route<
   get stops() {
     return new ArrayView(
       this.rDataView[this.ptr + 1],
-      (idx) => new StopRetriever(this.sDataView, this.rDataView, this.rDataView[this.ptr + 2 + idx], PtrType.Stop),
-      (a, b) => a.id === b.id,
+      (idx) => this.ptr + 2 + idx,
+      (a, b) => a === b,
     );
   }
 
   get trips() {
-    return new ArrayView(
+    return new ArrayView<Override<Trip<number>, SharedTrip>>(
       this.rDataView[this.ptr + 1 + this.rDataView[this.ptr + 1] + 1],
       (idx) =>
         new TripRetriever(this.sDataView, this.rDataView, this.rDataView[this.ptr + 1 + this.rDataView[this.ptr + 1] + 1 + 1 + idx], PtrType.Route),
@@ -198,14 +223,14 @@ class RouteRetriever extends Retriever<PtrType.Route> implements Override<Route<
   }
 
   departureTime(t: number, p: number): number {
-    return this.trips.get(t).times.get(p)[1];
+    return this.trips[t].times[p][1];
   }
 }
 
 /**
  * Shared-memory enabled RAPTOR data
  */
-export class RAPTORData {
+export class SharedRAPTORData {
   /**
    * Internal data (shared) buffer
    */
@@ -221,12 +246,12 @@ export class RAPTORData {
 
   /**
    *
-   * @param data Instantiate from {@link RAPTORData.prototype.internalData} exported data
+   * @param data Instantiate from {@link SharedRAPTORData.prototype.internalData} exported data
    */
-  protected constructor(data: typeof RAPTORData.prototype.internalData);
+  protected constructor(data: typeof SharedRAPTORData.prototype.internalData);
   protected constructor(stops: Stop<number, number>[], routes: ConstructorParameters<typeof Route<number, number, number>>[]);
   protected constructor(
-    stopsOrData: typeof RAPTORData.prototype.internalData | Stop<number, number>[],
+    stopsOrData: typeof SharedRAPTORData.prototype.internalData | Stop<number, number>[],
     routes?: ConstructorParameters<typeof Route<number, number, number>>[],
   ) {
     // Assign data storage
@@ -400,22 +425,24 @@ export class RAPTORData {
   }
 
   static makeFromRawData(stops: Stop<number, number>[], routes: ConstructorParameters<typeof Route<number, number, number>>[]) {
-    return new RAPTORData(stops, routes);
+    return new SharedRAPTORData(stops, routes);
   }
 
-  static makeFromInternalData(data: typeof RAPTORData.prototype.internalData) {
-    return new RAPTORData(data);
+  static makeFromInternalData(data: typeof SharedRAPTORData.prototype.internalData) {
+    return new SharedRAPTORData(data);
   }
 
-  get stops() {
+  get stops(): MapRead<number, StopRetriever> {
     return {
-      [Symbol.iterator]: function* (this: RAPTORData) {
+      [Symbol.iterator]: function* (this: SharedRAPTORData) {
         for (let ptr = 0; ptr < this.sDataView.length; ptr += 3 + this.sDataView[ptr + 1] + this.sDataView[ptr + 1 + this.sDataView[ptr + 1] + 1]) {
           /**
            * Pointer (index in buffer) to stop, retrieve it through `get` method.
            */
-          yield ptr;
+          yield [ptr, new StopRetriever(this.sDataView, this.rDataView, ptr, PtrType.Stop)] satisfies [unknown, unknown];
         }
+
+        return undefined;
       }.bind(this),
       /**
        * Maps a stop pointer to its corresponding {@link StopRetriever}
@@ -425,15 +452,17 @@ export class RAPTORData {
     };
   }
 
-  get routes() {
+  get routes(): MapRead<number, RouteRetriever> {
     return {
-      [Symbol.iterator]: function* (this: RAPTORData) {
+      [Symbol.iterator]: function* (this: SharedRAPTORData) {
         for (let ptr = 0; ptr < this.rDataView.length; ptr += 3 + this.rDataView[ptr + 1] + this.rDataView[ptr + 1 + this.rDataView[ptr + 1] + 1]) {
           /**
            * Pointer (index in buffer) to route, retrieve it through `get` method.
            */
-          yield ptr;
+          yield [ptr, new RouteRetriever(this.sDataView, this.rDataView, ptr, PtrType.Route)] satisfies [unknown, unknown];
         }
+
+        return undefined;
       }.bind(this),
       /**
        * Maps a route pointer to its corresponding {@link RouteRetriever}
