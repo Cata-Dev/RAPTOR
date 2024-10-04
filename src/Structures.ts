@@ -4,8 +4,6 @@
 export type timestamp = number;
 export type Id = number | string;
 
-export const MAX_SAFE_TIMESTAMP = 8_640_000_000_000_000;
-
 /**
  * General {@link Array} subpart, constrained to some read-only features.
  */
@@ -76,6 +74,8 @@ export class Route<SI extends Id, RI extends Id, TI extends Id = Id> {
 }
 
 export class RAPTORData<SI extends Id = Id, RI extends Id = Id, TI extends Id = Id> {
+  static readonly MAX_SAFE_TIMESTAMP: number = 8_640_000_000_000_000;
+  readonly MAX_SAFE_TIMESTAMP: number = RAPTORData.MAX_SAFE_TIMESTAMP;
   readonly stops: MapRead<SI, Stop<SI, RI>>;
   readonly routes: MapRead<RI, Route<SI, RI, TI>>;
 

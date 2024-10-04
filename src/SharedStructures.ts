@@ -29,7 +29,15 @@ export class ArrayView<T> implements ArrayRead<T> {
   ) {
     // Make an instance of ArrayView hook-getable
     return new Proxy(this, {
-      get: (_, prop) => this.get(typeof prop === "string" ? parseInt(prop) : NaN),
+      get: (_, prop) => {
+        if (typeof prop === "string") {
+          const idx = parseInt(prop);
+          if (!isNaN(idx)) return this.get(idx);
+        }
+
+        // Just continue calling
+        return (this as Record<typeof prop, unknown>)[prop];
+      },
     });
   }
 
@@ -40,7 +48,10 @@ export class ArrayView<T> implements ArrayRead<T> {
    */
   protected get(idx: number): T {
     // Throws instead of returning undefined (for a Map)
-    if (isNaN(idx) || idx < 0 || idx >= this.length) throw new Error("Invalid access");
+    if (isNaN(idx) || idx < 0 || idx >= this.length) {
+      console.log(isNaN(idx), idx < 0, idx >= this.length);
+      throw new Error("Invalid access");
+    }
     return this._get(idx);
   }
 
@@ -231,6 +242,9 @@ class RouteRetriever extends Retriever<PtrType.Route> implements Override<Route<
  * Shared-memory enabled RAPTOR data
  */
 export class SharedRAPTORData {
+  // Max uint32
+  static readonly MAX_SAFE_TIMESTAMP: number = 4_294_967_295;
+  readonly MAX_SAFE_TIMESTAMP: number = SharedRAPTORData.MAX_SAFE_TIMESTAMP;
   /**
    * Internal data (shared) buffer
    */
@@ -261,7 +275,7 @@ export class SharedRAPTORData {
         : new SharedArrayBuffer(
             // Compute total data size (length for buffer), no grow needed
             // Size of stops buffer chunk
-            1 +
+            (1 +
               stopsOrData.reduce<number>(
                 (acc, v) =>
                   acc +
@@ -301,13 +315,14 @@ export class SharedRAPTORData {
                       0,
                     )),
                 0,
-              ),
+              )) *
+              Uint32Array.BYTES_PER_ELEMENT,
           );
 
     // Stops length in data buffer
     const stopsDataLength = new DataView(this.data);
     const getStopsDataLength = () => stopsDataLength.getUint32(0);
-    const setStopsDataLength = (length: number) => stopsDataLength.getUint32(length);
+    const setStopsDataLength = (length: number) => stopsDataLength.setUint32(0, length);
 
     if ("data" in stopsOrData) {
       // Just make views
