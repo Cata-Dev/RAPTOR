@@ -131,7 +131,6 @@ export class WorkerPool<Icb extends (...args: any[]) => unknown, F extends (...a
     worker.worker.once("message", onceMessage);
     worker.worker.once("error", onceError);
 
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     if (!res || !rej) return def!.promise;
   }
 

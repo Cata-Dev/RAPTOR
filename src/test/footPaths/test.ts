@@ -149,7 +149,7 @@ export async function run({ getFullPaths = false, computeGEOJSONs = false, dijks
   }
   const b1 = await benchmark(queryData, []);
   console.log("b1 ended");
-  if (!b1.lastReturn) throw `b1 return null`;
+  if (!b1.lastReturn) throw new Error(`b1 return null`);
   const { validIntersections, sections, stops } = b1.lastReturn;
 
   /** Little helper to get a section easier */
@@ -169,7 +169,7 @@ export async function run({ getFullPaths = false, computeGEOJSONs = false, dijks
   }
   const b2 = await benchmark(makeGraph, []);
   console.log("b2 ended");
-  if (!b2.lastReturn) throw `b2 return null`;
+  if (!b2.lastReturn) throw new Error(`b2 return null`);
   const footGraph = b2.lastReturn;
 
   if (computeGEOJSONs)
@@ -241,7 +241,7 @@ export async function run({ getFullPaths = false, computeGEOJSONs = false, dijks
   }
   const b3 = await benchmark(computeApproachedStops, []);
   console.log("b3 ended");
-  if (!b3.lastReturn) throw `b3 return null`;
+  if (!b3.lastReturn) throw new Error(`b3 return null`);
   const approachedStops = b3.lastReturn;
 
   /** Update {@link footGraph} & {@link sections} */
@@ -363,7 +363,7 @@ export async function run({ getFullPaths = false, computeGEOJSONs = false, dijks
   }
   const b5 = await benchmark(computePaths, []);
   console.log("b5 ended");
-  if (!b5.lastReturn) throw `b5 return null`;
+  if (!b5.lastReturn) throw new Error(`b5 return null`);
   const paths = b5.lastReturn;
 
   // From "Les Harmonies"
@@ -437,10 +437,10 @@ export async function run({ getFullPaths = false, computeGEOJSONs = false, dijks
           path.reduce<TemplateCoordinates[]>(
             (acc, v, i) =>
               i === 0
-                ? getSection(v, path[i + 1])?.coords.map((coords) => toWGS(coords)) ?? [
+                ? (getSection(v, path[i + 1])?.coords.map((coords) => toWGS(coords)) ?? [
                     [0, 0],
                     [0, 0],
-                  ]
+                  ])
                 : acc,
             [],
           ),

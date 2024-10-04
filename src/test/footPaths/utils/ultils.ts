@@ -7,19 +7,20 @@ export function euclidianDistance(x1: number, y1: number, x2: number, y2: number
   return Math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2);
 }
 
-export type unpackRefType<T> = T extends Ref<infer D>
-  ? D extends {
-      _id?: RefType;
-    }
-    ? D["_id"]
-    : never
-  : T extends Ref<infer D>[]
-  ? D extends {
-      _id?: RefType;
-    }
-    ? D["_id"][]
-    : never
-  : never;
+export type unpackRefType<T> =
+  T extends Ref<infer D>
+    ? D extends {
+        _id?: RefType;
+      }
+      ? D["_id"]
+      : never
+    : T extends Ref<infer D>[]
+      ? D extends {
+          _id?: RefType;
+        }
+        ? D["_id"][]
+        : never
+      : never;
 
 /** Ensure unique node id for approachedStop (as(approached stop)={stop id}) */
 export function approachedStopName(_id: number) {

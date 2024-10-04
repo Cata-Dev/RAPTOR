@@ -48,9 +48,7 @@ export function computePath(
   for (const stopId of stops) {
     const targetNode = approachedStopName(stopId);
 
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     if (dist.get(targetNode) !== undefined && dist.get(targetNode)! < Infinity && sourceStopId !== targetNode && !computedStops.has(stopId))
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       sourcePaths.set(stopId, [returnPaths ? tracePath(prev, targetNode) : [], dist.get(targetNode)!]);
   }
 
@@ -67,8 +65,7 @@ export async function computePathBench(
   if (!footGraph || !stops) return sourcePaths;
 
   const [dist, prev] = options
-    ? // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      (
+    ? (
         await benchmark(
           Dijkstra as (
             G: typeof footGraph,
@@ -78,8 +75,7 @@ export async function computePathBench(
           [footGraph, [sourceStopId], options],
         )
       ).lastReturn!
-    : // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      (
+    : (
         await benchmark(
           Dijkstra as (G: typeof footGraph, [s]: [typeof sourceStopId]) => [Map<footGraphNodes, number>, Map<footGraphNodes, footGraphNodes>],
           [footGraph, [sourceStopId]],
@@ -91,9 +87,7 @@ export async function computePathBench(
       for (const stopId of s) {
         const targetNode = approachedStopName(stopId);
 
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         if (dist.get(targetNode) !== undefined && dist.get(targetNode)! < Infinity && sourceStopId !== targetNode && !computedStops.has(stopId))
-          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
           sourcePaths.set(stopId, [returnPaths ? tracePath(prev, targetNode) : [], dist.get(targetNode)!]);
       }
     },
