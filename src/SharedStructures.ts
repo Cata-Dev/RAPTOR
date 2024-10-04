@@ -27,7 +27,8 @@ class ArrayView<T> {
    * @param idx Index of element to access, must be positive and strictly inferior to array length
    */
   get(idx: number): T {
-    if (idx < 0 || idx >= this.length) throw new Error("Invalid access");
+    // Throws instead of returning undefined (for a Map)
+    if (isNaN(idx) || idx < 0 || idx >= this.length) throw new Error("Invalid access");
     return this._get(idx);
   }
 
