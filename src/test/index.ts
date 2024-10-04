@@ -8,7 +8,7 @@ import TBMSchedulesModelInit from "./models/TBM_schedules.model";
 import TBMScheduledRoutesModelInit, { dbTBM_ScheduledRoutes } from "./models/TBMScheduledRoutes.model";
 import NonScheduledRoutesModelInit, { dbFootPaths } from "./models/NonScheduledRoutes.model";
 import RAPTOR from "../main";
-import { MAX_SAFE_TIMESTAMP, Stop } from "../Structures";
+import { MAX_SAFE_TIMESTAMP, RAPTORData, Stop } from "../Structures";
 import { HydratedDocument, FilterQuery } from "mongoose";
 import { DocumentType } from "@typegoose/typegoose";
 import { unpackRefType } from "./footPaths/utils/ultils";
@@ -78,28 +78,36 @@ async function init() {
 
   async function createRAPTOR() {
     const RAPTORInstance = new RAPTOR(
-      await mapAsync<(typeof dbStops)[number], Stop<number, number>>(dbStops, async ({ _id, coords }) => ({
-        id: _id,
-        lat: coords[0],
-        long: coords[1],
-        connectedRoutes: dbScheduledRoutes.filter((ScheduledRoute) => ScheduledRoute.stops.find((stopId) => stopId === _id)).map(({ _id }) => _id),
-        transfers: (await dbNonScheduledRoutes(_id, { distance: { $lte: 1_000 } })).map(({ to, distance }) => ({
-          to,
-          length: distance,
+      new RAPTORData(
+        await mapAsync<(typeof dbStops)[number], Stop<number, number>>(dbStops, async ({ _id, coords }) => ({
+          id: _id,
+          lat: coords[0],
+          long: coords[1],
+          connectedRoutes: dbScheduledRoutes.filter((ScheduledRoute) => ScheduledRoute.stops.find((stopId) => stopId === _id)).map(({ _id }) => _id),
+          transfers: (await dbNonScheduledRoutes(_id, { distance: { $lte: 1_000 } })).map(({ to, distance }) => ({
+            to,
+            length: distance,
+          })),
         })),
-      })),
-      dbScheduledRoutes.map(({ _id, stops, trips }) => [
-        _id,
-        stops,
-        trips.map(({ tripId, schedules }) => ({
-          id: tripId,
-          times: schedules.map((schedule) =>
-            "hor_estime" in schedule
-              ? [schedule.hor_estime.getTime() || MAX_SAFE_TIMESTAMP, schedule.hor_estime.getTime() || MAX_SAFE_TIMESTAMP]
-              : [Infinity, Infinity],
-          ),
-        })),
-      ]),
+        dbScheduledRoutes.map(
+          ({ _id, stops, trips }) =>
+            [
+              _id,
+              stops,
+              trips.map(({ tripId, schedules }) => ({
+                id: tripId,
+                times: schedules.map((schedule) =>
+                  "hor_estime" in schedule
+                    ? ([schedule.hor_estime.getTime() || MAX_SAFE_TIMESTAMP, schedule.hor_estime.getTime() || MAX_SAFE_TIMESTAMP] satisfies [
+                        unknown,
+                        unknown,
+                      ])
+                    : ([Infinity, Infinity] satisfies [unknown, unknown]),
+                ),
+              })),
+            ] satisfies [unknown, unknown, unknown],
+        ),
+      ),
     );
 
     return { RAPTORInstance };
