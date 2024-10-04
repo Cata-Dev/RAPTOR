@@ -410,8 +410,11 @@ export class RAPTORData {
   get stops() {
     return {
       [Symbol.iterator]: function* (this: RAPTORData) {
-        for (let idx = 0; idx < this.sDataView.length; idx += 3 + this.sDataView[idx + 1] + this.sDataView[idx + 1 + this.sDataView[idx + 1] + 1]) {
-          yield [idx, this.sDataView[idx]];
+        for (let ptr = 0; ptr < this.sDataView.length; ptr += 3 + this.sDataView[ptr + 1] + this.sDataView[ptr + 1 + this.sDataView[ptr + 1] + 1]) {
+          /**
+           * Pointer (index in buffer) to stop, retrieve it through `get` method.
+           */
+          yield ptr;
         }
       }.bind(this),
       /**
@@ -425,8 +428,11 @@ export class RAPTORData {
   get routes() {
     return {
       [Symbol.iterator]: function* (this: RAPTORData) {
-        for (let idx = 0; idx < this.rDataView.length; idx += 3 + this.rDataView[idx + 1] + this.rDataView[idx + 1 + this.rDataView[idx + 1] + 1]) {
-          yield [idx, this.rDataView[idx]];
+        for (let ptr = 0; ptr < this.rDataView.length; ptr += 3 + this.rDataView[ptr + 1] + this.rDataView[ptr + 1 + this.rDataView[ptr + 1] + 1]) {
+          /**
+           * Pointer (index in buffer) to route, retrieve it through `get` method.
+           */
+          yield ptr;
         }
       }.bind(this),
       /**
