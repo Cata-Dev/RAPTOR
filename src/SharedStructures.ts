@@ -7,6 +7,11 @@ type Override<T, O> = Omit<T, keyof O> & O;
 
 /**
  * Helper type for viewing-only arrays, with some viewing methods of {@link Array}.
+ * Hook-getable :
+ * ```
+ * const inst = new ArrayView(...);
+ * console.log(inst[0]); // Works !
+ * ```
  */
 class ArrayView<T> {
   constructor(
@@ -19,7 +24,12 @@ class ArrayView<T> {
      */
     protected readonly _get: (idx: number) => T,
     protected readonly _equal: (a: T, b: T) => boolean,
-  ) {}
+  ) {
+    // Make an instance of ArrayView hook-getable
+    return new Proxy(this, {
+      get: (_, prop) => this.get(typeof prop === "string" ? parseInt(prop) : NaN),
+    });
+  }
 
   /**
    * Same as hooked-access `[]` to an array.
