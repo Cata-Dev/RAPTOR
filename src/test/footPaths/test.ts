@@ -90,7 +90,7 @@ export async function run({ getFullPaths = false, dijkstraOptions }: testOptions
             intersectionId,
             {
               _id: intersectionId,
-              // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+
               coords: (Array.from(sections.values()).find((s) => s.rg_fv_graph_nd === intersectionId)?.coords[0] ??
                 Array.from(sections.values())
                   .find((s) => s.rg_fv_graph_na === intersectionId)
@@ -132,7 +132,7 @@ export async function run({ getFullPaths = false, dijkstraOptions }: testOptions
   }
   const b1 = await benchmark(queryData, []);
   console.log("b1 ended");
-  if (!b1.lastReturn) throw `b1 return null`;
+  if (!b1.lastReturn) throw new Error(`b1 return null`);
   const { validIntersections, sections, stops } = b1.lastReturn;
 
   /** Little helper to get a section easier */
@@ -152,7 +152,7 @@ export async function run({ getFullPaths = false, dijkstraOptions }: testOptions
   }
   const b2 = await benchmark(makeGraph, []);
   console.log("b2 ended");
-  if (!b2.lastReturn) throw `b2 return null`;
+  if (!b2.lastReturn) throw new Error(`b2 return null`);
   const footGraph = b2.lastReturn;
 
   //Compute approached stops
@@ -201,7 +201,7 @@ export async function run({ getFullPaths = false, dijkstraOptions }: testOptions
   }
   const b3 = await benchmark(computeApproachedStops, []);
   console.log("b3 ended");
-  if (!b3.lastReturn) throw `b3 return null`;
+  if (!b3.lastReturn) throw new Error(`b3 return null`);
   const approachedStops = b3.lastReturn;
 
   /** Update {@link footGraph} & {@link sections} */
