@@ -10,7 +10,7 @@ importers:
     dependencies:
       '@catatomik/dijkstra':
         specifier: github:catatomik/dijkstra
-        version: https://codeload.github.com/catatomik/dijkstra/tar.gz/cf41e075be950dc00fc0d67c8565f755ac016b91
+        version: https://codeload.github.com/catatomik/dijkstra/tar.gz/5d7bb84998070e5cc3d0be30f95e24e93025b919
       '@typegoose/typegoose':
         specifier: ^12.2.0
         version: 12.8.0(mongoose@8.7.0)
@@ -43,8 +43,8 @@ packages:
     resolution: {integrity: sha512-1Yjs2SvM8TflER/OD3cOjhWWOZb58A2t7wpE2S9XfBYTiIl+XFhQG2bjy4Pu1I+EAlCNUzRDYDdFwFYUKvXcIA==}
     engines: {node: '>=0.10.0'}
 
-  '@catatomik/dijkstra@https://codeload.github.com/catatomik/dijkstra/tar.gz/cf41e075be950dc00fc0d67c8565f755ac016b91':
-    resolution: {tarball: https://codeload.github.com/catatomik/dijkstra/tar.gz/cf41e075be950dc00fc0d67c8565f755ac016b91}
+  '@catatomik/dijkstra@https://codeload.github.com/catatomik/dijkstra/tar.gz/5d7bb84998070e5cc3d0be30f95e24e93025b919':
+    resolution: {tarball: https://codeload.github.com/catatomik/dijkstra/tar.gz/5d7bb84998070e5cc3d0be30f95e24e93025b919}
     version: 1.0.0
 
   '@eslint-community/eslint-utils@4.4.0':
@@ -671,7 +671,7 @@ snapshots:
 
   '@aashutoshrathi/word-wrap@1.2.6': {}
 
-  '@catatomik/dijkstra@https://codeload.github.com/catatomik/dijkstra/tar.gz/cf41e075be950dc00fc0d67c8565f755ac016b91':
+  '@catatomik/dijkstra@https://codeload.github.com/catatomik/dijkstra/tar.gz/5d7bb84998070e5cc3d0be30f95e24e93025b919':
     dependencies:
       '@tyriar/fibonacci-heap': 2.0.9
 
