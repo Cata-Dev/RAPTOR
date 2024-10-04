@@ -73,7 +73,7 @@ async function init() {
   }
   const b1 = await benchmark(queryData, []);
   console.log("b1 ended");
-  if (!b1.lastReturn) throw `b1 return null`;
+  if (!b1.lastReturn) throw new Error(`b1 return null`);
   const { dbScheduledRoutes, dbStops, dbNonScheduledRoutes } = b1.lastReturn;
 
   async function createRAPTOR() {
@@ -106,7 +106,7 @@ async function init() {
   }
   const b2 = await benchmark(createRAPTOR, []);
   console.log("b2 ended");
-  if (!b2.lastReturn) throw `b2 return null`;
+  if (!b2.lastReturn) throw new Error(`b2 return null`);
   const { RAPTORInstance } = b2.lastReturn;
 
   return { RAPTORInstance, TBMScheduledRoutesModel };
@@ -136,7 +136,7 @@ async function run({ RAPTORInstance, TBMScheduledRoutesModel }: Awaited<ReturnTy
   }
   const b3 = await benchmark(runRAPTOR, []);
   console.log("b3 ended");
-  if (!b3.lastReturn) throw `b3 return null`;
+  if (!b3.lastReturn) throw new Error(`b3 return null`);
 
   function resultRAPTOR() {
     return RAPTORInstance.getBestJourneys(pt);
@@ -144,14 +144,14 @@ async function run({ RAPTORInstance, TBMScheduledRoutesModel }: Awaited<ReturnTy
   const b4 = await benchmark(resultRAPTOR, []);
   console.log("b4 ended");
 
-  if (!b4.lastReturn) throw `b4 return null`;
+  if (!b4.lastReturn) throw new Error(`b4 return null`);
   return b4.lastReturn;
 }
 
 // Main IIFE test function
 (async () => {
   const initr = await init();
-  // eslint-disable-next-line no-constant-condition
+
   while (true) {
     const r = await run(initr);
     console.log(inspect(r, false, 3));
