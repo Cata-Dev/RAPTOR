@@ -7,14 +7,15 @@ import stopsModelInit, { dbTBM_Stops } from "./models/TBM_stops.model";
 import TBMSchedulesModelInit from "./models/TBM_schedules.model";
 import TBMScheduledRoutesModelInit, { dbTBM_ScheduledRoutes } from "./models/TBMScheduledRoutes.model";
 import NonScheduledRoutesModelInit, { dbFootPaths } from "./models/NonScheduledRoutes.model";
-import RAPTOR from "../main";
-import { MAX_SAFE_TIMESTAMP, RAPTORData, Stop } from "../Structures";
+import { Stop } from "../Structures";
 import { HydratedDocument, FilterQuery } from "mongoose";
 import { DocumentType } from "@typegoose/typegoose";
 import { unpackRefType } from "./footPaths/utils/ultils";
 import { benchmark } from "./utils/benchmark";
 import { mapAsync, wait } from "./utils";
 import { inspect } from "util";
+import SharedRAPTOR from "../shared";
+import { SharedRAPTORData } from "../SharedStructures";
 
 async function init() {
   const db = await initDB();
@@ -77,8 +78,8 @@ async function init() {
   const { dbScheduledRoutes, dbStops, dbNonScheduledRoutes } = b1.lastReturn;
 
   async function createRAPTOR() {
-    const RAPTORInstance = new RAPTOR(
-      new RAPTORData(
+    const RAPTORInstance = new SharedRAPTOR(
+      SharedRAPTORData.makeFromRawData(
         await mapAsync<(typeof dbStops)[number], Stop<number, number>>(dbStops, async ({ _id, coords }) => ({
           id: _id,
           lat: coords[0],
@@ -98,10 +99,10 @@ async function init() {
                 id: tripId,
                 times: schedules.map((schedule) =>
                   "hor_estime" in schedule
-                    ? ([schedule.hor_estime.getTime() || MAX_SAFE_TIMESTAMP, schedule.hor_estime.getTime() || MAX_SAFE_TIMESTAMP] satisfies [
-                        unknown,
-                        unknown,
-                      ])
+                    ? ([
+                        schedule.hor_estime.getTime() || SharedRAPTORData.MAX_SAFE_TIMESTAMP,
+                        schedule.hor_estime.getTime() || SharedRAPTORData.MAX_SAFE_TIMESTAMP,
+                      ] satisfies [unknown, unknown])
                     : ([Infinity, Infinity] satisfies [unknown, unknown]),
                 ),
               })),
