@@ -1,4 +1,4 @@
-import { Stop, Route, timestamp, MAX_SAFE_TIMESTAMP, FootPath, Id, RAPTORData, ArrayRead, MapRead } from "./Structures";
+import { Stop, Route, timestamp, FootPath, Id, RAPTORData, ArrayRead, MapRead } from "./Structures";
 
 export type LabelType = "DEFAULT" | "DEPARTURE" | "FOOT" | "VEHICLE";
 export type Label<SI extends Id, RI extends Id, T extends LabelType = LabelType> = T extends "VEHICLE"
@@ -23,7 +23,7 @@ export type Label<SI extends Id, RI extends Id, T extends LabelType = LabelType>
           time: number;
         }
       : T extends "DEFAULT"
-        ? { time: typeof MAX_SAFE_TIMESTAMP }
+        ? { time: InstanceType<typeof RAPTORData>["MAX_SAFE_TIMESTAMP"] }
         : never;
 export type Journey<RI extends Id, SI extends Id> = Label<RI, SI, "DEPARTURE" | "VEHICLE" | "FOOT">[];
 
@@ -40,6 +40,7 @@ export default class RAPTOR<SI extends Id = Id, RI extends Id = Id, TI extends I
   readonly stops: MapRead<SI, Stop<SI, RI>>;
   readonly routes: MapRead<RI, Route<SI, RI, TI>>;
 
+  protected readonly MAX_SAFE_TIMESTAMP: number;
   /** @description A {@link Label} Ti(SI) represents the earliest known arrival time at stop SI with up to i trips. */
   protected multiLabel: Map<SI, Label<SI, RI>>[] = [];
   /** Set<{@link SI} in {@link stops}> */
@@ -53,6 +54,7 @@ export default class RAPTOR<SI extends Id = Id, RI extends Id = Id, TI extends I
   constructor(data: RAPTORData<SI, RI, TI>) {
     this.stops = data.stops;
     this.routes = data.routes;
+    this.MAX_SAFE_TIMESTAMP = data.MAX_SAFE_TIMESTAMP;
   }
 
   /**
@@ -75,7 +77,7 @@ export default class RAPTOR<SI extends Id = Id, RI extends Id = Id, TI extends I
     for (let t = 0; t < route.trips.length; t++) {
       // Catchable
       const tDep = route.departureTime(t, p);
-      if (tDep < MAX_SAFE_TIMESTAMP && tDep >= (this.multiLabel[this.k - 1].get(p)?.time ?? Infinity)) return { tripIndex: t, boardedAt: p };
+      if (tDep < this.MAX_SAFE_TIMESTAMP && tDep >= (this.multiLabel[this.k - 1].get(p)?.time ?? Infinity)) return { tripIndex: t, boardedAt: p };
     }
     return null;
   }
@@ -201,7 +203,7 @@ export default class RAPTOR<SI extends Id = Id, RI extends Id = Id, TI extends I
       if (!previousLabel) throw new Error(`Invalid stop ${previousStop}.`); // Should never get here, unless invalid "from" stop
 
       if (!("boardedAt" in previousLabel)) {
-        if (previousLabel.time >= MAX_SAFE_TIMESTAMP) {
+        if (previousLabel.time >= this.MAX_SAFE_TIMESTAMP) {
           k--;
           continue;
         }
