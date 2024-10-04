@@ -155,7 +155,7 @@ export default class RAPTOR<SI extends Id = Id, RI extends Id = Id> {
       for (const [r, p] of Q) {
         let t: ReturnType<typeof this.et> | null = null;
 
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+         
         const route: Route<SI, RI> = this.routes.get(r)!;
 
         for (let i = route.stops.indexOf(p); i < route.stops.length; i++) {
