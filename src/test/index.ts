@@ -8,7 +8,7 @@ import TBMSchedulesModelInit from "./models/TBM_schedules.model";
 import TBMScheduledRoutesModelInit, { dbTBM_ScheduledRoutes } from "./models/TBMScheduledRoutes.model";
 import NonScheduledRoutesModelInit, { dbFootPaths } from "./models/NonScheduledRoutes.model";
 import RAPTOR from "../main";
-import { MAX_SAFE_TIMESTAMP, RAPTORData, Stop } from "../Structures";
+import { RAPTORData, Stop } from "../Structures";
 import { HydratedDocument, FilterQuery } from "mongoose";
 import { DocumentType } from "@typegoose/typegoose";
 import { unpackRefType } from "./footPaths/utils/ultils";
@@ -98,10 +98,10 @@ async function init() {
                 id: tripId,
                 times: schedules.map((schedule) =>
                   "hor_estime" in schedule
-                    ? ([schedule.hor_estime.getTime() || MAX_SAFE_TIMESTAMP, schedule.hor_estime.getTime() || MAX_SAFE_TIMESTAMP] satisfies [
-                        unknown,
-                        unknown,
-                      ])
+                    ? ([
+                        schedule.hor_estime.getTime() || RAPTORData.MAX_SAFE_TIMESTAMP,
+                        schedule.hor_estime.getTime() || RAPTORData.MAX_SAFE_TIMESTAMP,
+                      ] satisfies [unknown, unknown])
                     : ([Infinity, Infinity] satisfies [unknown, unknown]),
                 ),
               })),
