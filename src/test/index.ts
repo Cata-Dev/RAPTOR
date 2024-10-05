@@ -8,7 +8,7 @@ import TBMSchedulesModelInit from "./models/TBM_schedules.model";
 import TBMScheduledRoutesModelInit, { dbTBM_ScheduledRoutes } from "./models/TBMScheduledRoutes.model";
 import NonScheduledRoutesModelInit, { dbFootPaths } from "./models/NonScheduledRoutes.model";
 import RAPTOR from "../main";
-import { MAX_SAFE_TIMESTAMP, RAPTORData } from "../Structures";
+import { RAPTORData } from "../Structures";
 import { HydratedDocument } from "mongoose";
 import { DocumentType } from "@typegoose/typegoose";
 import { unpackRefType } from "./footPaths/utils/ultils";
@@ -19,7 +19,7 @@ import { inspect } from "util";
 async function init() {
   const db = await initDB();
   const stopsModel = stopsModelInit(db);
-  TBMSchedulesModelInit(db);
+  const TBMSchedulesModel = TBMSchedulesModelInit(db)[1];
   const TBMScheduledRoutesModel = TBMScheduledRoutesModelInit(db);
   const NonScheduledRoutesModel = NonScheduledRoutesModelInit(db);
 
@@ -98,10 +98,10 @@ async function init() {
                 id: tripId,
                 times: schedules.map((schedule) =>
                   "hor_estime" in schedule
-                    ? ([schedule.hor_estime.getTime() || MAX_SAFE_TIMESTAMP, schedule.hor_estime.getTime() || MAX_SAFE_TIMESTAMP] satisfies [
-                        unknown,
-                        unknown,
-                      ])
+                    ? ([
+                        schedule.hor_estime.getTime() || RAPTORData.MAX_SAFE_TIMESTAMP,
+                        schedule.hor_estime.getTime() || RAPTORData.MAX_SAFE_TIMESTAMP,
+                      ] satisfies [unknown, unknown])
                     : ([Infinity, Infinity] satisfies [unknown, unknown]),
                 ),
               })),
@@ -117,10 +117,10 @@ async function init() {
   if (!b2.lastReturn) throw new Error(`b2 return null`);
   const { RAPTORInstance } = b2.lastReturn;
 
-  return { RAPTORInstance, TBMScheduledRoutesModel };
+  return { RAPTORInstance, TBMSchedulesModel };
 }
 
-async function run({ RAPTORInstance, TBMScheduledRoutesModel }: Awaited<ReturnType<typeof init>>) {
+async function run({ RAPTORInstance, TBMSchedulesModel }: Awaited<ReturnType<typeof init>>) {
   const args = process.argv.slice(2);
   let ps: number;
   try {
@@ -132,10 +132,10 @@ async function run({ RAPTORInstance, TBMScheduledRoutesModel }: Awaited<ReturnTy
   try {
     pt = JSON.parse(args[1]) as number;
   } catch (_) {
-    pt = 2168;
+    pt = 2082;
   }
 
-  const minSchedule = (await TBMScheduledRoutesModel.findOne({}).lean())?.updatedAt?.getTime() ?? Infinity;
+  const minSchedule = (await TBMSchedulesModel.findOne({}).lean())?.updatedAt?.getTime() ?? Infinity;
 
   function runRAPTOR() {
     RAPTORInstance.run(ps, pt, minSchedule, { walkSpeed: 1.5 });
