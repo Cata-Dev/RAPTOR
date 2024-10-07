@@ -7,59 +7,45 @@ type Override<T, O> = Omit<T, keyof O> & O;
 
 /**
  * Helper type for viewing-only arrays, with some viewing methods of {@link Array}.
- * Hook-getable :
- * ```
- * const inst = new ArrayView(...);
- * console.log(inst[0]); // Works !
- * ```
  */
 export class ArrayView<T> implements ArrayRead<T> {
-  [x: number]: T;
+  _length: number | null = null;
 
   constructor(
     /**
      * Length of array
      */
-    readonly length: number,
+    protected readonly _lengthFn: () => number,
     /**
      * Accessor to an array element at index `idx`
      */
-    protected readonly _get: (idx: number) => T,
+    protected readonly _at: (idx: number) => T,
     protected readonly _equal: (a: T, b: T) => boolean,
-  ) {
-    // Make an instance of ArrayView hook-getable
-    return new Proxy(this, {
-      get: (_, prop) => {
-        if (typeof prop === "string") {
-          const idx = parseInt(prop);
-          if (!isNaN(idx)) return this.get(idx);
-        }
+  ) {}
 
-        // Just continue calling
-        return (this as Record<typeof prop, unknown>)[prop];
-      },
-    });
+  get length() {
+    return (this._length ??= this._lengthFn());
   }
 
   /**
    * Same as hooked-access `[]` to an array.
-   * Throws over {@link ArrayView._get}.
+   * Throws over {@link ArrayView._at}.
    * @param idx Index of element to access, must be positive and strictly inferior to array length
    */
-  protected get(idx: number): T {
+  at(idx: number): T {
     // Throws instead of returning undefined (for a Map)
     if (isNaN(idx) || idx < 0 || idx >= this.length) {
-      console.log(isNaN(idx), idx < 0, idx >= this.length);
       throw new Error("Invalid access");
     }
-    return this._get(idx);
+
+    return this._at(idx);
   }
 
   /**
    * Same as {@link Array.prototype[Symbol.iterator]}
    */
   *[Symbol.iterator]() {
-    for (let idx = 0; idx < this.length; idx++) yield this._get(idx);
+    for (let idx = 0; idx < this.length; idx++) yield this._at(idx);
 
     return undefined;
   }
@@ -68,18 +54,18 @@ export class ArrayView<T> implements ArrayRead<T> {
    * Same as {@link Array.prototype.indexOf}
    */
   indexOf(el: T, fromIndex = 0): number {
-    for (; fromIndex < this.length; fromIndex++) if (this._equal(this._get(fromIndex), el)) return fromIndex;
+    for (; fromIndex < this.length; fromIndex++) if (this._equal(this._at(fromIndex), el)) return fromIndex;
     return -1;
   }
 
   map<U>(callbackfn: (value: T, index: number, array: ArrayRead<T>) => U): ArrayRead<U> {
     const acc: U[] = [];
-    for (let idx = 0; idx < this.length; idx++) acc.push(callbackfn(this._get(idx), idx, this));
+    for (let idx = 0; idx < this.length; idx++) acc.push(callbackfn(this._at(idx), idx, this));
     return acc;
   }
 
   reduce<U>(callbackfn: (previousValue: U, currentValue: T, currentIndex: number, array: ArrayRead<T>) => U, initialValue: U): U {
-    for (let idx = 0; idx < this.length; idx++) callbackfn(initialValue, this._get(idx), idx, this);
+    for (let idx = 0; idx < this.length; idx++) callbackfn(initialValue, this._at(idx), idx, this);
     return initialValue;
   }
 }
@@ -97,18 +83,29 @@ class Retriever<T extends PtrType> {
     /**
      * View on stops, same as {@link SharedRAPTORData.sDataView}
      */
-    protected readonly sDataView: Uint32Array,
+    protected readonly sDataView: Float64Array,
     /**
      * View on routes, same as {@link SharedRAPTORData.rDataView}
      */
-    protected readonly rDataView: Uint32Array,
+    protected readonly rDataView: Float64Array,
     // Not readonly : a pointer is already often exposed, and moreover, permits access in O(1) without any overhead
-    readonly ptr: number,
+    protected ptr: number,
     readonly ptrType: T,
   ) {
     // Runtime check
     if ((ptrType === PtrType.Stop && ptr >= sDataView.length) || (ptrType === PtrType.Route && ptr >= rDataView.length))
       throw new Error("Pointer out of range");
+  }
+
+  point(ptr: number) {
+    this.ptr = ptr;
+
+    return this;
+  }
+
+  // eslint-disable-next-line @typescript-eslint/class-literal-property-style
+  get chunkSize() {
+    return 1;
   }
 }
 
@@ -123,6 +120,12 @@ class FootPathRetriever extends Retriever<PtrType.Stop> implements FootPath<numb
 
   get length() {
     return this.sDataView[this.ptr + 1];
+  }
+
+  // to & length
+  static _chunkSize = 2;
+  public get chunkSize() {
+    return FootPathRetriever._chunkSize;
   }
 
   static equals(a: InstanceType<typeof FootPathRetriever>, b: InstanceType<typeof FootPathRetriever>) {
@@ -147,26 +150,39 @@ class StopRetriever extends Retriever<PtrType.Stop> implements Override<Stop<num
     return this.sDataView[this.ptr];
   }
 
+  protected get connectedRoutesChunkSize() {
+    return this.sDataView[this.ptr + 1];
+  }
+
   get connectedRoutes() {
     return new ArrayView(
-      this.sDataView[this.ptr + 1],
-      (idx) => this.ptr + 1 + idx + 1,
+      () => this.connectedRoutesChunkSize,
+      (idx) => this.sDataView[this.ptr + 1 + 1 + idx],
       (a, b) => a === b,
     );
   }
 
+  protected get transfersChunkSize() {
+    return this.sDataView[this.ptr + 1 + this.connectedRoutesChunkSize + 1];
+  }
+
   get transfers() {
     return new ArrayView(
-      this.sDataView[this.ptr + 1 + this.sDataView[this.ptr + 1] + 1],
+      // to & length
+      () => this.transfersChunkSize / 2,
       (idx) =>
         new FootPathRetriever(
           this.sDataView,
           this.rDataView,
-          this.sDataView[this.ptr + 1 + this.sDataView[this.ptr + 1] + 1 + 1 + idx],
+          this.ptr + 1 + this.connectedRoutesChunkSize + 1 + 1 + idx * FootPathRetriever._chunkSize,
           PtrType.Stop,
         ),
       (a, b) => FootPathRetriever.equals(a, b),
     );
+  }
+
+  get chunkSize() {
+    return 1 + 1 + this.connectedRoutesChunkSize + 1 + this.transfersChunkSize;
   }
 }
 
@@ -177,7 +193,7 @@ class StopRetriever extends Retriever<PtrType.Stop> implements Override<Stop<num
 interface SharedTrip {
   /**
    * Length 2 : `[arrival timestamp, departure timestamp]`.
-   * Defined as `[number, number]` to match {@link Trip} interface, but is in fact a `Uint32Array`
+   * Defined as `[number, number]` to match {@link Trip} interface, but is in fact a `Float64Array`
    */
   times: ArrayRead<[number, number]>;
 }
@@ -187,15 +203,24 @@ class TripRetriever extends Retriever<PtrType.Route> implements Override<Trip<nu
     return this.rDataView[this.ptr];
   }
 
+  protected get timesChunkSize() {
+    return this.rDataView[this.ptr + 1];
+  }
+
   get times() {
     return new ArrayView(
-      this.rDataView[this.ptr + 1],
+      // 2 data cells per array element
+      () => this.timesChunkSize / 2,
       (idx) => this.rDataView.subarray(this.ptr + 2 + idx, this.ptr + 2 + idx + 2) as unknown as [number, number],
       (a, b) =>
-        (a as unknown as Uint32Array).byteOffset === (b as unknown as Uint32Array).byteOffset &&
+        (a as unknown as Float64Array).byteOffset === (b as unknown as Float64Array).byteOffset &&
         a.length === b.length &&
-        (a as unknown as Uint32Array).buffer === (b as unknown as Uint32Array).buffer,
+        (a as unknown as Float64Array).buffer === (b as unknown as Float64Array).buffer,
     );
+  }
+
+  get chunkSize() {
+    return 1 + 1 + this.timesChunkSize;
   }
 }
 
@@ -216,25 +241,46 @@ class RouteRetriever extends Retriever<PtrType.Route> implements Override<Route<
     return this.rDataView[this.ptr];
   }
 
+  protected get ptrStopsChunkSize() {
+    return this.ptr + 1;
+  }
+
   get stops() {
     return new ArrayView(
-      this.rDataView[this.ptr + 1],
-      (idx) => this.ptr + 2 + idx,
+      () => this.rDataView[this.ptrStopsChunkSize],
+      (idx) => this.rDataView[this.ptr + 2 + idx],
       (a, b) => a === b,
     );
   }
 
+  protected get ptrTripsChunkSize() {
+    return this.ptr + 1 + this.rDataView[this.ptrStopsChunkSize] + 1;
+  }
+
   get trips() {
     return new ArrayView<Override<Trip<number>, SharedTrip>>(
-      this.rDataView[this.ptr + 1 + this.rDataView[this.ptr + 1] + 1],
-      (idx) =>
-        new TripRetriever(this.sDataView, this.rDataView, this.rDataView[this.ptr + 1 + this.rDataView[this.ptr + 1] + 1 + 1 + idx], PtrType.Route),
+      () => {
+        let c = 0;
+        // Compute number of trips
+        for (let ptr = this.ptrTripsChunkSize + 1; ptr < this.chunkSize; ) {
+          // Heavy procedure for a simple ptr calculation...
+          ptr += new TripRetriever(this.sDataView, this.rDataView, ptr, PtrType.Route).chunkSize;
+          c++;
+        }
+
+        return c;
+      },
+      (idx) => new TripRetriever(this.sDataView, this.rDataView, this.rDataView[this.ptrTripsChunkSize + 1 + idx], PtrType.Route),
       (a, b) => a.id === b.id,
     );
   }
 
   departureTime(t: number, p: number): number {
-    return this.trips[t].times[p][1];
+    return this.trips.at(t)?.times.at(p)?.[1] ?? 0;
+  }
+
+  get chunkSize() {
+    return 1 + 1 + this.rDataView[this.ptrStopsChunkSize] + 1 + this.rDataView[this.ptrTripsChunkSize];
   }
 }
 
@@ -252,11 +298,14 @@ export class SharedRAPTORData {
   /**
    * View on stops
    */
-  protected sDataView: Uint32Array;
+  protected sDataView: Float64Array;
   /**
    * View on routes
    */
-  protected rDataView: Uint32Array;
+  protected rDataView: Float64Array;
+
+  // Validate pointers
+  secure = false;
 
   /**
    *
@@ -268,6 +317,8 @@ export class SharedRAPTORData {
     stopsOrData: typeof SharedRAPTORData.prototype.internalData | Stop<number, number>[],
     routes?: ConstructorParameters<typeof Route<number, number, number>>[],
   ) {
+    let stopsChunkSize: number | null = null;
+
     // Assign data storage
     this.data =
       "data" in stopsOrData
@@ -276,7 +327,7 @@ export class SharedRAPTORData {
             // Compute total data size (length for buffer), no grow needed
             // Size of stops buffer chunk
             (1 +
-              stopsOrData.reduce<number>(
+              (stopsChunkSize = stopsOrData.reduce<number>(
                 (acc, v) =>
                   acc +
                   // stop id
@@ -290,7 +341,7 @@ export class SharedRAPTORData {
                     // transfers chunk
                     v.transfers.length * 2),
                 0,
-              ) +
+              )) +
               routes!.reduce<number>(
                 (acc, [_, stops, trips]) =>
                   acc +
@@ -316,24 +367,26 @@ export class SharedRAPTORData {
                     )),
                 0,
               )) *
-              Uint32Array.BYTES_PER_ELEMENT,
+              Float64Array.BYTES_PER_ELEMENT,
           );
 
     // Stops length in data buffer
-    const stopsDataLength = new DataView(this.data);
-    const getStopsDataLength = () => stopsDataLength.getUint32(0);
-    const setStopsDataLength = (length: number) => stopsDataLength.setUint32(0, length);
+    const stopsDataLengthChunk = new DataView(this.data, 0, Float64Array.BYTES_PER_ELEMENT);
+    const getStopsChunkSize = () => stopsDataLengthChunk.getFloat64(0);
+    const setStopsChunkSize = (length: number) => stopsDataLengthChunk.setFloat64(0, length);
+
+    if (stopsChunkSize !== null) setStopsChunkSize(stopsChunkSize);
 
     if ("data" in stopsOrData) {
       // Just make views
-      this.sDataView = new Uint32Array(this.data, Uint32Array.BYTES_PER_ELEMENT * 1, getStopsDataLength());
-      this.rDataView = new Uint32Array(this.data, Uint32Array.BYTES_PER_ELEMENT * getStopsDataLength());
+      this.sDataView = new Float64Array(this.data, Float64Array.BYTES_PER_ELEMENT * 1, getStopsChunkSize());
+      this.rDataView = new Float64Array(this.data, Float64Array.BYTES_PER_ELEMENT * (getStopsChunkSize() + 1));
     } else {
       //
       //Stops
       //
 
-      this.sDataView = new Uint32Array(this.data, Uint32Array.BYTES_PER_ELEMENT * 1);
+      this.sDataView = new Float64Array(this.data, Float64Array.BYTES_PER_ELEMENT * 1, getStopsChunkSize());
       let idx = 0;
 
       /**
@@ -357,18 +410,13 @@ export class SharedRAPTORData {
           this.sDataView[idx++] = transfer.to;
           this.sDataView[idx++] = transfer.length;
         }
-
-        setStopsDataLength(idx);
       }
-
-      // Correct length of view
-      this.sDataView = new Uint32Array(this.data, Uint32Array.BYTES_PER_ELEMENT * 1, getStopsDataLength());
 
       //
       // Routes
       //
 
-      this.rDataView = new Uint32Array(this.data, Uint32Array.BYTES_PER_ELEMENT * getStopsDataLength());
+      this.rDataView = new Float64Array(this.data, Float64Array.BYTES_PER_ELEMENT * (getStopsChunkSize() + 1));
       idx = 0;
 
       /**
@@ -385,7 +433,7 @@ export class SharedRAPTORData {
         this.rDataView[idx++] = stops.length;
         for (const stop of stops) {
           const stopPtr = sMapping.get(stop);
-          if (stopPtr) this.rDataView[idx++] = stopPtr;
+          if (stopPtr !== undefined) this.rDataView[idx++] = stopPtr;
         }
 
         // Length of trips chunk
@@ -400,35 +448,39 @@ export class SharedRAPTORData {
             idx += 2;
           }
         }
-        this.rDataView[tripsChunkLengthIdx] = idx - tripsChunkLengthIdx;
+
+        this.rDataView[tripsChunkLengthIdx] = idx - tripsChunkLengthIdx - 1;
       }
 
       // Second iteration to resolve route pointers in stop connectedRoutes
-      for (idx = 0; idx < this.sDataView.length; idx++) {
-        // First int is stop id -- ignore : start at idx + 1
-        idx++;
-
+      // First int is stop id -- ignore : start at 1 & add 1 at each iteration
+      for (idx = 1; idx < this.sDataView.length; idx++) {
         // Second is length of connectedRoutes
-        const connectedRoutesLength = this.sDataView[idx];
-        // Start at idx + 1 to skip this length
-        for (idx++; idx < connectedRoutesLength; idx++) {
+        const connectedRoutesLength = this.sDataView[idx++];
+        const startOfConnectedRoutes = idx;
+        for (; idx < startOfConnectedRoutes + connectedRoutesLength; idx++) {
           // Get & set corresponding route pointer (index)
           const routePtr = rMapping.get(this.sDataView[idx]);
-          if (routePtr) this.sDataView[idx] = routePtr;
+          if (routePtr !== undefined) this.sDataView[idx] = routePtr;
         }
 
         // Current idx is total length of transfers
-        const transfersLength = this.sDataView[idx];
-        // Start at idx + 1 to skip this length
+        const transfersLength = this.sDataView[idx++];
+        const startOfTransfers = idx;
         // Increment of 2 each time : to & length attr
-        for (idx++; idx < transfersLength; idx += 2) {
+        for (; idx < startOfTransfers + transfersLength; idx += 2) {
           // Get & set corresponding stop pointer (index)
           const stopPtr = sMapping.get(this.sDataView[idx]);
-          if (stopPtr) this.sDataView[idx] = stopPtr;
+          if (stopPtr !== undefined) this.sDataView[idx] = stopPtr;
         }
 
         // Now current ptr (idx) is back to new stop id
       }
+
+      // @ts-expect-error debug
+      this.sMapping = sMapping;
+      // @ts-expect-error debug
+      this.rMapping = rMapping;
     }
   }
 
@@ -447,10 +499,22 @@ export class SharedRAPTORData {
     return new SharedRAPTORData(data);
   }
 
+  /**
+   * Convert a SI to a stop pointer
+   * @param id
+   */
+  stopPointerFromId(id: number): number | undefined {
+    const stopRetriever = new StopRetriever(this.sDataView, this.rDataView, 0, PtrType.Stop);
+    for (let ptr = 0; ptr < this.sDataView.length; ptr += stopRetriever.chunkSize) if (stopRetriever.point(ptr).id === id) return ptr;
+
+    return;
+  }
+
   get stops(): MapRead<number, StopRetriever> {
     return {
       [Symbol.iterator]: function* (this: SharedRAPTORData) {
-        for (let ptr = 0; ptr < this.sDataView.length; ptr += 3 + this.sDataView[ptr + 1] + this.sDataView[ptr + 1 + this.sDataView[ptr + 1] + 1]) {
+        const stopRetriever = new StopRetriever(this.sDataView, this.rDataView, 0, PtrType.Stop);
+        for (let ptr = 0; ptr < this.sDataView.length; ptr += stopRetriever.point(ptr).chunkSize) {
           /**
            * Pointer (index in buffer) to stop, retrieve it through `get` method.
            */
@@ -463,14 +527,17 @@ export class SharedRAPTORData {
        * Maps a stop pointer to its corresponding {@link StopRetriever}
        * @param ptr Pointer to a stop
        */
-      get: (ptr: number) => new StopRetriever(this.sDataView, this.rDataView, ptr, PtrType.Stop),
+      get: (ptr: number) => (
+        this.secure && this.validatePointer(ptr, PtrType.Stop), new StopRetriever(this.sDataView, this.rDataView, ptr, PtrType.Stop)
+      ),
     };
   }
 
   get routes(): MapRead<number, RouteRetriever> {
     return {
       [Symbol.iterator]: function* (this: SharedRAPTORData) {
-        for (let ptr = 0; ptr < this.rDataView.length; ptr += 3 + this.rDataView[ptr + 1] + this.rDataView[ptr + 1 + this.rDataView[ptr + 1] + 1]) {
+        const routeRetriever = new RouteRetriever(this.sDataView, this.rDataView, 0, PtrType.Route);
+        for (let ptr = 0; ptr < this.rDataView.length; ptr += routeRetriever.point(ptr).chunkSize) {
           /**
            * Pointer (index in buffer) to route, retrieve it through `get` method.
            */
@@ -483,7 +550,26 @@ export class SharedRAPTORData {
        * Maps a route pointer to its corresponding {@link RouteRetriever}
        * @param ptr Pointer to a route
        */
-      get: (ptr: number) => new RouteRetriever(this.sDataView, this.rDataView, ptr, PtrType.Route),
+      get: (ptr: number) => (
+        this.secure && this.validatePointer(ptr, PtrType.Route), new RouteRetriever(this.sDataView, this.rDataView, ptr, PtrType.Route)
+      ),
     };
+  }
+
+  /**
+   * Validate a stop or route pointer, in O(n)
+   * @param ptr Pointer to validate
+   * @param ptrType Pointer type
+   * @returns True if pointer valid, throws otherwise
+   */
+  protected validatePointer(ptr: number, ptrType: PtrType): true {
+    const retriever =
+      ptrType === PtrType.Stop
+        ? new StopRetriever(this.sDataView, this.rDataView, 0, PtrType.Stop)
+        : new RouteRetriever(this.sDataView, this.rDataView, 0, PtrType.Route);
+
+    for (let iterPtr = 0; iterPtr <= ptr; iterPtr += retriever.point(iterPtr).chunkSize) if (ptr === iterPtr) return true;
+
+    throw new Error(`Invalid pointer ${ptr} of type ${ptrType}`);
   }
 }

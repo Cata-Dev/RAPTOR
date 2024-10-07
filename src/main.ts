@@ -158,11 +158,11 @@ export default class RAPTOR<SI extends Id = Id, RI extends Id = Id, TI extends I
         const route: Route<SI, RI> = this.routes.get(r)!;
 
         for (let i = route.stops.indexOf(p); i < route.stops.length; i++) {
-          const pi = route.stops[i];
+          const pi = route.stops.at(i)!;
 
           // Improve periods, local & target pruning
           if (t !== null) {
-            const arrivalTime: timestamp = route.trips[t.tripIndex].times[i][0];
+            const arrivalTime: timestamp = route.trips.at(t.tripIndex)!.times.at(i)![0] ?? this.MAX_SAFE_TIMESTAMP;
             if (arrivalTime < Math.min(this.multiLabel[this.k].get(pi)?.time ?? Infinity, this.multiLabel[this.k].get(pt)?.time ?? Infinity)) {
               // local & target pruning
               this.multiLabel[this.k].set(pi, { ...t, route, time: arrivalTime });

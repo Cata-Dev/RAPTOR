@@ -8,7 +8,7 @@ export type Id = number | string;
  * General {@link Array} subpart, constrained to some read-only features.
  */
 export interface ArrayRead<T> {
-  [x: number]: T;
+  at: InstanceType<typeof Array<T>>["at"];
   readonly length: number;
   [Symbol.iterator]: () => ArrayIterator<T>;
   indexOf: InstanceType<typeof Array<T>>["indexOf"];
@@ -69,7 +69,7 @@ export class Route<SI extends Id, RI extends Id, TI extends Id = Id> {
    * @param p Stop index in route (trip).
    */
   departureTime(t: number, p: SI): timestamp {
-    return this.trips[t].times[this.stops.indexOf(p)][0];
+    return this.trips.at(t)?.times.at(this.stops.indexOf(p))?.[0] ?? 0;
   }
 }
 
