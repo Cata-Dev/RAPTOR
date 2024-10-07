@@ -237,6 +237,9 @@ interface SharedRoute {
 }
 
 class RouteRetriever extends Retriever<PtrType.Route> implements Override<Route<number, number, number>, SharedRoute> {
+  // Lazy compute & save value
+  protected _tripsChunkSizes: number[] | null = null;
+
   get id() {
     return this.rDataView[this.ptr];
   }
@@ -257,20 +260,33 @@ class RouteRetriever extends Retriever<PtrType.Route> implements Override<Route<
     return this.ptr + 1 + this.rDataView[this.ptrStopsChunkSize] + 1;
   }
 
+  get tripsChunkSizes(): number[] {
+    const tripRetriever = new TripRetriever(this.sDataView, this.rDataView, 0, PtrType.Route);
+    const chunkSizes = [];
+    // Compute number of trips
+    for (let ptr = this.ptrTripsChunkSize + 1; ptr < this.ptr + this.chunkSize; ptr += tripRetriever.chunkSize)
+      chunkSizes.push(tripRetriever.point(ptr).chunkSize);
+
+    return chunkSizes;
+  }
+
   get trips() {
     return new ArrayView<Override<Trip<number>, SharedTrip>>(
       () => {
-        let c = 0;
-        // Compute number of trips
-        for (let ptr = this.ptrTripsChunkSize + 1; ptr < this.chunkSize; ) {
-          // Heavy procedure for a simple ptr calculation...
-          ptr += new TripRetriever(this.sDataView, this.rDataView, ptr, PtrType.Route).chunkSize;
-          c++;
-        }
+        if (this._tripsChunkSizes !== null) return this._tripsChunkSizes.length;
 
-        return c;
+        return (this._tripsChunkSizes = this.tripsChunkSizes).length;
       },
-      (idx) => new TripRetriever(this.sDataView, this.rDataView, this.rDataView[this.ptrTripsChunkSize + 1 + idx], PtrType.Route),
+      (idx) => {
+        if (this._tripsChunkSizes === null) this._tripsChunkSizes = this.tripsChunkSizes;
+
+        return new TripRetriever(
+          this.sDataView,
+          this.rDataView,
+          this.ptrTripsChunkSize + 1 + this._tripsChunkSizes.reduce((acc, v, i) => (i < idx ? acc + v : acc), 0),
+          PtrType.Route,
+        );
+      },
       (a, b) => a.id === b.id,
     );
   }
