@@ -211,7 +211,7 @@ class TripRetriever extends Retriever<PtrType.Route> implements Override<Trip<nu
     return new ArrayView(
       // 2 data cells per array element
       () => this.timesChunkSize / 2,
-      (idx) => this.rDataView.subarray(this.ptr + 2 + idx, this.ptr + 2 + idx + 2) as unknown as [number, number],
+      (idx) => this.rDataView.subarray(this.ptr + 2 + idx * 2, this.ptr + 2 + (idx + 1) * 2) as unknown as [number, number],
       (a, b) =>
         (a as unknown as Float64Array).byteOffset === (b as unknown as Float64Array).byteOffset &&
         a.length === b.length &&
