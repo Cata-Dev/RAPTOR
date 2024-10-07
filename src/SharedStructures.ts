@@ -9,7 +9,7 @@ type Override<T, O> = Omit<T, keyof O> & O;
  * Helper type for viewing-only arrays, with some viewing methods of {@link Array}.
  */
 export class ArrayView<T> implements ArrayRead<T> {
-  _length: number | null = null;
+  protected _length: number | null = null;
 
   constructor(
     /**
