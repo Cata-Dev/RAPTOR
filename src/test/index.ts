@@ -78,50 +78,51 @@ async function init() {
   const { dbScheduledRoutes, dbStops, dbNonScheduledRoutes } = b1.lastReturn;
 
   async function createRAPTOR() {
-    const RAPTORInstance = new SharedRAPTOR(
-      SharedRAPTORData.makeFromRawData(
-        await mapAsync<(typeof dbStops)[number], Stop<number, number>>(dbStops, async ({ _id, coords }) => ({
-          id: _id,
-          lat: coords[0],
-          long: coords[1],
-          connectedRoutes: dbScheduledRoutes.filter((ScheduledRoute) => ScheduledRoute.stops.find((stopId) => stopId === _id)).map(({ _id }) => _id),
-          transfers: (await dbNonScheduledRoutes(_id, { distance: { $lte: 1_000 } })).map(({ to, distance }) => ({
-            to,
-            length: distance,
-          })),
+    const RAPTORData = SharedRAPTORData.makeFromRawData(
+      await mapAsync<(typeof dbStops)[number], Stop<number, number>>(dbStops, async ({ _id, coords }) => ({
+        id: _id,
+        lat: coords[0],
+        long: coords[1],
+        connectedRoutes: dbScheduledRoutes.filter((ScheduledRoute) => ScheduledRoute.stops.find((stopId) => stopId === _id)).map(({ _id }) => _id),
+        transfers: (await dbNonScheduledRoutes(_id, { distance: { $lte: 1_000 } })).map(({ to, distance }) => ({
+          to,
+          length: distance,
         })),
-        dbScheduledRoutes.map(
-          ({ _id, stops, trips }) =>
-            [
-              _id,
-              stops,
-              trips.map(({ tripId, schedules }) => ({
-                id: tripId,
-                times: schedules.map((schedule) =>
-                  "hor_estime" in schedule
-                    ? ([
-                        schedule.hor_estime.getTime() || SharedRAPTORData.MAX_SAFE_TIMESTAMP,
-                        schedule.hor_estime.getTime() || SharedRAPTORData.MAX_SAFE_TIMESTAMP,
-                      ] satisfies [unknown, unknown])
-                    : ([Infinity, Infinity] satisfies [unknown, unknown]),
-                ),
-              })),
-            ] satisfies [unknown, unknown, unknown],
-        ),
+      })),
+      dbScheduledRoutes.map(
+        ({ _id, stops, trips }) =>
+          [
+            _id,
+            stops,
+            trips.map(({ tripId, schedules }) => ({
+              id: tripId,
+              times: schedules.map((schedule) =>
+                "hor_estime" in schedule
+                  ? ([
+                      schedule.hor_estime.getTime() || SharedRAPTORData.MAX_SAFE_TIMESTAMP,
+                      schedule.hor_estime.getTime() || SharedRAPTORData.MAX_SAFE_TIMESTAMP,
+                    ] satisfies [unknown, unknown])
+                  : ([Infinity, Infinity] satisfies [unknown, unknown]),
+              ),
+            })),
+          ] satisfies [unknown, unknown, unknown],
       ),
     );
+    RAPTORData.secure = true;
 
-    return { RAPTORInstance };
+    const RAPTORInstance = new SharedRAPTOR(RAPTORData);
+
+    return { RAPTORData, RAPTORInstance };
   }
   const b2 = await benchmark(createRAPTOR, []);
   console.log("b2 ended");
   if (!b2.lastReturn) throw new Error(`b2 return null`);
-  const { RAPTORInstance } = b2.lastReturn;
+  const { RAPTORData, RAPTORInstance } = b2.lastReturn;
 
-  return { RAPTORInstance, TBMSchedulesModel };
+  return { RAPTORData, RAPTORInstance, TBMSchedulesModel };
 }
 
-async function run({ RAPTORInstance, TBMSchedulesModel }: Awaited<ReturnType<typeof init>>) {
+async function run({ RAPTORData, RAPTORInstance, TBMSchedulesModel }: Awaited<ReturnType<typeof init>>) {
   const args = process.argv.slice(2);
   let ps: number;
   try {
@@ -135,6 +136,14 @@ async function run({ RAPTORInstance, TBMSchedulesModel }: Awaited<ReturnType<typ
   } catch (_) {
     pt = 2082;
   }
+
+  const pps = RAPTORData.stopPointerFromId(ps);
+  if (!pps) throw new Error(`Invalid stop id ${ps}`);
+  ps = pps;
+
+  const ppt = RAPTORData.stopPointerFromId(pt);
+  if (!ppt) throw new Error(`Invalid stop id ${pt}`);
+  pt = ppt;
 
   const minSchedule = (await TBMSchedulesModel.findOne({}).lean())?.updatedAt?.getTime() ?? Infinity;
 
