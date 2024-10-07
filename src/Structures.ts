@@ -68,8 +68,8 @@ export class Route<SI extends Id, RI extends Id, TI extends Id = Id> {
    * @param t Trip index in route.
    * @param p Stop index in route (trip).
    */
-  departureTime(t: number, p: SI): timestamp {
-    return this.trips.at(t)?.times.at(this.stops.indexOf(p))?.[0] ?? 0;
+  departureTime(t: number, p: number): timestamp {
+    return this.trips.at(t)?.times.at(p)?.[0] ?? 0;
   }
 }
 

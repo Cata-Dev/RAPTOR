@@ -76,7 +76,7 @@ export default class RAPTOR<SI extends Id = Id, RI extends Id = Id, TI extends I
   protected et(route: Route<SI, RI>, p: SI): { tripIndex: number; boardedAt: SI } | null {
     for (let t = 0; t < route.trips.length; t++) {
       // Catchable
-      const tDep = route.departureTime(t, p);
+      const tDep = route.departureTime(t, route.stops.indexOf(p));
       if (tDep < this.MAX_SAFE_TIMESTAMP && tDep >= (this.multiLabel[this.k - 1].get(p)?.time ?? Infinity)) return { tripIndex: t, boardedAt: p };
     }
     return null;
@@ -172,7 +172,7 @@ export default class RAPTOR<SI extends Id = Id, RI extends Id = Id, TI extends I
 
           if (!t) t = this.et(route, pi);
           // Catch an earlier trip at pi ?
-          else if ((this.multiLabel[this.k - 1].get(pi)?.time ?? Infinity) <= route.departureTime(t.tripIndex, pi)) {
+          else if ((this.multiLabel[this.k - 1].get(pi)?.time ?? Infinity) <= route.departureTime(t.tripIndex, i)) {
             const newEt = this.et(route, pi);
             if (t.tripIndex !== newEt?.tripIndex) {
               t = newEt;
