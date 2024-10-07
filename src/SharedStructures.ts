@@ -492,11 +492,6 @@ export class SharedRAPTORData {
 
         // Now current ptr (idx) is back to new stop id
       }
-
-      // @ts-expect-error debug
-      this.sMapping = sMapping;
-      // @ts-expect-error debug
-      this.rMapping = rMapping;
     }
   }
 
