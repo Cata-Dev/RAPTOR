@@ -288,8 +288,8 @@ class RouteRetriever extends Retriever<PtrType.Route> implements Override<Route<
  * Shared-memory enabled RAPTOR data
  */
 export class SharedRAPTORData {
-  // Max uint32
-  static readonly MAX_SAFE_TIMESTAMP: number = 4_294_967_295;
+  // Max float64
+  static readonly MAX_SAFE_TIMESTAMP: number = 3.4e38;
   readonly MAX_SAFE_TIMESTAMP: number = SharedRAPTORData.MAX_SAFE_TIMESTAMP;
   /**
    * Internal data (shared) buffer
