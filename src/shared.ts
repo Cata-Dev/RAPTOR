@@ -1,7 +1,7 @@
 import RAPTOR from "./main";
-import { SharedRAPTORData } from "./SharedStructures";
+import { SerializedId, SharedRAPTORData } from "./SharedStructures";
 
-export default class SharedRAPTOR extends RAPTOR<number, number, number> {
+export default class SharedRAPTOR extends RAPTOR<number | SerializedId, number | SerializedId, number> {
   static readonly dataClass = SharedRAPTORData;
 
   constructor(data: SharedRAPTORData) {

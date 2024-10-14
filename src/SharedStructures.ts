@@ -1,4 +1,4 @@
-import { FootPath, Stop, Trip, Route, ArrayRead, MapRead } from "./Structures";
+import { FootPath, Stop, Trip, Route, ArrayRead, MapRead, IRAPTORData } from "./Structures";
 
 /**
  * Helper type to override type `T` with type `O`
@@ -78,7 +78,7 @@ enum PtrType {
 /**
  * A DataView built on top of {@link SharedRAPTORData} internals to ease & enhance data manipulation
  */
-class Retriever<T extends PtrType> {
+class Retriever<T extends PtrType, A> {
   constructor(
     /**
      * View on stops, same as {@link SharedRAPTORData.sDataView}
@@ -91,6 +91,7 @@ class Retriever<T extends PtrType> {
     // Not readonly : a pointer is already often exposed, and moreover, permits access in O(1) without any overhead
     protected ptr: number,
     readonly ptrType: T,
+    readonly attachedData: A | null,
   ) {
     // Runtime check
     if ((ptrType === PtrType.Stop && ptr >= sDataView.length) || (ptrType === PtrType.Route && ptr >= rDataView.length))
@@ -113,7 +114,7 @@ class Retriever<T extends PtrType> {
 // FootPath
 //
 
-class FootPathRetriever extends Retriever<PtrType.Stop> implements FootPath<number> {
+class FootPathRetriever extends Retriever<PtrType.Stop, void> implements FootPath<number> {
   get to() {
     return this.sDataView[this.ptr];
   }
@@ -141,23 +142,32 @@ interface SharedStop {
   /**
    * Array of route pointers
    */
-  connectedRoutes: ArrayView<number>;
-  transfers: ArrayView<FootPathRetriever>;
+  connectedRoutes: ArrayView<number | SerializedId>;
+  transfers: ArrayView<FootPathRetriever | FootPath<number | SerializedId>>;
 }
 
-class StopRetriever extends Retriever<PtrType.Stop> implements Override<Stop<number, number>, SharedStop> {
+class StopRetriever
+  extends Retriever<PtrType.Stop, Stop<number | SerializedId, number | SerializedId>>
+  implements Override<Stop<number | SerializedId, number | SerializedId>, SharedStop>
+{
   get id() {
     return this.sDataView[this.ptr];
   }
 
+  /**
+   * Is also equal to length
+   */
   protected get connectedRoutesChunkSize() {
     return this.sDataView[this.ptr + 1];
   }
 
   get connectedRoutes() {
     return new ArrayView(
-      () => this.connectedRoutesChunkSize,
-      (idx) => this.sDataView[this.ptr + 1 + 1 + idx],
+      () => this.connectedRoutesChunkSize + (this.attachedData?.connectedRoutes.length ?? 0),
+      (idx) =>
+        idx < this.connectedRoutesChunkSize
+          ? this.sDataView[this.ptr + 1 + 1 + idx]
+          : this.attachedData!.connectedRoutes.at(idx - this.connectedRoutesChunkSize)!,
       (a, b) => a === b,
     );
   }
@@ -167,17 +177,25 @@ class StopRetriever extends Retriever<PtrType.Stop> implements Override<Stop<num
   }
 
   get transfers() {
+    const originalLength = this.transfersChunkSize / 2;
+
     return new ArrayView(
       // to & length
-      () => this.transfersChunkSize / 2,
+      () => originalLength + (this.attachedData?.transfers.length ?? 0),
       (idx) =>
-        new FootPathRetriever(
-          this.sDataView,
-          this.rDataView,
-          this.ptr + 1 + this.connectedRoutesChunkSize + 1 + 1 + idx * FootPathRetriever._chunkSize,
-          PtrType.Stop,
-        ),
-      (a, b) => FootPathRetriever.equals(a, b),
+        idx < originalLength
+          ? new FootPathRetriever(
+              this.sDataView,
+              this.rDataView,
+              this.ptr + 1 + this.connectedRoutesChunkSize + 1 + 1 + idx * FootPathRetriever._chunkSize,
+              PtrType.Stop,
+            )
+          : this.attachedData!.transfers.at(idx - originalLength)!,
+      (a, b) =>
+        a instanceof FootPathRetriever && b instanceof FootPathRetriever
+          ? FootPathRetriever.equals(a, b)
+          : // Can compare directly : they're references
+            a === b,
     );
   }
 
@@ -198,7 +216,7 @@ interface SharedTrip {
   times: ArrayRead<[number, number]>;
 }
 
-class TripRetriever extends Retriever<PtrType.Route> implements Override<Trip<number>, SharedTrip> {
+class TripRetriever extends Retriever<PtrType.Route, void> implements Override<Trip<number>, SharedTrip> {
   get id() {
     return this.rDataView[this.ptr];
   }
@@ -232,11 +250,14 @@ interface SharedRoute {
   /**
    * Array of stop pointers
    */
-  stops: ArrayView<number>;
+  stops: ArrayView<number | SerializedId>;
   trips: ArrayView<Override<Trip<number>, SharedTrip>>;
 }
 
-class RouteRetriever extends Retriever<PtrType.Route> implements Override<Route<number, number, number>, SharedRoute> {
+class RouteRetriever
+  extends Retriever<PtrType.Route, Route<number | SerializedId, number | SerializedId, number>>
+  implements Override<Route<number | SerializedId, number | SerializedId, number>, SharedRoute>
+{
   // Lazy compute & save value
   protected _tripsChunkSizes: number[] | null = null;
 
@@ -249,9 +270,11 @@ class RouteRetriever extends Retriever<PtrType.Route> implements Override<Route<
   }
 
   get stops() {
+    const originalLength = this.rDataView[this.ptrStopsChunkSize];
+
     return new ArrayView(
-      () => this.rDataView[this.ptrStopsChunkSize],
-      (idx) => this.rDataView[this.ptr + 2 + idx],
+      () => originalLength + (this.attachedData?.stops.length ?? 0),
+      (idx) => (idx < originalLength ? this.rDataView[this.ptr + 2 + idx] : this.attachedData!.stops.at(idx - originalLength)!),
       (a, b) => a === b,
     );
   }
@@ -272,20 +295,18 @@ class RouteRetriever extends Retriever<PtrType.Route> implements Override<Route<
 
   get trips() {
     return new ArrayView<Override<Trip<number>, SharedTrip>>(
-      () => {
-        if (this._tripsChunkSizes !== null) return this._tripsChunkSizes.length;
-
-        return (this._tripsChunkSizes = this.tripsChunkSizes).length;
-      },
+      () => (this._tripsChunkSizes ??= this.tripsChunkSizes).length + (this.attachedData?.trips.length ?? 0),
       (idx) => {
         if (this._tripsChunkSizes === null) this._tripsChunkSizes = this.tripsChunkSizes;
 
-        return new TripRetriever(
-          this.sDataView,
-          this.rDataView,
-          this.ptrTripsChunkSize + 1 + this._tripsChunkSizes.reduce((acc, v, i) => (i < idx ? acc + v : acc), 0),
-          PtrType.Route,
-        );
+        return idx < this._tripsChunkSizes.length
+          ? new TripRetriever(
+              this.sDataView,
+              this.rDataView,
+              this.ptrTripsChunkSize + 1 + this._tripsChunkSizes.reduce((acc, v, i) => (i < idx ? acc + v : acc), 0),
+              PtrType.Route,
+            )
+          : this.attachedData!.trips.at(idx - this._tripsChunkSizes.length)!;
       },
       (a, b) => a.id === b.id,
     );
@@ -300,10 +321,12 @@ class RouteRetriever extends Retriever<PtrType.Route> implements Override<Route<
   }
 }
 
+export type SerializedId = ReturnType<(typeof SharedRAPTORData)["serializeId"]>;
+
 /**
  * Shared-memory enabled RAPTOR data
  */
-export class SharedRAPTORData {
+export class SharedRAPTORData implements IRAPTORData<number | SerializedId, number | SerializedId, number> {
   // Max float64
   static readonly MAX_SAFE_TIMESTAMP: number = 3.4e38;
   readonly MAX_SAFE_TIMESTAMP: number = SharedRAPTORData.MAX_SAFE_TIMESTAMP;
@@ -322,6 +345,9 @@ export class SharedRAPTORData {
 
   // Validate pointers
   secure = false;
+
+  protected attachedStops: MapRead<number | SerializedId, Stop<number | SerializedId, number | SerializedId>> = new Map();
+  protected attachedRoutes: MapRead<number | SerializedId, Route<number | SerializedId, number | SerializedId, number>> = new Map();
 
   /**
    *
@@ -511,25 +537,55 @@ export class SharedRAPTORData {
   }
 
   /**
-   * Convert a SI to a stop pointer
-   * @param id
+   * Serialize into primitive type, but different as pointer type (number)
    */
-  stopPointerFromId(id: number): number | undefined {
-    const stopRetriever = new StopRetriever(this.sDataView, this.rDataView, 0, PtrType.Stop);
-    for (let ptr = 0; ptr < this.sDataView.length; ptr += stopRetriever.chunkSize) if (stopRetriever.point(ptr).id === id) return ptr;
+  protected static serializeId(id: number) {
+    return `id-${id}` as const;
+  }
+
+  protected pointerFromId(id: number, ptrType: PtrType): number | undefined {
+    if ((ptrType === PtrType.Stop ? this.attachedStops : this.attachedRoutes).get(id)) return id;
+
+    const retriever =
+      ptrType === PtrType.Stop
+        ? new StopRetriever(this.sDataView, this.rDataView, 0, PtrType.Stop, null)
+        : new RouteRetriever(this.sDataView, this.rDataView, 0, PtrType.Route, null);
+    for (let ptr = 0; ptr < this.sDataView.length; ptr += retriever.chunkSize) if (retriever.point(ptr).id === id) return ptr;
 
     return;
   }
 
-  get stops(): MapRead<number, StopRetriever> {
+  /**
+   * Convert a SI to a stop pointer
+   * @param id
+   */
+  stopPointerFromId(id: number): number | undefined {
+    return this.pointerFromId(id, PtrType.Stop);
+  }
+
+  get stops() {
     return {
       [Symbol.iterator]: function* (this: SharedRAPTORData) {
-        const stopRetriever = new StopRetriever(this.sDataView, this.rDataView, 0, PtrType.Stop);
+        const seen = new Set<number | SerializedId>();
+
+        const stopRetriever = new StopRetriever(this.sDataView, this.rDataView, 0, PtrType.Stop, null);
         for (let ptr = 0; ptr < this.sDataView.length; ptr += stopRetriever.point(ptr).chunkSize) {
+          seen.add(ptr);
+
           /**
            * Pointer (index in buffer) to stop, retrieve it through `get` method.
            */
-          yield [ptr, new StopRetriever(this.sDataView, this.rDataView, ptr, PtrType.Stop)] satisfies [unknown, unknown];
+          yield [ptr, new StopRetriever(this.sDataView, this.rDataView, ptr, PtrType.Stop, this.attachedStops.get(ptr) ?? null)] satisfies [
+            unknown,
+            unknown,
+          ];
+        }
+
+        for (const [k, v] of this.attachedStops) {
+          if (seen.has(k)) continue;
+
+          yield [k, v] satisfies [unknown, unknown];
+          // No need to add to `seen` : considering no duplication inside `attachedStops`
         }
 
         return undefined;
@@ -538,21 +594,49 @@ export class SharedRAPTORData {
        * Maps a stop pointer to its corresponding {@link StopRetriever}
        * @param ptr Pointer to a stop
        */
-      get: (ptr: number) => (
-        this.secure && this.validatePointer(ptr, PtrType.Stop), new StopRetriever(this.sDataView, this.rDataView, ptr, PtrType.Stop)
-      ),
+      get: (ptr: number | SerializedId) => {
+        if (this.secure && typeof ptr === "number") this.validatePointer(ptr, PtrType.Stop);
+
+        const attached = this.attachedStops.get(ptr);
+        // Means this stop would not have been present in original data, no need to merge it
+        if (typeof ptr === "string") return attached;
+
+        return new StopRetriever(this.sDataView, this.rDataView, ptr, PtrType.Stop, attached ?? null);
+      },
     };
   }
 
-  get routes(): MapRead<number, RouteRetriever> {
+  /**
+   * Convert a RI to a route pointer
+   * @param id
+   */
+  routePointerFromId(id: number): number | undefined {
+    return this.pointerFromId(id, PtrType.Route);
+  }
+
+  get routes() {
     return {
       [Symbol.iterator]: function* (this: SharedRAPTORData) {
-        const routeRetriever = new RouteRetriever(this.sDataView, this.rDataView, 0, PtrType.Route);
+        const seen = new Set<number | SerializedId>();
+
+        const routeRetriever = new RouteRetriever(this.sDataView, this.rDataView, 0, PtrType.Route, null);
         for (let ptr = 0; ptr < this.rDataView.length; ptr += routeRetriever.point(ptr).chunkSize) {
+          seen.add(ptr);
+
           /**
            * Pointer (index in buffer) to route, retrieve it through `get` method.
            */
-          yield [ptr, new RouteRetriever(this.sDataView, this.rDataView, ptr, PtrType.Route)] satisfies [unknown, unknown];
+          yield [ptr, new RouteRetriever(this.sDataView, this.rDataView, ptr, PtrType.Route, this.attachedRoutes.get(ptr) ?? null)] satisfies [
+            unknown,
+            unknown,
+          ];
+        }
+
+        for (const [k, v] of this.attachedRoutes) {
+          if (seen.has(k)) continue;
+
+          yield [k, v] satisfies [unknown, unknown];
+          // No need to add to `seen` : considering no duplication inside `attachedRoutes`
         }
 
         return undefined;
@@ -561,9 +645,15 @@ export class SharedRAPTORData {
        * Maps a route pointer to its corresponding {@link RouteRetriever}
        * @param ptr Pointer to a route
        */
-      get: (ptr: number) => (
-        this.secure && this.validatePointer(ptr, PtrType.Route), new RouteRetriever(this.sDataView, this.rDataView, ptr, PtrType.Route)
-      ),
+      get: (ptr: number | SerializedId) => {
+        if (this.secure && typeof ptr === "number") this.validatePointer(ptr, PtrType.Route);
+
+        const attached = this.attachedRoutes.get(ptr);
+        // Means this route would not have been present in original data, no need to merge it
+        if (typeof ptr === "string") return attached;
+
+        return new RouteRetriever(this.sDataView, this.rDataView, ptr, PtrType.Route, attached ?? null);
+      },
     };
   }
 
@@ -576,11 +666,47 @@ export class SharedRAPTORData {
   protected validatePointer(ptr: number, ptrType: PtrType): true {
     const retriever =
       ptrType === PtrType.Stop
-        ? new StopRetriever(this.sDataView, this.rDataView, 0, PtrType.Stop)
-        : new RouteRetriever(this.sDataView, this.rDataView, 0, PtrType.Route);
+        ? new StopRetriever(this.sDataView, this.rDataView, 0, PtrType.Stop, null)
+        : new RouteRetriever(this.sDataView, this.rDataView, 0, PtrType.Route, null);
 
     for (let iterPtr = 0; iterPtr <= ptr; iterPtr += retriever.point(iterPtr).chunkSize) if (ptr === iterPtr) return true;
 
     throw new Error(`Invalid pointer ${ptr} of type ${ptrType}`);
+  }
+
+  attachData(stops: ArrayRead<Stop<number, number>>, routes: ArrayRead<ConstructorParameters<typeof Route<number, number, number>>>) {
+    // Need to resolve pointers when possible
+    this.attachedStops = new Map(
+      stops.map((s) => {
+        const id = this.stopPointerFromId(s.id) ?? SharedRAPTORData.serializeId(s.id);
+
+        return [
+          id,
+          {
+            id: id,
+            connectedRoutes: s.connectedRoutes.map((r) => this.routePointerFromId(r) ?? r),
+            transfers: s.transfers.map(({ length, to }) => ({
+              length,
+              to: this.stopPointerFromId(to) ?? to,
+            })),
+          },
+        ] as const;
+      }),
+    );
+
+    this.attachedRoutes = new Map(
+      routes.map(([rId, stopsIds, trips]) => {
+        const id = this.routePointerFromId(rId) ?? SharedRAPTORData.serializeId(rId);
+
+        return [
+          id,
+          new Route(
+            id,
+            stopsIds.map((sId) => this.stopPointerFromId(sId) ?? sId),
+            trips,
+          ),
+        ] as const;
+      }),
+    );
   }
 }
