@@ -123,7 +123,7 @@ export class RAPTORData<SI extends Id = Id, RI extends Id = Id, TI extends Id = 
           if (seen.has(k)) continue;
 
           yield [k, v] satisfies [SI, Stop<SI, RI>];
-          seen.add(k);
+          // No need to add to `seen` : considering no duplication inside `attachedStops`
         }
 
         return undefined;
@@ -151,7 +151,7 @@ export class RAPTORData<SI extends Id = Id, RI extends Id = Id, TI extends Id = 
         const seen = new Set<RI>();
 
         for (const [k] of this._routes) {
-          if (seen.has(k)) continue;
+          // No need to check in `seen` : considering no duplication inside `this._routes`
 
           yield [k, this.getRoute(k)!] satisfies [RI, Route<SI, RI, TI>];
           seen.add(k);
@@ -161,7 +161,7 @@ export class RAPTORData<SI extends Id = Id, RI extends Id = Id, TI extends Id = 
           if (seen.has(k)) continue;
 
           yield [k, v] satisfies [RI, Route<SI, RI, TI>];
-          seen.add(k);
+          // No need to add to `seen` : considering no duplication inside `attachedRoutes`
         }
 
         return undefined;
