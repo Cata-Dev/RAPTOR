@@ -73,10 +73,11 @@ export class Route<SI extends Id, RI extends Id, TI extends Id = Id> {
   }
 }
 
-interface IRAPTORData<SI extends Id = Id, RI extends Id = Id, TI extends Id = Id> {
+export interface IRAPTORData<SI extends Id = Id, RI extends Id = Id, TI extends Id = Id> {
   readonly MAX_SAFE_TIMESTAMP: number;
   readonly stops: MapRead<SI, Stop<SI, RI>>;
   readonly routes: MapRead<RI, Route<SI, RI, TI>>;
+  attachData: (...args: never[]) => void;
 }
 
 export class RAPTORData<SI extends Id = Id, RI extends Id = Id, TI extends Id = Id> implements IRAPTORData<SI, RI, TI> {
