@@ -1,4 +1,4 @@
-import { Stop, Route, timestamp, FootPath, Id, RAPTORData, ArrayRead, MapRead } from "./Structures";
+import { Stop, Route, timestamp, FootPath, Id, RAPTORData, ArrayRead, MapRead, IRAPTORData } from "./Structures";
 
 export type LabelType = "DEFAULT" | "DEPARTURE" | "FOOT" | "VEHICLE";
 export type Label<SI extends Id, RI extends Id, T extends LabelType = LabelType> = T extends "VEHICLE"
@@ -51,7 +51,7 @@ export default class RAPTOR<SI extends Id = Id, RI extends Id = Id, TI extends I
   /**
    * @description Creates a new RAPTOR instance for a defined network.
    */
-  constructor(data: RAPTORData<SI, RI, TI>) {
+  constructor(data: IRAPTORData<SI, RI, TI>) {
     this.stops = data.stops;
     this.routes = data.routes;
     this.MAX_SAFE_TIMESTAMP = data.MAX_SAFE_TIMESTAMP;
