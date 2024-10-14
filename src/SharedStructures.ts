@@ -539,8 +539,12 @@ export class SharedRAPTORData implements IRAPTORData<number | SerializedId, numb
   /**
    * Serialize into primitive type, but different as pointer type (number)
    */
-  protected static serializeId(id: number) {
+  static serializeId(id: number) {
     return `id-${id}` as const;
+  }
+
+  static deserializeId(serializeId: SerializedId) {
+    return parseInt(serializeId.substring(3));
   }
 
   protected pointerFromId(id: number, ptrType: PtrType): number | undefined {
