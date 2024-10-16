@@ -131,7 +131,7 @@ export default class RAPTOR<SI extends Id = Id, RI extends Id = Id, TI extends I
       // Copying
       for (const [stopId] of this.stops) {
         const value = this.multiLabel[this.k - 1].get(stopId);
-        this.multiLabel[this.k].set(stopId, value ? structuredClone(value) : { time: Infinity });
+        this.multiLabel[this.k].set(stopId, value ? value : { time: Infinity });
       }
 
       // Mark improvement
