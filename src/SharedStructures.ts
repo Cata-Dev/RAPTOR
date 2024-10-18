@@ -687,7 +687,7 @@ export class SharedRAPTORData implements IRAPTORData<number | SerializedId, numb
         return [
           id,
           {
-            id: id,
+            id,
             connectedRoutes: s.connectedRoutes.map((r) => this.routePointerFromId(r) ?? r),
             transfers: s.transfers.map(({ length, to }) => ({
               length,
