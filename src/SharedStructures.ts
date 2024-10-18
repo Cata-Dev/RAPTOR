@@ -691,7 +691,7 @@ export class SharedRAPTORData implements IRAPTORData<number | SerializedId, numb
             connectedRoutes: s.connectedRoutes.map((r) => this.routePointerFromId(r) ?? r),
             transfers: s.transfers.map(({ length, to }) => ({
               length,
-              to: this.stopPointerFromId(to) ?? to,
+              to: this.stopPointerFromId(to) ?? SharedRAPTORData.serializeId(to),
             })),
           },
         ] as const;
@@ -706,7 +706,7 @@ export class SharedRAPTORData implements IRAPTORData<number | SerializedId, numb
           id,
           new Route(
             id,
-            stopsIds.map((sId) => this.stopPointerFromId(sId) ?? sId),
+            stopsIds.map((sId) => this.stopPointerFromId(sId) ?? SharedRAPTORData.serializeId(sId)),
             trips,
           ),
         ] as const;
