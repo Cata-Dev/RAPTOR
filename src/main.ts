@@ -41,11 +41,9 @@ export default class RAPTOR<SI extends Id = Id, RI extends Id = Id, TI extends I
   readonly routes: MapRead<RI, Route<SI, RI, TI>>;
 
   protected readonly MAX_SAFE_TIMESTAMP: number;
-  /** @description A {@link Label} T*(SI) represents the earliest known arrival time at stop stopId. */
-  protected bestLabels = new Map<SI, Label<SI, RI>>();
-  /** @description A {@link Label} Ti(SI) represents the earliest known arrival time at stop stopId with up to i trips. */
-  protected multiLabel: (typeof this.bestLabels)[] = [];
-  /** Set<{@link stopId} in {@link stops}> */
+  /** @description A {@link Label} Ti(SI) represents the earliest known arrival time at stop SI with up to i trips. */
+  protected multiLabel: Map<SI, Label<SI, RI>>[] = [];
+  /** Set<{@link SI} in {@link stops}> */
   protected marked = new Set<SI>();
   /** Round k <=> at most k transfers */
   protected k = 0;
@@ -93,10 +91,6 @@ export default class RAPTOR<SI extends Id = Id, RI extends Id = Id, TI extends I
       for (const transfer of stop.transfers) {
         if (transfer.to === p) continue;
 
-        // Prevent cyclic labels
-        const trace = this.traceBack(p, this.k);
-        if (trace.find((label) => "boardedAt" in label && label.boardedAt === transfer.to)) continue;
-
         const arrivalTime: timestamp = (this.multiLabel[this.k].get(p)?.time ?? Infinity) + this.walkDuration(transfer.length, walkSpeed);
         if (arrivalTime < (this.multiLabel[this.k].get(transfer.to)?.time ?? Infinity)) {
           this.multiLabel[this.k].set(transfer.to, { boardedAt: p, transfer, time: arrivalTime });
@@ -115,19 +109,14 @@ export default class RAPTOR<SI extends Id = Id, RI extends Id = Id, TI extends I
    * @param rounds Maximal number of transfers.
    */
   run(ps: SI, pt: SI, departureTime: timestamp, settings: RAPTORRunSettings, rounds: number = RAPTOR.defaultRounds) {
-    // Re-initialization
+    //Re-initialization
     this.multiLabel = Array.from({ length: rounds }, () => new Map<SI, Label<SI, RI>>());
-    this.bestLabels = new Map();
     this.marked = new Set<SI>();
     this.k = 0;
 
     // Initialization
     for (const [stopId] of this.stops) {
-      for (let k = 0; k < rounds; k++) {
-        this.multiLabel[k].set(stopId, { time: Infinity });
-      }
-
-      this.bestLabels.set(stopId, { time: Infinity });
+      this.multiLabel[this.k].set(stopId, { time: Infinity });
     }
     this.multiLabel[this.k].set(ps, { time: departureTime });
     this.marked.add(ps);
@@ -138,9 +127,14 @@ export default class RAPTOR<SI extends Id = Id, RI extends Id = Id, TI extends I
     /** Map<{@link RI} in {@link routes}, {@link SI} in {@link stops}> */
     const Q = new Map<RI, SI>();
 
-    // Step 1
-    // Mark improvement
     for (this.k = 1; this.k < rounds; this.k++) {
+      // Copying
+      for (const [stopId] of this.stops) {
+        const value = this.multiLabel[this.k - 1].get(stopId);
+        this.multiLabel[this.k].set(stopId, value ? value : { time: Infinity });
+      }
+
+      // Mark improvement
       Q.clear();
       for (const p of this.marked) {
         const connectedRoutes = (this.stops.get(p)?.connectedRoutes ?? ([] as RI[])) satisfies ArrayRead<RI>;
@@ -169,10 +163,9 @@ export default class RAPTOR<SI extends Id = Id, RI extends Id = Id, TI extends I
           // Improve periods, local & target pruning
           if (t !== null) {
             const arrivalTime: timestamp = route.trips.at(t.tripIndex)!.times.at(i)![0] ?? this.MAX_SAFE_TIMESTAMP;
-            if (arrivalTime < Math.min(this.bestLabels.get(pi)?.time ?? Infinity, this.bestLabels.get(pt)?.time ?? Infinity)) {
+            if (arrivalTime < Math.min(this.multiLabel[this.k].get(pi)?.time ?? Infinity, this.multiLabel[this.k].get(pt)?.time ?? Infinity)) {
               // local & target pruning
               this.multiLabel[this.k].set(pi, { ...t, route, time: arrivalTime });
-              this.bestLabels.set(pi, { ...t, route, time: arrivalTime });
               this.marked.add(pi);
             }
           }
