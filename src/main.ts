@@ -1,4 +1,4 @@
-import { Stop, Route, timestamp, FootPath, Id, RAPTORData, ArrayRead, MapRead } from "./Structures";
+import { Stop, Route, timestamp, FootPath, Id, RAPTORData, ArrayRead, MapRead, IRAPTORData } from "./Structures";
 
 export type LabelType = "DEFAULT" | "DEPARTURE" | "FOOT" | "VEHICLE";
 export type Label<SI extends Id, RI extends Id, T extends LabelType = LabelType> = T extends "VEHICLE"
@@ -53,7 +53,7 @@ export default class RAPTOR<SI extends Id = Id, RI extends Id = Id, TI extends I
   /**
    * @description Creates a new RAPTOR instance for a defined network.
    */
-  constructor(data: RAPTORData<SI, RI, TI>) {
+  constructor(data: IRAPTORData<SI, RI, TI>) {
     this.stops = data.stops;
     this.routes = data.routes;
     this.MAX_SAFE_TIMESTAMP = data.MAX_SAFE_TIMESTAMP;
@@ -78,7 +78,7 @@ export default class RAPTOR<SI extends Id = Id, RI extends Id = Id, TI extends I
   protected et(route: Route<SI, RI>, p: SI): { tripIndex: number; boardedAt: SI } | null {
     for (let t = 0; t < route.trips.length; t++) {
       // Catchable
-      const tDep = route.departureTime(t, p);
+      const tDep = route.departureTime(t, route.stops.indexOf(p));
       if (tDep < this.MAX_SAFE_TIMESTAMP && tDep >= (this.multiLabel[this.k - 1].get(p)?.time ?? Infinity)) return { tripIndex: t, boardedAt: p };
     }
     return null;
@@ -164,11 +164,11 @@ export default class RAPTOR<SI extends Id = Id, RI extends Id = Id, TI extends I
         const route: Route<SI, RI> = this.routes.get(r)!;
 
         for (let i = route.stops.indexOf(p); i < route.stops.length; i++) {
-          const pi = route.stops[i];
+          const pi = route.stops.at(i)!;
 
           // Improve periods, local & target pruning
           if (t !== null) {
-            const arrivalTime: timestamp = route.trips[t.tripIndex].times[i][0];
+            const arrivalTime: timestamp = route.trips.at(t.tripIndex)!.times.at(i)![0] ?? this.MAX_SAFE_TIMESTAMP;
             if (arrivalTime < Math.min(this.bestLabels.get(pi)?.time ?? Infinity, this.bestLabels.get(pt)?.time ?? Infinity)) {
               // local & target pruning
               this.multiLabel[this.k].set(pi, { ...t, route, time: arrivalTime });
@@ -179,7 +179,7 @@ export default class RAPTOR<SI extends Id = Id, RI extends Id = Id, TI extends I
 
           if (!t) t = this.et(route, pi);
           // Catch an earlier trip at pi ?
-          else if ((this.multiLabel[this.k - 1].get(pi)?.time ?? Infinity) <= route.departureTime(t.tripIndex, pi)) {
+          else if ((this.multiLabel[this.k - 1].get(pi)?.time ?? Infinity) <= route.departureTime(t.tripIndex, i)) {
             const newEt = this.et(route, pi);
             if (t.tripIndex !== newEt?.tripIndex) {
               t = newEt;

@@ -8,7 +8,7 @@ export type Id = number | string;
  * General {@link Array} subpart, constrained to some read-only features.
  */
 export interface ArrayRead<T> {
-  [x: number]: T;
+  at: InstanceType<typeof Array<T>>["at"];
   readonly length: number;
   [Symbol.iterator]: () => ArrayIterator<T>;
   indexOf: InstanceType<typeof Array<T>>["indexOf"];
@@ -68,22 +68,114 @@ export class Route<SI extends Id, RI extends Id, TI extends Id = Id> {
    * @param t Trip index in route.
    * @param p Stop index in route (trip).
    */
-  departureTime(t: number, p: SI): timestamp {
-    return this.trips[t].times[this.stops.indexOf(p)][0];
+  departureTime(t: number, p: number): timestamp {
+    return this.trips.at(t)?.times.at(p)?.[0] ?? 0;
   }
 }
 
-export class RAPTORData<SI extends Id = Id, RI extends Id = Id, TI extends Id = Id> {
-  static readonly MAX_SAFE_TIMESTAMP: number = 8_640_000_000_000_000;
-  readonly MAX_SAFE_TIMESTAMP: number = RAPTORData.MAX_SAFE_TIMESTAMP;
+export interface IRAPTORData<SI extends Id = Id, RI extends Id = Id, TI extends Id = Id> {
+  readonly MAX_SAFE_TIMESTAMP: number;
   readonly stops: MapRead<SI, Stop<SI, RI>>;
   readonly routes: MapRead<RI, Route<SI, RI, TI>>;
+  attachData: (...args: never[]) => void;
+}
+
+export class RAPTORData<SI extends Id = Id, RI extends Id = Id, TI extends Id = Id> implements IRAPTORData<SI, RI, TI> {
+  static readonly MAX_SAFE_TIMESTAMP: number = 8_640_000_000_000_000;
+  readonly MAX_SAFE_TIMESTAMP: number = RAPTORData.MAX_SAFE_TIMESTAMP;
+  readonly _stops: MapRead<SI, Stop<SI, RI>>;
+  readonly _routes: MapRead<RI, Route<SI, RI, TI>>;
+  protected attachedStops: MapRead<SI, Stop<SI, RI>> = new Map();
+  protected attachedRoutes: MapRead<RI, Route<SI, RI, TI>> = new Map();
 
   /**
    * @description Creates a new RAPTORData instance for a defined network.
    */
   constructor(stops: ArrayRead<Stop<SI, RI>>, routes: ArrayRead<ConstructorParameters<typeof Route<SI, RI, TI>>>) {
-    this.stops = new Map(stops.map((s) => [s.id, s]));
-    this.routes = new Map(routes.map(([rId, stopsIds, trips]) => [rId, new Route(rId, stopsIds, trips)]));
+    this._stops = new Map(stops.map((s) => [s.id, s]));
+    this._routes = new Map(routes.map(([rId, stopsIds, trips]) => [rId, new Route(rId, stopsIds, trips)] as const));
+  }
+
+  protected getStop(key: SI) {
+    const original = this._stops.get(key);
+    const attached = this.attachedStops.get(key);
+    if (!original && !attached) return undefined;
+
+    // Merge data
+    return {
+      id: key,
+      connectedRoutes: [...(original?.connectedRoutes ?? []), ...(attached?.connectedRoutes ?? [])],
+      transfers: [...(original?.transfers ?? []), ...(attached?.transfers ?? [])],
+    };
+  }
+
+  get stops() {
+    return {
+      get: (key) => this.getStop(key),
+      [Symbol.iterator]: function* (this: RAPTORData<SI, RI, TI>) {
+        const seen = new Set<SI>();
+
+        for (const [k] of this._stops) {
+          yield [k, this.getStop(k)!] satisfies [SI, Stop<SI, RI>];
+          seen.add(k);
+        }
+
+        for (const [k, v] of this.attachedStops) {
+          if (seen.has(k)) continue;
+
+          yield [k, v] satisfies [SI, Stop<SI, RI>];
+          // No need to add to `seen` : considering no duplication inside `attachedStops`
+        }
+
+        return undefined;
+      }.bind(this),
+    } satisfies IRAPTORData<SI, RI, TI>["stops"];
+  }
+
+  protected getRoute(key: RI) {
+    const original = this._routes.get(key);
+    const attached = this.attachedRoutes.get(key);
+    if (!original && !attached) return undefined;
+
+    // Merge data
+    return new Route<SI, RI, TI>(
+      key,
+      [...(original?.stops ?? []), ...(attached?.stops ?? [])],
+      [...(original?.trips ?? []), ...(attached?.trips ?? [])],
+    );
+  }
+
+  get routes() {
+    return {
+      get: (key: RI) => this.getRoute(key),
+      [Symbol.iterator]: function* (this: RAPTORData<SI, RI, TI>) {
+        const seen = new Set<RI>();
+
+        for (const [k] of this._routes) {
+          // No need to check in `seen` : considering no duplication inside `this._routes`
+
+          yield [k, this.getRoute(k)!] satisfies [RI, Route<SI, RI, TI>];
+          seen.add(k);
+        }
+
+        for (const [k, v] of this.attachedRoutes) {
+          if (seen.has(k)) continue;
+
+          yield [k, v] satisfies [RI, Route<SI, RI, TI>];
+          // No need to add to `seen` : considering no duplication inside `attachedRoutes`
+        }
+
+        return undefined;
+      }.bind(this),
+    } satisfies IRAPTORData<SI, RI, TI>["routes"];
+  }
+
+  /**
+   * @description Attach additional data that can be edited at any time.
+   * Does not handle duplicate data.
+   */
+  attachData(stops: ArrayRead<Stop<SI, RI>>, routes: ArrayRead<ConstructorParameters<typeof Route<SI, RI, TI>>>) {
+    this.attachedStops = new Map(stops.map((s) => [s.id, s]));
+    this.attachedRoutes = new Map(routes.map(([rId, stopsIds, trips]) => [rId, new Route(rId, stopsIds, trips)] as const));
   }
 }

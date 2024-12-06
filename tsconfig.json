@@ -4,7 +4,7 @@
     "rootDir": "./src",
     "moduleResolution": "Node",
     "module": "CommonJS",
-    "target": "es6",
+    "target": "es2015",
     "strict": true,
     "skipLibCheck": true,
     "experimentalDecorators": true,
