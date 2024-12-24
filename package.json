@@ -28,11 +28,12 @@
     "@typegoose/typegoose": "^12.2.0",
     "core-js": "^3.36.0",
     "mongodb": "^6.4.0",
+    "mongoose": "^8.7.0",
     "proj4": "^2.10.0"
   },
   "devDependencies": {
-    "@types/proj4": "^2.5.5",
     "@types/node": "18",
+    "@types/proj4": "^2.5.5",
     "eslint": "^9.11.1",
     "prettier": "^3.3.3",
     "typescript": "5.6.2",

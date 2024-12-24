@@ -1,15 +1,15 @@
-import { path, Dijkstra, tracePath, DijkstraOptions } from "@catatomik/dijkstra";
+import { Dijkstra, DijkstraOptions, path, tracePath } from "@catatomik/dijkstra";
 import { unpackGraphNode, WeightedGraph } from "@catatomik/dijkstra/lib/utils/Graph";
-import type { footGraphNodes, id } from "./test";
-
 import { parentPort } from "worker_threads";
+import type { dbTBM_Stops } from "../models/TBM_stops.model";
 import { benchmark } from "../utils/benchmark";
 import { approachedStopName } from "./utils/ultils";
+import { FootStopsGraphNode } from "./test";
 
 export interface initData {
-  adj: Required<ConstructorParameters<typeof WeightedGraph<footGraphNodes>>>[0];
-  weights: Required<ConstructorParameters<typeof WeightedGraph<footGraphNodes>>>[1];
-  stops: id[];
+  adj: Required<ConstructorParameters<typeof WeightedGraph<FootStopsGraphNode>>>[0];
+  weights: Required<ConstructorParameters<typeof WeightedGraph<FootStopsGraphNode>>>[1];
+  stops: dbTBM_Stops["_id"][];
   options?: DijkstraOptions;
 }
 export function initialCallback(data: initData) {
@@ -28,7 +28,7 @@ if (parentPort)
     }
   });
 
-let footGraph: WeightedGraph<footGraphNodes> | undefined;
+let footGraph: WeightedGraph<FootStopsGraphNode> | undefined;
 let stops: initData["stops"] | undefined;
 let options: initData["options"] | undefined;
 
@@ -42,8 +42,8 @@ export function computePath(
   if (!footGraph || !stops) return sourcePaths;
 
   const [dist, prev] = options
-    ? Dijkstra<footGraphNodes, typeof footGraph>(footGraph, [sourceStopId], options)
-    : Dijkstra<footGraphNodes, typeof footGraph>(footGraph, [sourceStopId]);
+    ? Dijkstra<FootStopsGraphNode, typeof footGraph>(footGraph, [sourceStopId], options)
+    : Dijkstra<FootStopsGraphNode, typeof footGraph>(footGraph, [sourceStopId]);
 
   for (const stopId of stops) {
     const targetNode = approachedStopName(stopId);
@@ -71,13 +71,16 @@ export async function computePathBench(
             G: typeof footGraph,
             [s]: [typeof sourceStopId],
             O: DijkstraOptions,
-          ) => [Map<footGraphNodes, number>, Map<footGraphNodes, footGraphNodes>],
+          ) => [Map<FootStopsGraphNode, number>, Map<FootStopsGraphNode, FootStopsGraphNode>],
           [footGraph, [sourceStopId], options],
         )
       ).lastReturn!
     : (
         await benchmark(
-          Dijkstra as (G: typeof footGraph, [s]: [typeof sourceStopId]) => [Map<footGraphNodes, number>, Map<footGraphNodes, footGraphNodes>],
+          Dijkstra as (
+            G: typeof footGraph,
+            [s]: [typeof sourceStopId],
+          ) => [Map<FootStopsGraphNode, number>, Map<FootStopsGraphNode, FootStopsGraphNode>],
           [footGraph, [sourceStopId]],
         )
       ).lastReturn!;

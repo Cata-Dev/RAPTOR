@@ -3,7 +3,7 @@ import { RefType } from "@typegoose/typegoose/lib/types";
 import proj4, { TemplateCoordinates } from "proj4";
 import { node } from "@catatomik/dijkstra/lib/utils/Graph";
 
-export function euclidianDistance(x1: number, y1: number, x2: number, y2: number): number {
+export function euclideanDistance(x1: number, y1: number, x2: number, y2: number): number {
   return Math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2);
 }
 
@@ -31,12 +31,12 @@ export function dbIntersectionId(_id: number) {
   return `i=${_id}` as const;
 }
 
-export function dbSectionId(_id: number) {
+export function dbSectionId(_id: number | string) {
   return `s=${_id}` as const;
 }
 
-export function sectionId<S extends { rg_fv_graph_nd: node; rg_fv_graph_na: node }>({ rg_fv_graph_nd, rg_fv_graph_na }: S) {
-  return `${rg_fv_graph_nd}-${rg_fv_graph_na}` as const;
+export function sectionId<S extends { s: node; t: node }>({ s, t }: S) {
+  return `${s}-${t}` as const;
 }
 
 export const toWGS = (coordinates: TemplateCoordinates) =>

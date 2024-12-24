@@ -7,7 +7,6 @@ import { modelOptions } from "@typegoose/typegoose/lib/modelOptions";
 import { getName } from "@typegoose/typegoose/lib/internal/utils";
 import { Mongoose } from "mongoose";
 import { dbTBM_Stops } from "./TBM_stops.model";
-import { dbFootGraphNodes } from "./FootGraph.model";
 
 @modelOptions({ options: { customName: "NonScheduledRoutes" } })
 export class dbFootPaths {
@@ -20,8 +19,8 @@ export class dbFootPaths {
   @prop({ required: true })
   public distance!: number;
 
-  @prop({ ref: () => dbFootGraphNodes, type: () => String })
-  public path?: Ref<dbFootGraphNodes, dbFootGraphNodes["_id"]>[]; // Ref[] to intersections | stops
+  @prop({ type: () => [String] })
+  public path?: string[];
 }
 
 export default function init(db: Mongoose) {

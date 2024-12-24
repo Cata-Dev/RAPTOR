@@ -4,7 +4,7 @@
 
 import { TBMEndpoints } from ".";
 import { TimeStamps } from "@typegoose/typegoose/lib/defaultClasses";
-import { addModelToTypegoose, buildSchema, deleteModelWithClass, getModelForClass, prop } from "@typegoose/typegoose";
+import { type ReturnModelType, addModelToTypegoose, buildSchema, deleteModelWithClass, getModelForClass, prop } from "@typegoose/typegoose";
 import { modelOptions } from "@typegoose/typegoose/lib/modelOptions";
 import { getName } from "@typegoose/typegoose/lib/internal/utils";
 import { Mongoose } from "mongoose";
@@ -29,7 +29,7 @@ export class dbTBM_Stops extends TimeStamps {
   @prop({ required: true })
   public _id!: number;
 
-  @prop({ type: () => [Number, Number], required: true })
+  @prop({ type: () => [Number], required: true })
   public coords!: [number, number];
 
   @prop({ required: true })
@@ -52,7 +52,7 @@ export class dbTBM_Stops extends TimeStamps {
 //   coords: [number, number];
 // };
 
-export default function init(db: Mongoose) {
+export default function init(db: Mongoose): ReturnModelType<typeof dbTBM_Stops> {
   if (getModelForClass(dbTBM_Stops, { existingMongoose: db })) deleteModelWithClass(dbTBM_Stops);
 
   const dbTBM_StopsSchema = buildSchema(dbTBM_Stops, { existingMongoose: db });

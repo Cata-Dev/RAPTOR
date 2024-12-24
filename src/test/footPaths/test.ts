@@ -1,59 +1,42 @@
-import { HydratedDocument } from "mongoose";
-import initDB from "../utils/mongoose";
-import { benchmark } from "../utils/benchmark";
-import { WorkerPool } from "../utils/Workers";
-
-import { node, WeightedGraph } from "@catatomik/dijkstra/lib/utils/Graph";
-
-import Point from "./utils/Point";
-import Segment from "./utils/Segment";
-
+import { DijkstraOptions } from "@catatomik/dijkstra";
 export interface testOptions {
   getFullPaths?: boolean;
   computeGEOJSONs?: boolean;
   dijkstraOptions?: DijkstraOptions;
 }
-export type id = number;
-export type footGraphNodes = number | ReturnType<typeof approachedStopName>;
+
+export type FootStopsGraphNode = FootGraphNode<ReturnType<typeof approachedStopName>>;
+
+import { node } from "@catatomik/dijkstra/lib/utils/Graph";
+import { writeFile } from "fs/promises";
+import { cpus } from "os";
+import { TemplateCoordinates } from "proj4";
+import { Deferred, unique } from "../utils";
+import { benchmark, Duration } from "../utils/benchmark";
+import initDB from "../utils/mongoose";
+import { WorkerPool } from "../utils/Workers";
+import { computePath, initialCallback } from "./computePath";
+import { KeyOfMap } from "./utils";
+import { approachPoint, FootGraphNode, initData, makeGraph, refreshWithApproachedPoint, Section } from "./utils/graph";
+import Point from "./utils/Point";
+import { approachedStopName, computeGEOJSON, GEOJSON, sectionId, toWGS } from "./utils/ultils";
 
 // Needed to solve "Reflect.getMetadata is not a function" error of typegoose
 import "core-js/features/reflect";
 
-import sectionsModelInit, { dbSections } from "../models/sections.model";
+import FootGraphModelInit from "../models/FootGraph.model";
+import sectionsModelInit from "../models/sections.model";
 import stopsModelInit, { dbTBM_Stops } from "../models/TBM_stops.model";
-import { computePath, initialCallback } from "./computePath";
-import { DocumentType } from "@typegoose/typegoose";
-import {
-  approachedStopName,
-  euclidianDistance,
-  computeGEOJSON,
-  GEOJSON,
-  sectionId,
-  toWGS,
-  dbIntersectionId,
-  dbSectionId,
-  unpackRefType,
-} from "./utils/ultils";
-import { writeFile } from "fs/promises";
-import { TemplateCoordinates } from "proj4";
-import FootGraphModelInit, { dbFootGraphEdges, dbFootGraphNodes } from "../models/FootGraph.model";
-import FootPathsModelInit, { dbFootPaths } from "../models/FootPaths.model";
-import { KeyOfMap } from "./utils";
-import { DijkstraOptions } from "@catatomik/dijkstra";
-import { unique, Deferred } from "../utils";
+import { ProjectionType } from "mongoose";
 
-const sectionProjection = { coords: 1, distance: 1, rg_fv_graph_nd: 1, rg_fv_graph_na: 1, nom_voie: 1 };
-export type dbSection = Pick<dbSections, keyof typeof sectionProjection>;
-interface SectionOverwritten {
-  /** Will never be populated, so force to be RefType */
-  rg_fv_graph_nd: unpackRefType<dbSection["rg_fv_graph_nd"]> | ReturnType<typeof approachedStopName>;
-  /** Will never be populated, so force to be RefType */
-  rg_fv_graph_na: unpackRefType<dbSection["rg_fv_graph_nd"]> | ReturnType<typeof approachedStopName>;
+const stopProjection = { _id: 1, coords: 1, libelle: 1 } satisfies ProjectionType<dbTBM_Stops>;
+type dbStops = Pick<dbTBM_Stops, keyof typeof stopProjection>;
+interface StopOverwritten {
+  // Remove it
+  _id?: never;
 }
-export type Section = Omit<dbSection, keyof SectionOverwritten> & SectionOverwritten;
-
-const stopProjection = { _id: 1, coords: 1, libelle: 1 };
-export type Stop = Pick<dbTBM_Stops, keyof typeof stopProjection>;
+// Equivalent to an Edge
+type Stop = Omit<dbStops, keyof StopOverwritten> & StopOverwritten;
 
 export async function run({ getFullPaths = false, computeGEOJSONs = false, dijkstraOptions }: testOptions) {
   /** Data displaying.
@@ -61,70 +44,62 @@ export async function run({ getFullPaths = false, computeGEOJSONs = false, dijks
    */
   const GEOJSONs: GEOJSON[] = [];
 
-  //Grab required data
   const db = await initDB();
 
   const sectionsModel = sectionsModelInit(db);
   const stopsModel = stopsModelInit(db);
-  const [FootGraphModel, FootGraphNodesModel, FootGraphEdgesModel] = FootGraphModelInit(db);
-  const FootPathModel = FootPathsModelInit(db);
+  const FootGraphModel = FootGraphModelInit(db);
 
-  const limitTop = new Point(44.813926, -0.581271).fromWGSToLambert93();
-  const limitBot = new Point(44.793123, -0.632578).fromWGSToLambert93();
+  const limitTop = new Point(44.84264233493587, -0.5405778677677929).fromWGSToLambert93();
+  const limitBot = new Point(44.80597316767652, -0.5936222119727218).fromWGSToLambert93();
+  // const limitTop = new Point(44.813926, -0.581271).fromWGSToLambert93();
+  // const limitBot = new Point(44.793123, -0.632578).fromWGSToLambert93();
 
   async function queryData() {
-    //Important : sections are oriented => 2 entries per section
-    const sections = new Map(
-      (
-        (await sectionsModel
-          .find<HydratedDocument<DocumentType<Section>>>(
-            {
-              //Restrict domain
-              $and: [
-                { "coords.0.0": { $lte: limitTop.x } },
-                { "coords.0.0": { $gte: limitBot.x } },
-                { "coords.0.1": { $lte: limitTop.y } },
-                { "coords.0.1": { $gte: limitBot.y } },
-              ],
-              cat_dig: {
-                $in: [2, 3, 4, 5, 7, 9],
-              },
-            },
-            sectionProjection,
-          )
-          .lean()
-          // Coords field type lost...
-          .exec()) as unknown as Section[]
-      ).map((s) => [sectionId(s as { rg_fv_graph_nd: number; rg_fv_graph_na: number }), s] as const),
-    );
+    // Query data
+    const { edges, mappedSegments } = await initData(sectionsModel, {
+      $and: [
+        { "coords.0.0": { $lte: limitTop.x } },
+        { "coords.0.0": { $gte: limitBot.x } },
+        { "coords.0.1": { $lte: limitTop.y } },
+        { "coords.0.1": { $gte: limitBot.y } },
+      ],
+    })();
+    const sectionsById = new Map<
+      ReturnType<typeof sectionId> | ReturnType<typeof approachedStopName>,
+      Omit<Section, "t" | "s"> & {
+        t: Section["t"] | ReturnType<typeof approachedStopName>;
+        s: Section["s"] | ReturnType<typeof approachedStopName>;
+      }
+    >(Array.from(edges.values()).map((s) => [sectionId(s), s] satisfies [unknown, unknown]));
 
-    //Restricted domain
+    // Restricted domain
     const validIntersections = new Map(
-      Array.from(sections.values())
-        .flatMap((s) => [s.rg_fv_graph_nd as number, s.rg_fv_graph_na as number])
+      Array.from(edges.values())
+        .flatMap(({ s, t }) => [s, t])
         .filter(unique)
         .map((intersectionId) => {
           return [
             intersectionId,
             {
               _id: intersectionId,
-              coords: (Array.from(sections.values()).find((s) => s.rg_fv_graph_nd === intersectionId)?.coords[0] ??
-                Array.from(sections.values())
-                  .find((s) => s.rg_fv_graph_na === intersectionId)
+              coords: (Array.from(edges.values()).find(({ s }) => s === intersectionId)?.coords[0] ??
+                Array.from(edges.values())
+                  .find(({ t }) => t === intersectionId)
                   ?.coords.at(-1))!,
             },
           ] as const;
         }),
     );
 
-    const stops = new Map(
+    // Query stops
+    const stops = new Map<dbStops["_id"], Stop>(
       (
-        (await stopsModel
-          .find<HydratedDocument<DocumentType<Stop>>>(
+        await stopsModel
+          .find(
             {
               $and: [
                 { coords: { $not: { $elemMatch: { $eq: Infinity } } } },
-                //Restrict domain
                 { "coords.0": { $lte: limitTop.x } },
                 { "coords.0": { $gte: limitBot.x } },
                 { "coords.1": { $lte: limitTop.y } },
@@ -135,54 +110,35 @@ export async function run({ getFullPaths = false, computeGEOJSONs = false, dijks
           )
           .lean()
           // Coords field type lost...
-          .exec()) as unknown as Stop[]
-      )
-        .filter((s, _, arr) => !arr.find((ss) => s.coords[0] === ss.coords[0] && s.coords[1] === ss.coords[1] && s._id !== ss._id))
-        .map((s) => [s._id, s]),
+          .exec()
+      ).map((s) => [s._id, { coords: s.coords, libelle: s.libelle }]),
     );
 
-    return {
-      sections,
-      validIntersections,
-      stops,
-    };
+    return { edges, sectionsById, stops, mappedSegments, validIntersections };
   }
-  const b1 = await benchmark(queryData, []);
-  console.log("b1 ended");
-  if (!b1.lastReturn) throw new Error(`b1 return null`);
-  const { validIntersections, sections, stops } = b1.lastReturn;
+  const qData = await benchmark(queryData, []);
+  if (qData.lastReturn === null) throw new Error("Queried data null");
+  const { edges, sectionsById, stops, mappedSegments, validIntersections } = qData.lastReturn;
 
   /** Little helper to get a section easier */
-  function getSection(nd: node, na: node) {
-    return sections.get(sectionId({ rg_fv_graph_nd: nd, rg_fv_graph_na: na })) ?? sections.get(sectionId({ rg_fv_graph_nd: na, rg_fv_graph_na: nd }));
+  function getSection<S extends { s: node; t: node }>(section: S) {
+    return sectionsById.get(sectionId(section)) ?? sectionsById.get(sectionId(section));
   }
 
-  function makeGraph() {
-    const footGraph = new WeightedGraph<footGraphNodes>();
-
-    for (const s of sections.values()) {
-      //Oriented but don't care (foot graph)
-      footGraph.addEdge(s.rg_fv_graph_nd, s.rg_fv_graph_na, s.distance);
-    }
-
-    return footGraph;
-  }
-  const b2 = await benchmark(makeGraph, []);
-  console.log("b2 ended");
-  if (!b2.lastReturn) throw new Error(`b2 return null`);
-  const footGraph = b2.lastReturn;
+  // Make graph
+  const graph = makeGraph<FootStopsGraphNode>(edges);
 
   if (computeGEOJSONs)
     GEOJSONs.push(
       computeGEOJSON(
         // footGraph.nodes,
         [],
-        footGraph.arcs,
+        graph.arcs,
         () => [],
         // (node) =>
         //   toWGS(typeof node === "number" ? validIntersections.get(node)?.coords ?? [0, 0] : stops.get(parseInt(node.split("-")[0]))?.coords ?? [0, 0]),
-        (arc) =>
-          sections.get(sectionId({ rg_fv_graph_nd: arc[0], rg_fv_graph_na: arc[1] }))?.coords.map((coords) => toWGS(coords)) ?? [
+        ([s, t]) =>
+          sectionsById.get(sectionId({ s, t }))?.coords.map((coords) => toWGS(coords)) ?? [
             [0, 0],
             [0, 0],
           ],
@@ -191,127 +147,75 @@ export async function run({ getFullPaths = false, computeGEOJSONs = false, dijks
           "marker-color": "#5a5a5a",
           "marker-size": "small",
         }),
-        (arc) => ({
-          nom: Array.from(sections.values()).find((s) => s.rg_fv_graph_nd === arc[0] && s.rg_fv_graph_na === arc[1])?.nom_voie ?? "Unknown",
+        ([s, t]) => ({
+          nom: sectionsById.get(sectionId({ s, t }))?.nom_voie ?? "Unknown",
         }),
       ),
     );
 
-  //Compute approached stops
-  function computeApproachedStops() {
-    //Pre-generate segments to fasten the process (and not redundant computing)
-    //A segment describes a portion of a section (oriented)
-    const segments = new Map<KeyOfMap<typeof sections>, { n: number; seg: Segment }>();
-    for (const arc of footGraph.arcs) {
-      const sId = sectionId({ rg_fv_graph_nd: arc[0], rg_fv_graph_na: arc[1] });
-      const section = sections.get(sId);
-      if (!section) continue; // Added for ts mental health
-      for (let i = 0; i < section.coords.length - 1; i++) {
-        segments.set(sId, {
-          n: i,
-          seg: new Segment(new Point(...section.coords[i]), new Point(...section.coords[i + 1])),
-        });
+  function approachStops() {
+    // Approach stops & insert
+    const approachedStops = new Map<dbStops["_id"], NonNullable<ReturnType<typeof approachPoint>>>();
+
+    for (const [stopId, { coords }] of stops) {
+      const ap = approachPoint(mappedSegments, coords);
+      if (ap) {
+        const apn = approachedStopName(stopId);
+        approachedStops.set(stopId, ap);
+        const [toApproachedStop, fromApproachedStop] = refreshWithApproachedPoint(edges, graph, apn, ap);
+
+        const [pt, sId, k] = ap;
+
+        const edge = edges.get(sId)!;
+        sectionsById.delete(sectionId(edge));
+
+        // Keep track of sections for drawing
+        const subsectionToApproachedStop: Omit<Section, "t"> & { t: Section["t"] | ReturnType<typeof approachedStopName> } = {
+          coords: [...edge.coords.slice(0, k + 1), [pt.x, pt.y]],
+          distance: toApproachedStop,
+          nom_voie: edge.nom_voie,
+          s: edge.s,
+          t: apn,
+        };
+        sectionsById.set(sectionId(subsectionToApproachedStop), subsectionToApproachedStop);
+
+        const subsectionFromApproachedStop: Omit<Section, "t" | "s"> & {
+          t: Section["t"] | ReturnType<typeof approachedStopName>;
+          s: Section["s"] | ReturnType<typeof approachedStopName>;
+        } = {
+          coords: [[pt.x, pt.y], ...edge.coords.slice(k + 1)],
+          distance: fromApproachedStop,
+          nom_voie: edge.nom_voie,
+          s: apn,
+          t: edge.t,
+        };
+        sectionsById.set(sectionId(subsectionFromApproachedStop), subsectionFromApproachedStop);
       }
     }
 
-    /**@description [closest point, section containing this point, indice of segment composing the section] */
-    const approachedStops = new Map<ReturnType<typeof approachedStopName>, [Point, KeyOfMap<typeof sections>, number]>();
-    for (const [stopId, stop] of stops) {
-      /**@description [distance to closest point, closest point, section containing this point, indice of segment composing the section (i;i+1 in Section coords)] */
-      const closestPoint: [number, Point | null, KeyOfMap<typeof sections> | null, number | null] = [Infinity, null, null, null];
-
-      for (const [sectionKey, { n, seg }] of segments) {
-        const stopPoint: Point = new Point(...stop.coords);
-        const localClosestPoint: Point = seg.closestPointFromPoint(stopPoint);
-        const distance: number = Point.distance(stopPoint, localClosestPoint);
-        if (distance < closestPoint[0]) {
-          closestPoint[0] = distance;
-          closestPoint[1] = localClosestPoint;
-          closestPoint[2] = sectionKey;
-          closestPoint[3] = n;
-        }
-      }
-
-      if (closestPoint[1] !== null && closestPoint[2] !== null && closestPoint[3] !== null) {
-        approachedStops.set(approachedStopName(stopId), [closestPoint[1], closestPoint[2], closestPoint[3]]);
-        // else : couldn't find an approched stop (coords = Infinity)
-      }
-    }
     return approachedStops;
   }
-  const b3 = await benchmark(computeApproachedStops, []);
-  console.log("b3 ended");
-  if (!b3.lastReturn) throw new Error(`b3 return null`);
-  const approachedStops = b3.lastReturn;
-
-  /** Update {@link footGraph} & {@link sections} */
-  function refreshWithApproachedStops() {
-    //Pushes new approached stops into graph, just like a proxy on a section
-    for (const [stopId, [closestPoint, sectionKey, n]] of approachedStops) {
-      const section = sections.get(sectionKey);
-      if (!section) continue; // Added to ts mental health
-      //Compute distance from section start to approachedStop
-      const toApproadchedStop: number =
-        section.coords.reduce((acc, v, i, arr) => {
-          if (i < n && i < arr.length - 1) return acc + euclidianDistance(...v, ...arr[i + 1]);
-          return acc;
-        }, 0) + Point.distance(closestPoint, new Point(...section.coords[n]));
-
-      //Compute distance form approachedStop to section end
-      const fromApproachedStop: number =
-        section.coords.reduce((acc, v, i, arr) => {
-          if (i > n && i < arr.length - 1) return acc + euclidianDistance(...v, ...arr[i + 1]);
-          return acc;
-        }, 0) + Point.distance(closestPoint, new Point(...section.coords[n]));
-
-      //Remove edge from p1 to p2
-      footGraph.removeEdge(section.rg_fv_graph_nd, section.rg_fv_graph_na);
-      sections.delete(sectionId(section));
-
-      const insertedNode = stopId;
-      //Insert new node approachedStop
-      //Create edges from p1 to approachedStop, then from approachedStop to p2
-      const subsectionToApproachedStop: Section = {
-        coords: [...section.coords.slice(0, n + 1), [closestPoint.x, closestPoint.y]],
-        distance: toApproadchedStop,
-        nom_voie: section.nom_voie,
-        rg_fv_graph_nd: section.rg_fv_graph_nd,
-        rg_fv_graph_na: insertedNode,
-      };
-      footGraph.addEdge(section.rg_fv_graph_nd, insertedNode, toApproadchedStop);
-      sections.set(sectionId({ rg_fv_graph_nd: section.rg_fv_graph_nd, rg_fv_graph_na: insertedNode }), subsectionToApproachedStop);
-
-      const subsectionFromApproachedStop: Section = {
-        coords: [[closestPoint.x, closestPoint.y], ...section.coords.slice(n + 1)],
-        distance: fromApproachedStop,
-        nom_voie: section.nom_voie,
-        rg_fv_graph_nd: insertedNode,
-        rg_fv_graph_na: section.rg_fv_graph_na,
-      };
-      footGraph.addEdge(insertedNode, section.rg_fv_graph_na, fromApproachedStop);
-      sections.set(sectionId({ rg_fv_graph_nd: insertedNode, rg_fv_graph_na: section.rg_fv_graph_na }), subsectionFromApproachedStop);
-    }
-  }
-  const b4 = await benchmark(refreshWithApproachedStops, []);
-  console.log("b4 ended");
+  const appStops = await benchmark(approachStops, []);
+  if (appStops.lastReturn === null) throw new Error("Approached stops null");
+  const approachedStops = appStops.lastReturn;
 
   if (computeGEOJSONs)
     GEOJSONs.push(
       computeGEOJSON(
-        footGraph.nodes,
-        footGraph.arcs,
+        graph.nodes,
+        graph.arcs,
         // () => [],
         (node) => {
           let coords: [number, number] = [0, 0];
-          if (typeof node === "number") coords = validIntersections.get(node)?.coords ?? [0, 0];
+          if (typeof node === "number") coords = validIntersections.get(node)?.coords ?? coords;
           else {
-            const approachedStopPoint = approachedStops.get(node)?.[0];
+            const approachedStopPoint = approachedStops.get(parseInt(node.split("=")[1]))?.[0];
             if (approachedStopPoint) coords = [approachedStopPoint.x, approachedStopPoint.y];
           }
           return toWGS(coords);
         },
-        (arc) =>
-          getSection(arc[0], arc[1])?.coords.map((coords) => toWGS(coords)) ?? [
+        ([s, t]) =>
+          sectionsById.get(sectionId({ s, t }))?.coords.map((coords) => toWGS(coords)) ?? [
             [0, 0],
             [0, 0],
           ],
@@ -321,62 +225,76 @@ export async function run({ getFullPaths = false, computeGEOJSONs = false, dijks
           "marker-color": typeof node === "string" ? "#ff0000" : "#5a5a5a",
           "marker-size": typeof node === "string" ? "medium" : "small",
         }),
-        (arc) => ({
-          name: getSection(arc[0], arc[1])?.nom_voie ?? "Unknown",
-          distance: getSection(arc[0], arc[1])?.distance ?? "Unknown",
-          sectionId: sectionId({ rg_fv_graph_nd: arc[0], rg_fv_graph_na: arc[1] }),
-          stroke: typeof arc[0] === "string" || typeof arc[1] === "string" ? "#e60000" : "#5a5a5a",
+        ([s, t]) => ({
+          name: sectionsById.get(sectionId({ s, t }))?.nom_voie ?? "Unknown",
+          distance: sectionsById.get(sectionId({ s, t }))?.distance ?? "Unknown",
+          sectionId: sectionId({ s, t }),
+          stroke: typeof s === "string" || typeof t === "string" ? "#e60000" : "#5a5a5a",
         }),
       ),
     );
 
-  async function computePaths() {
-    //paths<source, <target, paths>>
+  function computePaths() {
+    // Compute all paths
+
+    // paths<source, <target, paths>>
     const paths = new Map<KeyOfMap<typeof stops>, Awaited<ReturnType<typeof computePath>>>();
 
     const def = new Deferred<typeof paths>();
 
-    const workerPool = new WorkerPool<typeof initialCallback, typeof computePath>(__dirname + "/computePath.js", 8, {
-      adj: footGraph.adj,
-      weights: footGraph.weights,
+    const workerPool = new WorkerPool<typeof initialCallback, typeof computePath>(__dirname + "/computePath.js", cpus().length, {
+      adj: graph.adj,
+      weights: graph.weights,
       stops: Array.from(stops.keys()),
       options: dijkstraOptions,
     });
 
+    const LOG_EVERY = 5;
+    let lastChunkInsertLogTime = Date.now();
     let rejected = false;
+    let totalCount = 0;
 
-    for (const stopId of stops.keys()) {
+    for (const stopId of approachedStops.keys()) {
       workerPool
         .run([approachedStopName(stopId), getFullPaths])
         .then((sourcePaths) => {
           paths.set(stopId, sourcePaths);
+          totalCount += sourcePaths.size;
           if (paths.size === approachedStops.size) def.resolve(paths);
         })
         .catch((r) => {
           if (rejected) return;
           rejected = true;
           def.reject(r);
+        })
+        .finally(() => {
+          if (paths.size % Math.round((stops.size / 100) * LOG_EVERY) === 0) {
+            const newTime = Date.now();
+            const progress = Math.round((paths.size / stops.size) * 1000) / 10;
+            console.log(
+              `Computing ATA paths done at ${progress}% (${totalCount}). Time since last ${LOG_EVERY}% compute & insert : ${new Duration(newTime - lastChunkInsertLogTime)}`,
+            );
+            lastChunkInsertLogTime = newTime;
+          }
         });
     }
 
     return def.promise;
   }
-  const b5 = await benchmark(computePaths, []);
-  console.log("b5 ended");
-  if (!b5.lastReturn) throw new Error(`b5 return null`);
-  const paths = b5.lastReturn;
+  const retComp = await benchmark(computePaths, []);
+  if (retComp.lastReturn === null) throw new Error(`Paths null`);
+  const paths = retComp.lastReturn;
 
-  // From "Les Harmonies"
   if (computeGEOJSONs)
     GEOJSONs.push(
       computeGEOJSON(
-        footGraph.nodes,
-        Array.from(paths.get(2832)!).filter(([_, [path]]) => path.length),
+        graph.nodes,
+        Array.from(paths.get(3094)!).filter(([_, [path]]) => path.length),
         (node) => {
           let coords: [number, number] = [0, 0];
           if (typeof node === "number") coords = validIntersections.get(node)?.coords ?? [0, 0];
           else {
-            const approachedStopPoint = approachedStops.get(node)?.[0];
+            const approachedStopPoint = approachedStops.get(parseInt(node.split("=")[1]))?.[0];
             if (approachedStopPoint) coords = [approachedStopPoint.x, approachedStopPoint.y];
           }
           return toWGS(coords);
@@ -388,9 +306,9 @@ export async function run({ getFullPaths = false, computeGEOJSONs = false, dijks
                 ? [
                     ...acc,
                     ...((
-                      sections.get(sectionId({ rg_fv_graph_nd: v, rg_fv_graph_na: path[i + 1] }))?.coords ??
-                      sections
-                        .get(sectionId({ rg_fv_graph_nd: path[i + 1], rg_fv_graph_na: v }))
+                      getSection({ s: v, t: path[i + 1] })?.coords ??
+                      sectionsById
+                        .get(sectionId({ s: path[i + 1], t: v }))
                         ?.coords // Make a copy & reverse to get coords in the right order, tricky
                         .slice()
                         .reverse()
@@ -416,19 +334,17 @@ export async function run({ getFullPaths = false, computeGEOJSONs = false, dijks
       ),
     );
 
-  //From "Les Harmonies" to "Peixotto"
-  const specificPath = paths.get(2832)?.get(2074);
-  if (!specificPath) throw new Error("Unable to retrieve stops");
-  if (computeGEOJSONs)
+  const specificPath = paths.get(3094)?.get(829) ?? paths.get(829)?.get(3094);
+  if (computeGEOJSONs && specificPath)
     GEOJSONs.push(
       computeGEOJSON(
-        footGraph.nodes,
+        graph.nodes,
         specificPath[0].reduce<[node, node][]>((acc, node, i, path) => (i < path.length - 1 ? [...acc, [node, path[i + 1]]] : acc), []),
         (node) => {
           let coords: [number, number] = [0, 0];
           if (typeof node === "number") coords = validIntersections.get(node)?.coords ?? [0, 0];
           else {
-            const approachedStopPoint = approachedStops.get(node)?.[0];
+            const approachedStopPoint = approachedStops.get(parseInt(node.split("=")[1]))?.[0];
             if (approachedStopPoint) coords = [approachedStopPoint.x, approachedStopPoint.y];
           }
           return toWGS(coords);
@@ -437,7 +353,7 @@ export async function run({ getFullPaths = false, computeGEOJSONs = false, dijks
           path.reduce<TemplateCoordinates[]>(
             (acc, v, i) =>
               i === 0
-                ? (getSection(v, path[i + 1])?.coords.map((coords) => toWGS(coords)) ?? [
+                ? (getSection({ s: v, t: path[i + 1] })?.coords.map((coords) => toWGS(coords)) ?? [
                     [0, 0],
                     [0, 0],
                   ])
@@ -457,56 +373,22 @@ export async function run({ getFullPaths = false, computeGEOJSONs = false, dijks
         }),
       ),
     );
+
   if (computeGEOJSONs) for (let i = 0; i < GEOJSONs.length; i++) await writeFile(__dirname + `/../../out-${i}.geojson`, JSON.stringify(GEOJSONs[i]));
 
   async function updateDb() {
-    //Empty db
+    // Empty db
     await FootGraphModel.deleteMany({});
 
-    await FootGraphNodesModel.insertMany(
-      Array.from(validIntersections.values())
-        .map<dbFootGraphNodes>(({ _id, coords }) => ({
-          _id: dbIntersectionId(_id),
-          coords,
-        }))
-        .concat(
-          Array.from(approachedStops).map(([asId, [Point]]) => ({
-            _id: asId,
-            coords: [Point.x, Point.y],
-          })),
-        ),
-    );
-
-    await FootGraphEdgesModel.insertMany(
-      Array.from(sections.values()).map<dbFootGraphEdges>((section, index) => ({
-        _id: dbSectionId(index),
-        coords: section.coords,
-        distance: section.distance,
-        ends: [
-          typeof section.rg_fv_graph_nd === "number" ? dbIntersectionId(section.rg_fv_graph_nd) : section.rg_fv_graph_nd,
-          typeof section.rg_fv_graph_na === "number" ? dbIntersectionId(section.rg_fv_graph_na) : section.rg_fv_graph_na,
-        ],
+    await FootGraphModel.insertMany(
+      graph.edges.map(([s, t]) => ({
+        distance: graph.weight(s, t),
+        ends: [s, t],
       })),
     );
-
-    await FootPathModel.deleteMany({});
-
-    await FootPathModel.insertMany(
-      Array.from(paths)
-        .filter(([_, paths]) => paths.size)
-        .map<dbFootPaths>(([from, [[to, [path, distance]]]]) => ({
-          from,
-          to,
-          path: path.map((node) => (typeof node === "number" ? dbIntersectionId(node) : node)),
-          distance,
-        })),
-    );
   }
-  const b6 = await benchmark(updateDb, []);
-  console.log("b6 ended");
+  await benchmark(updateDb, []);
 
-  //End procedure
+  // End procedure
   await db.disconnect();
-
-  return { b1, b2, b3, b4, b5, b6 };
 }
