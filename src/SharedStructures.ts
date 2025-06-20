@@ -297,7 +297,7 @@ class RouteRetriever
     return new ArrayView<Override<Trip<number>, SharedTrip>>(
       () => (this._tripsChunkSizes ??= this.tripsChunkSizes).length + (this.attachedData?.trips.length ?? 0),
       (idx) => {
-        if (this._tripsChunkSizes === null) this._tripsChunkSizes = this.tripsChunkSizes;
+        this._tripsChunkSizes ??= this.tripsChunkSizes;
 
         return idx < this._tripsChunkSizes.length
           ? new TripRetriever(
