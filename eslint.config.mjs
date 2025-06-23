@@ -20,7 +20,7 @@ export default tseslint.config(
     },
   },
   {
-    files: ["test/**/*.test.ts"],
+    files: ["test/**/*.ts"],
     extends: [eslint.configs.recommended, ...tseslint.configs.strictTypeChecked, ...tseslint.configs.stylisticTypeChecked],
     languageOptions: {
       parser: tseslint.parser,
