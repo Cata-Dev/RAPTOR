@@ -1,83 +1,30 @@
-import { Stop, Route, timestamp, FootPath, Id, RAPTORData, ArrayRead, MapRead, IRAPTORData } from "./Structures";
-
-export type LabelType = "DEFAULT" | "DEPARTURE" | "FOOT" | "VEHICLE";
-export type Label<SI extends Id, RI extends Id, T extends LabelType = LabelType> = T extends "VEHICLE"
-  ? {
-      /** @param boardedAt {@link SI} in {@link RAPTOR.stops} */
-      boardedAt: SI;
-      /** @param route {@link Route} in {@link RAPTOR.routes} */
-      route: Route<SI, RI>;
-      tripIndex: number;
-      time: timestamp; // Arrival time
-    }
-  : T extends "FOOT"
-    ? {
-        /** @param boardedAt {@link SI} in {@link RAPTOR.stops} */
-        boardedAt: SI;
-        /** @param boardedAt {@link SI} in {@link RAPTOR.stops} */
-        transfer: FootPath<SI>;
-        time: timestamp;
-      }
-    : T extends "DEPARTURE"
-      ? {
-          time: number;
-        }
-      : T extends "DEFAULT"
-        ? { time: InstanceType<typeof RAPTORData>["MAX_SAFE_TIMESTAMP"] }
-        : never;
-export type Journey<RI extends Id, SI extends Id> = Label<RI, SI, "DEPARTURE" | "VEHICLE" | "FOOT">[];
-
-export interface RAPTORRunSettings {
-  walkSpeed: number;
-}
+/* eslint-disable @typescript-eslint/no-non-null-assertion */
+import BaseRAPTOR, { RAPTORRunSettings } from "./base";
+import { Route, timestamp, Id, ArrayRead, Journey, Label, JourneyStep, makeJSComparable } from "./Structures";
 
 /**
  * @description A RAPTOR instance
  */
-export default class RAPTOR<SI extends Id = Id, RI extends Id = Id, TI extends Id = Id> {
+export default class RAPTOR<SI extends Id = Id, RI extends Id = Id, TI extends Id = Id> extends BaseRAPTOR<SI, RI, TI> {
   static defaultRounds = 6;
 
-  readonly stops: MapRead<SI, Stop<SI, RI>>;
-  readonly routes: MapRead<RI, Route<SI, RI, TI>>;
-
-  protected readonly MAX_SAFE_TIMESTAMP: number;
   /** @description A {@link Label} Ti(SI) represents the earliest known arrival time at stop SI with up to i trips. */
-  protected multiLabel: Map<SI, Label<SI, RI>>[] = [];
+  protected multiLabel: Map<SI, JourneyStep<SI, RI, 0>>[] = [];
   /** Set<{@link SI} in {@link stops}> */
   protected marked = new Set<SI>();
-  /** Round k <=> at most k transfers */
-  protected k = 0;
-
-  /**
-   * @description Creates a new RAPTOR instance for a defined network.
-   */
-  constructor(data: IRAPTORData<SI, RI, TI>) {
-    this.stops = data.stops;
-    this.routes = data.routes;
-    this.MAX_SAFE_TIMESTAMP = data.MAX_SAFE_TIMESTAMP;
-  }
-
-  /**
-   * @param length Length of the path.
-   * @param walkSpeed Walk speed, in m/s
-   * @returns Duration in ms
-   */
-  protected walkDuration(length: number, walkSpeed: RAPTORRunSettings["walkSpeed"]): number {
-    return (length / walkSpeed) * 1000;
-  }
 
   /**
    * @description Finds the earliest {@link Trip} on the route r at the stop p.
    * @param r Route Id.
    * @param p Stop Id.
-   * @param k Current round.
    * @returns The earliest {@link Trip} on the route (and its index) r at the stop p, or null if no one is catchable.
    */
   protected et(route: Route<SI, RI>, p: SI): { tripIndex: number; boardedAt: SI } | null {
     for (let t = 0; t < route.trips.length; t++) {
       // Catchable
       const tDep = route.departureTime(t, route.stops.indexOf(p));
-      if (tDep < this.MAX_SAFE_TIMESTAMP && tDep >= (this.multiLabel[this.k - 1].get(p)?.time ?? Infinity)) return { tripIndex: t, boardedAt: p };
+      if (tDep < this.MAX_SAFE_TIMESTAMP && tDep >= (this.multiLabel[this.k - 1].get(p)?.label.time ?? Infinity))
+        return { tripIndex: t, boardedAt: p };
     }
     return null;
   }
@@ -91,9 +38,12 @@ export default class RAPTOR<SI extends Id = Id, RI extends Id = Id, TI extends I
       for (const transfer of stop.transfers) {
         if (transfer.to === p) continue;
 
-        const arrivalTime: timestamp = (this.multiLabel[this.k].get(p)?.time ?? Infinity) + this.walkDuration(transfer.length, walkSpeed);
-        if (arrivalTime < (this.multiLabel[this.k].get(transfer.to)?.time ?? Infinity)) {
-          this.multiLabel[this.k].set(transfer.to, { boardedAt: p, transfer, time: arrivalTime });
+        const arrivalTime: timestamp = (this.multiLabel[this.k].get(p)?.label.time ?? Infinity) + this.walkDuration(transfer.length, walkSpeed);
+        if (arrivalTime < (this.multiLabel[this.k].get(transfer.to)?.label.time ?? Infinity)) {
+          this.multiLabel[this.k].set(
+            transfer.to,
+            makeJSComparable<SI, RI, 0, "FOOT">({ boardedAt: p, transfer, label: new Label([], arrivalTime) }),
+          );
 
           this.marked.add(transfer.to);
         }
@@ -110,15 +60,15 @@ export default class RAPTOR<SI extends Id = Id, RI extends Id = Id, TI extends I
    */
   run(ps: SI, pt: SI, departureTime: timestamp, settings: RAPTORRunSettings, rounds: number = RAPTOR.defaultRounds) {
     //Re-initialization
-    this.multiLabel = Array.from({ length: rounds }, () => new Map<SI, Label<SI, RI>>());
+    this.multiLabel = Array.from({ length: rounds }, () => new Map<SI, JourneyStep<SI, RI, 0>>());
     this.marked = new Set<SI>();
     this.k = 0;
 
     // Initialization
     for (const [stopId] of this.stops) {
-      this.multiLabel[this.k].set(stopId, { time: Infinity });
+      this.multiLabel[this.k].set(stopId, makeJSComparable({ label: new Label([], Infinity) }));
     }
-    this.multiLabel[this.k].set(ps, { time: departureTime });
+    this.multiLabel[this.k].set(ps, makeJSComparable({ label: new Label([], departureTime) }));
     this.marked.add(ps);
 
     // Preliminary foot-paths lookup to join stops close to ps => use them in first round as fake departure stops
@@ -131,7 +81,7 @@ export default class RAPTOR<SI extends Id = Id, RI extends Id = Id, TI extends I
       // Copying
       for (const [stopId] of this.stops) {
         const value = this.multiLabel[this.k - 1].get(stopId);
-        this.multiLabel[this.k].set(stopId, value ?? { time: Infinity });
+        this.multiLabel[this.k].set(stopId, value ?? makeJSComparable({ label: new Label([], Infinity) }));
       }
 
       // Mark improvement
@@ -162,17 +112,19 @@ export default class RAPTOR<SI extends Id = Id, RI extends Id = Id, TI extends I
 
           // Improve periods, local & target pruning
           if (t !== null) {
-            const arrivalTime: timestamp = route.trips.at(t.tripIndex)!.times.at(i)![0] ?? this.MAX_SAFE_TIMESTAMP;
-            if (arrivalTime < Math.min(this.multiLabel[this.k].get(pi)?.time ?? Infinity, this.multiLabel[this.k].get(pt)?.time ?? Infinity)) {
+            const arrivalTime: timestamp = route.trips.at(t.tripIndex)!.times.at(i)![0];
+            if (
+              arrivalTime < Math.min(this.multiLabel[this.k].get(pi)?.label.time ?? Infinity, this.multiLabel[this.k].get(pt)?.label.time ?? Infinity)
+            ) {
               // local & target pruning
-              this.multiLabel[this.k].set(pi, { ...t, route, time: arrivalTime });
+              this.multiLabel[this.k].set(pi, makeJSComparable<SI, RI, 0, "VEHICLE">({ ...t, route, label: new Label([], arrivalTime) }));
               this.marked.add(pi);
             }
           }
 
           if (!t) t = this.et(route, pi);
           // Catch an earlier trip at pi ?
-          else if ((this.multiLabel[this.k - 1].get(pi)?.time ?? Infinity) <= route.departureTime(t.tripIndex, i)) {
+          else if ((this.multiLabel[this.k - 1].get(pi)?.label.time ?? Infinity) <= route.departureTime(t.tripIndex, i)) {
             const newEt = this.et(route, pi);
             if (t.tripIndex !== newEt?.tripIndex) {
               t = newEt;
@@ -189,41 +141,41 @@ export default class RAPTOR<SI extends Id = Id, RI extends Id = Id, TI extends I
     }
   }
 
-  protected traceBack(from: SI, initRound: number): Journey<SI, RI> {
+  protected traceBack(from: SI, initRound: number): Journey<SI, RI, 0> {
     if (initRound < 1 || initRound > this.multiLabel.length) throw new Error(`Invalid round (${initRound}) provided.`);
 
     let k = initRound;
-    let trace: Journey<SI, RI> = [];
+    let trace: Journey<SI, RI, 0> = [];
 
     let previousStop: SI | null = from;
     while (previousStop !== null) {
       if (k < 0) throw new Error(`No journey in round ${initRound}.`); // Unable to get back to source
 
-      const previousLabel = this.multiLabel[k].get(previousStop);
-      if (!previousLabel) throw new Error(`Invalid stop ${previousStop}.`); // Should never get here, unless invalid "from" stop
+      const previousStep = this.multiLabel[k].get(previousStop);
+      if (!previousStep) throw new Error(`Invalid stop ${previousStop}.`); // Should never get here, unless invalid "from" stop
 
-      if (!("boardedAt" in previousLabel)) {
-        if (previousLabel.time >= this.MAX_SAFE_TIMESTAMP) {
+      if (!("boardedAt" in previousStep)) {
+        if (previousStep.label.time >= this.MAX_SAFE_TIMESTAMP) {
           k--;
           continue;
         }
 
         previousStop = null;
       } else {
-        if (trace.find((j) => "boardedAt" in j && j.boardedAt === previousLabel.boardedAt && j.time === previousLabel.time))
+        if (trace.find((j) => "boardedAt" in j && j.boardedAt === previousStep.boardedAt && j.label.time === previousStep.label.time))
           throw new Error(`Impossible journey (cyclic).`);
 
-        previousStop = previousLabel.boardedAt;
+        previousStop = previousStep.boardedAt;
       }
 
-      trace = [previousLabel, ...trace];
+      trace = [previousStep, ...trace];
     }
 
     return trace;
   }
 
-  getBestJourneys(pt: SI): (null | Journey<SI, RI>)[] {
-    const journeys: (null | Journey<SI, RI>)[] = Array.from({ length: this.multiLabel.length }, () => null);
+  getBestJourneys(pt: SI): (null | Journey<SI, RI, 0>)[] {
+    const journeys: (null | Journey<SI, RI, 0>)[] = Array.from({ length: this.multiLabel.length }, () => null);
 
     for (let k = 1; k < journeys.length; k++) {
       try {

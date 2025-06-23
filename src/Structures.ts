@@ -1,13 +1,14 @@
 /**
  * A timestamp representation of a Date ; in milliseconds.
  */
-export type timestamp = number;
-export type Id = number | string;
+type timestamp = number;
+type Id = number | string;
+type LabelType = "DEFAULT" | "DEPARTURE" | "FOOT" | "VEHICLE";
 
 /**
  * General {@link Array} subpart, constrained to some read-only features.
  */
-export interface ArrayRead<T> {
+interface ArrayRead<T> {
   at: InstanceType<typeof Array<T>>["at"];
   readonly length: number;
   [Symbol.iterator]: () => ArrayIterator<T>;
@@ -20,7 +21,7 @@ export interface ArrayRead<T> {
 /**
  * General {@link Map} subpart, constrained to some read-only features.
  */
-export interface MapRead<K, V> {
+interface MapRead<K, V> {
   [Symbol.iterator]: () => MapIterator<[K, V]>;
   get: (key: K) => V | undefined;
 }
@@ -28,7 +29,7 @@ export interface MapRead<K, V> {
 /**
  * @description A Trip, i.e. a succession of stop times.
  */
-export interface Trip<TI extends Id = Id> {
+interface Trip<TI extends Id = Id> {
   id: TI;
   /**
    * @param stopTimes Time of arrival & departure at each stop.
@@ -36,7 +37,7 @@ export interface Trip<TI extends Id = Id> {
   times: ArrayRead<[timestamp, timestamp]>;
 }
 
-export interface FootPath<SI extends Id> {
+interface FootPath<SI extends Id> {
   to: SI;
   length: number;
 }
@@ -44,7 +45,7 @@ export interface FootPath<SI extends Id> {
 /**
  * @description A Stop, i.e. a geographical specific point that is connected to routes.
  */
-export interface Stop<SI extends Id, RI extends Id> {
+interface Stop<SI extends Id, RI extends Id> {
   readonly id: SI;
   readonly connectedRoutes: ArrayRead<RI>;
   readonly transfers: ArrayRead<FootPath<SI>>;
@@ -53,7 +54,7 @@ export interface Stop<SI extends Id, RI extends Id> {
 /**
  * @description A Route, i.e. a succession of geographical specific points (stops) alongside with their corresponding operated trips.
  */
-export class Route<SI extends Id, RI extends Id, TI extends Id = Id> {
+class Route<SI extends Id, RI extends Id, TI extends Id = Id> {
   /**
    * @description Creates a new Route. Note that stops and trips are linked : they are cross-connected.
    */
@@ -73,14 +74,229 @@ export class Route<SI extends Id, RI extends Id, TI extends Id = Id> {
   }
 }
 
-export interface IRAPTORData<SI extends Id = Id, RI extends Id = Id, TI extends Id = Id> {
+interface Comparable<T> {
+  /* Compares with another value `other`, returns `-1` if it's superior to `other`, `0` if equal, `1` otherwise */
+  compare(other: T): -1 | 0 | 1;
+}
+
+/**
+ * A bag, i.e. a set using a custom comparison function, keeping only minimal values.
+ *
+ * Warning: once added, elements in the set should not change -- no comparison and filtering would be done in such a case.
+ */
+
+type Tuple<T, L extends number, TU extends T[] = []> = TU extends { length: L } ? TU : Tuple<T, L, [...TU, T]>;
+// type Length<TU extends unknown[]> = TU extends { length: infer L } ? L : never;
+// type Add<A extends number, B extends number> = Length<[...Tuple<unknown, A>, ...Tuple<unknown, B>]>;
+
+type Criterion = () => number;
+
+/** A tuple of size N+1 (time + other criteria) */
+class Label<N extends number> implements Comparable<Label<N>> {
+  protected readonly values: [timestamp, ...Tuple<number, N>];
+
+  constructor(
+    protected readonly criteria: Tuple<Criterion, N>,
+    time: number,
+    values?: Tuple<number, N>,
+  ) {
+    this.values = [time, ...((values ?? Array.from({ length: (criteria as Criterion[]).length }, () => Infinity)) as Tuple<number, N>)];
+  }
+
+  get time() {
+    return this.values[0];
+  }
+
+  updateTime(time: number) {
+    return new Label<N>(this.criteria, time, this.values.slice(1) as Tuple<number, N>);
+  }
+
+  update(timeOrData: number | Parameters<Criterion>): Label<N>;
+  update(time: number, data: never): Label<N>;
+  update(timeOrData: number | Parameters<Criterion>, data?: Parameters<Criterion>) {
+    return new Label<N>(
+      this.criteria,
+      typeof timeOrData === "number" ? timeOrData : this.values[0],
+      timeOrData instanceof Array
+        ? ((this.criteria as Criterion[]).map((f) => f(...timeOrData)) as Tuple<number, N>)
+        : data
+          ? ((this.criteria as Criterion[]).map((f) => f(...data)) as Tuple<number, N>)
+          : (this.values.slice(1) as Tuple<number, N>),
+    );
+  }
+
+  /**
+   * Compares this label with another by checking criteria domination.
+   * @param l The label to be compared with
+   * @returns `-1` if this label is dominated by {@link l}, `0` if they are equal, `1` otherwise
+   */
+  compare(l: Label<N>): -1 | 0 | 1 {
+    let inf: 0 | 1 = 0;
+    for (const [i, v] of (this.values as number[]).entries()) {
+      if (v > (l.values as number[])[i]) return -1;
+      if (v < (l.values as number[])[i]) inf = 1;
+    }
+
+    return inf;
+  }
+}
+
+type JourneyStep<SI extends Id, RI extends Id, N extends number, T extends LabelType = LabelType> = Comparable<JourneyStep<SI, RI, N>> & {
+  label: Label<N>;
+} & (T extends "VEHICLE"
+    ? {
+        /** @param boardedAt {@link SI} in {@link RAPTOR.stops} */
+        boardedAt: SI;
+        /** @param route {@link Route} in {@link RAPTOR.routes} */
+        route: Route<SI, RI>;
+        tripIndex: number;
+      }
+    : T extends "FOOT"
+      ? {
+          /** @param boardedAt {@link SI} in {@link RAPTOR.stops} */
+          boardedAt: SI;
+          /** @param boardedAt {@link SI} in {@link RAPTOR.stops} */
+          transfer: FootPath<SI>;
+        }
+      : // eslint-disable-next-line @typescript-eslint/no-empty-object-type
+        {});
+
+function makeJSComparable<SI extends Id, RI extends Id, N extends number, T extends LabelType = LabelType>(
+  partialJourneyStep: Omit<JourneyStep<SI, RI, N, T>, keyof Comparable<JourneyStep<SI, RI, N>>>,
+): JourneyStep<SI, RI, N, T> {
+  return { ...partialJourneyStep, compare: (js: JourneyStep<SI, RI, N>) => partialJourneyStep.label.compare(js.label) } as JourneyStep<SI, RI, N, T>;
+}
+
+type Journey<SI extends Id, RI extends Id, N extends number> = JourneyStep<SI, RI, N, "DEPARTURE" | "VEHICLE" | "FOOT">[];
+
+class Bag<T extends Comparable<T>> {
+  protected readonly inner: { val: T; dominated: boolean }[] = [];
+
+  /**
+   * Create (O(n)) a new bag from another.
+   * Does NOT copy elements -- they have the same reference.
+   * @param bag
+   */
+  static from<T extends Comparable<T>>(bag: InstanceType<typeof Bag<T>>): Bag<T> {
+    const b = new Bag<T>();
+    b.inner.push(...bag.inner);
+    return b;
+  }
+
+  /**
+   * O(1)
+   */
+  get size() {
+    return this.inner.length;
+  }
+
+  /**
+   * Adds (O(n)) an element in the bag, marking new dominated values but not removing them, see {@link add}.
+   * @param el Element to add in the bag
+   * @returns The bag itself
+   */
+  addOnly(el: T) {
+    let inf = false;
+
+    for (const v of this.inner)
+      if (!v.dominated && el.compare(v.val) == 1) {
+        inf = true;
+        v.dominated = true;
+      }
+
+    if (inf) {
+      this.inner.push({ val: el, dominated: false });
+      return true;
+    }
+
+    return false;
+  }
+
+  /**
+   * Removes (O(n^2)) dominated elements
+   * @returns #Removed elements
+   */
+  prune() {
+    const initialSize = this.size;
+
+    let i = 0;
+    while (i < this.size)
+      if (this.inner[i].dominated) this.inner.splice(i, 1);
+      else ++i;
+
+    return this.size - initialSize;
+  }
+
+  /**
+   * Adds (O(n^2)) an element in the bag, keeping only minimal values.
+   * @param el Element to add in the bag
+   * @returns The bag itself
+   */
+  add(el: T) {
+    const added = this.addOnly(el);
+    const pruned = this.prune();
+
+    return { added, pruned };
+  }
+
+  /**
+   * {@link add}s (O(n^2)) everything from another bag in this bag.
+   * @param b Bag to merge from
+   * @returns Number of added elements
+   */
+  merge(b: Bag<T>) {
+    const initialSize = this.size;
+
+    for (const elNew of b.inner) {
+      if (!elNew.dominated) this.addOnly(elNew.val);
+    }
+
+    const pruned = this.prune();
+
+    return { added: this.size - initialSize + pruned, pruned };
+  }
+
+  updateOnly(oldEl: T, newEl: T) {
+    let idx: number | null = null;
+    let dom = false;
+
+    for (const [i, v] of this.inner.entries()) {
+      if (v.val === oldEl) idx = i;
+      else if (!v.dominated) {
+        const cmp = newEl.compare(v.val);
+        if (cmp == 1) v.dominated = true;
+        if (cmp == -1) dom = true;
+      }
+    }
+
+    if (idx) {
+      this.inner[idx].val = newEl;
+      this.inner[idx].dominated = dom;
+    }
+
+    return this;
+  }
+
+  update(oldEl: T, newEl: T) {
+    this.updateOnly(oldEl, newEl);
+    this.prune();
+
+    return this;
+  }
+
+  *[Symbol.iterator]() {
+    for (const v of this.inner) if (!v.dominated) yield v.val;
+  }
+}
+
+interface IRAPTORData<SI extends Id = Id, RI extends Id = Id, TI extends Id = Id> {
   readonly MAX_SAFE_TIMESTAMP: number;
   readonly stops: MapRead<SI, Stop<SI, RI>>;
   readonly routes: MapRead<RI, Route<SI, RI, TI>>;
   attachData: (...args: never[]) => void;
 }
 
-export class RAPTORData<SI extends Id = Id, RI extends Id = Id, TI extends Id = Id> implements IRAPTORData<SI, RI, TI> {
+class RAPTORData<SI extends Id = Id, RI extends Id = Id, TI extends Id = Id> implements IRAPTORData<SI, RI, TI> {
   static readonly MAX_SAFE_TIMESTAMP: number = 8_640_000_000_000_000;
   readonly MAX_SAFE_TIMESTAMP: number = RAPTORData.MAX_SAFE_TIMESTAMP;
   readonly _stops: MapRead<SI, Stop<SI, RI>>;
@@ -116,6 +332,7 @@ export class RAPTORData<SI extends Id = Id, RI extends Id = Id, TI extends Id = 
         const seen = new Set<SI>();
 
         for (const [k] of this._stops) {
+          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
           yield [k, this.getStop(k)!] satisfies [SI, Stop<SI, RI>];
           seen.add(k);
         }
@@ -154,6 +371,7 @@ export class RAPTORData<SI extends Id = Id, RI extends Id = Id, TI extends Id = 
         for (const [k] of this._routes) {
           // No need to check in `seen` : considering no duplication inside `this._routes`
 
+          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
           yield [k, this.getRoute(k)!] satisfies [RI, Route<SI, RI, TI>];
           seen.add(k);
         }
@@ -179,3 +397,24 @@ export class RAPTORData<SI extends Id = Id, RI extends Id = Id, TI extends Id = 
     this.attachedRoutes = new Map(routes.map(([rId, stopsIds, trips]) => [rId, new Route(rId, stopsIds, trips)] as const));
   }
 }
+
+export {
+  timestamp,
+  Id,
+  LabelType,
+  Label,
+  JourneyStep,
+  makeJSComparable,
+  Journey,
+  Criterion,
+  Bag,
+  Trip,
+  FootPath,
+  Stop,
+  Route,
+  ArrayRead,
+  MapRead,
+  RAPTORData,
+  IRAPTORData,
+  Tuple,
+};

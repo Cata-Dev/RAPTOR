@@ -415,7 +415,7 @@ export class SharedRAPTORData implements IRAPTORData<number | SerializedId, numb
     // Stops length in data buffer
     const stopsDataLengthChunk = new DataView(this.data, 0, Float64Array.BYTES_PER_ELEMENT);
     const getStopsChunkSize = () => stopsDataLengthChunk.getFloat64(0);
-    const setStopsChunkSize = (length: number) => stopsDataLengthChunk.setFloat64(0, length);
+    const setStopsChunkSize = (length: number) => { stopsDataLengthChunk.setFloat64(0, length); };
 
     if (stopsChunkSize !== null) setStopsChunkSize(stopsChunkSize);
 
