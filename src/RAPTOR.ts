@@ -9,7 +9,7 @@ export default class RAPTOR<SI extends Id = Id, RI extends Id = Id, TI extends I
   static defaultRounds = 6;
 
   /** @description A {@link Label} Ti(SI) represents the earliest known arrival time at stop SI with up to i trips. */
-  protected multiLabel: Map<SI, JourneyStep<SI, RI, 0>>[] = [];
+  protected multiLabel: Map<SI, JourneyStep<SI, RI, []>>[] = [];
   /** Set<{@link SI} in {@link stops}> */
   protected marked = new Set<SI>();
 
@@ -42,7 +42,7 @@ export default class RAPTOR<SI extends Id = Id, RI extends Id = Id, TI extends I
         if (arrivalTime < (this.multiLabel[this.k].get(transfer.to)?.label.time ?? Infinity)) {
           this.multiLabel[this.k].set(
             transfer.to,
-            makeJSComparable<SI, RI, 0, "FOOT">({ boardedAt: p, transfer, label: new Label([], arrivalTime) }),
+            makeJSComparable<SI, RI, [], "FOOT">({ boardedAt: p, transfer, label: new Label([], arrivalTime) }),
           );
 
           this.marked.add(transfer.to);
@@ -60,7 +60,7 @@ export default class RAPTOR<SI extends Id = Id, RI extends Id = Id, TI extends I
    */
   run(ps: SI, pt: SI, departureTime: timestamp, settings: RAPTORRunSettings, rounds: number = RAPTOR.defaultRounds) {
     //Re-initialization
-    this.multiLabel = Array.from({ length: rounds }, () => new Map<SI, JourneyStep<SI, RI, 0>>());
+    this.multiLabel = Array.from({ length: rounds }, () => new Map<SI, JourneyStep<SI, RI, []>>());
     this.marked = new Set<SI>();
     this.k = 0;
 
@@ -80,8 +80,8 @@ export default class RAPTOR<SI extends Id = Id, RI extends Id = Id, TI extends I
     for (this.k = 1; this.k < rounds; this.k++) {
       // Copying
       for (const [stopId] of this.stops) {
-        const value = this.multiLabel[this.k - 1].get(stopId);
-        this.multiLabel[this.k].set(stopId, value ?? makeJSComparable({ label: new Label([], Infinity) }));
+        const value = this.multiLabel[this.k - 1].get(stopId)!;
+        this.multiLabel[this.k].set(stopId, value);
       }
 
       // Mark improvement
@@ -117,7 +117,7 @@ export default class RAPTOR<SI extends Id = Id, RI extends Id = Id, TI extends I
               arrivalTime < Math.min(this.multiLabel[this.k].get(pi)?.label.time ?? Infinity, this.multiLabel[this.k].get(pt)?.label.time ?? Infinity)
             ) {
               // local & target pruning
-              this.multiLabel[this.k].set(pi, makeJSComparable<SI, RI, 0, "VEHICLE">({ ...t, route, label: new Label([], arrivalTime) }));
+              this.multiLabel[this.k].set(pi, makeJSComparable<SI, RI, [], "VEHICLE">({ ...t, route, label: new Label([], arrivalTime) }));
               this.marked.add(pi);
             }
           }
@@ -141,11 +141,11 @@ export default class RAPTOR<SI extends Id = Id, RI extends Id = Id, TI extends I
     }
   }
 
-  protected traceBack(from: SI, initRound: number): Journey<SI, RI, 0> {
+  protected traceBack(from: SI, initRound: number): Journey<SI, RI, []> {
     if (initRound < 1 || initRound > this.multiLabel.length) throw new Error(`Invalid round (${initRound}) provided.`);
 
     let k = initRound;
-    let trace: Journey<SI, RI, 0> = [];
+    let trace: Journey<SI, RI, []> = [];
 
     let previousStop: SI | null = from;
     while (previousStop !== null) {
@@ -174,8 +174,8 @@ export default class RAPTOR<SI extends Id = Id, RI extends Id = Id, TI extends I
     return trace;
   }
 
-  getBestJourneys(pt: SI): (null | Journey<SI, RI, 0>)[] {
-    const journeys: (null | Journey<SI, RI, 0>)[] = Array.from({ length: this.multiLabel.length }, () => null);
+  getBestJourneys(pt: SI): (null | Journey<SI, RI, []>)[] {
+    const journeys: (null | Journey<SI, RI, []>)[] = Array.from({ length: this.multiLabel.length }, () => null);
 
     for (let k = 1; k < journeys.length; k++) {
       try {

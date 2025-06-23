@@ -79,49 +79,41 @@ interface Comparable<T> {
   compare(other: T): -1 | 0 | 1;
 }
 
-/**
- * A bag, i.e. a set using a custom comparison function, keeping only minimal values.
- *
- * Warning: once added, elements in the set should not change -- no comparison and filtering would be done in such a case.
- */
-
-type Tuple<T, L extends number, TU extends T[] = []> = TU extends { length: L } ? TU : Tuple<T, L, [...TU, T]>;
-// type Length<TU extends unknown[]> = TU extends { length: infer L } ? L : never;
-// type Add<A extends number, B extends number> = Length<[...Tuple<unknown, A>, ...Tuple<unknown, B>]>;
-
-type Criterion = () => number;
+interface Criterion<SI extends Id, RI extends Id, C extends string[], N extends C[number] = C[number]> {
+  name: N;
+  update: (prefixJourney: Journey<SI, RI, C>, newJourneyStep: Omit<JourneyStep<SI, RI, C>, "label">, time: timestamp, stop: SI) => number;
+}
 
 /** A tuple of size N+1 (time + other criteria) */
-class Label<N extends number> implements Comparable<Label<N>> {
-  protected readonly values: [timestamp, ...Tuple<number, N>];
+class Label<SI extends Id, RI extends Id, C extends string[]> implements Comparable<Label<SI, RI, C>> {
+  protected readonly values: { time: timestamp } & Record<C[number], number>;
 
   constructor(
-    protected readonly criteria: Tuple<Criterion, N>,
+    protected readonly criteria: { [K in keyof C]: Criterion<SI, RI, C> }, //, K
     time: number,
-    values?: Tuple<number, N>,
+    values?: { [K in keyof C]: number },
   ) {
-    this.values = [time, ...((values ?? Array.from({ length: (criteria as Criterion[]).length }, () => Infinity)) as Tuple<number, N>)];
+    this.values = criteria.reduce<Partial<{ time: timestamp } & Record<C[number], number>>>(
+      (acc, v, i) => ({ ...acc, [(v as Criterion<SI, RI, C>).name]: values?.[i] ?? Infinity }),
+      {
+        time,
+      } as Partial<{ time: timestamp } & Record<C[number], number>>,
+    ) as { time: timestamp } & Record<C[number], number>;
   }
 
   get time() {
-    return this.values[0];
+    return this.values.time;
   }
 
-  updateTime(time: number) {
-    return new Label<N>(this.criteria, time, this.values.slice(1) as Tuple<number, N>);
+  value(criterionName: C[number]): number {
+    return this.values[criterionName];
   }
 
-  update(timeOrData: number | Parameters<Criterion>): Label<N>;
-  update(time: number, data: never): Label<N>;
-  update(timeOrData: number | Parameters<Criterion>, data?: Parameters<Criterion>) {
-    return new Label<N>(
+  update(time: number, data: Parameters<Criterion<SI, RI, C>["update"]>) {
+    return new Label<SI, RI, C>(
       this.criteria,
-      typeof timeOrData === "number" ? timeOrData : this.values[0],
-      timeOrData instanceof Array
-        ? ((this.criteria as Criterion[]).map((f) => f(...timeOrData)) as Tuple<number, N>)
-        : data
-          ? ((this.criteria as Criterion[]).map((f) => f(...data)) as Tuple<number, N>)
-          : (this.values.slice(1) as Tuple<number, N>),
+      time,
+      (this.criteria as Criterion<SI, RI, C>[]).map((c) => c.update(...data)) as { [K in keyof typeof this.criteria]: number },
     );
   }
 
@@ -130,19 +122,19 @@ class Label<N extends number> implements Comparable<Label<N>> {
    * @param l The label to be compared with
    * @returns `-1` if this label is dominated by {@link l}, `0` if they are equal, `1` otherwise
    */
-  compare(l: Label<N>): -1 | 0 | 1 {
+  compare(l: Label<SI, RI, C>): -1 | 0 | 1 {
     let inf: 0 | 1 = 0;
-    for (const [i, v] of (this.values as number[]).entries()) {
-      if (v > (l.values as number[])[i]) return -1;
-      if (v < (l.values as number[])[i]) inf = 1;
+    for (const criterionName of Object.keys(this.values) as (keyof typeof this.values)[]) {
+      if (this.values[criterionName] > l.values[criterionName]) return -1;
+      if (this.values[criterionName] < l.values[criterionName]) inf = 1;
     }
 
     return inf;
   }
 }
 
-type JourneyStep<SI extends Id, RI extends Id, N extends number, T extends LabelType = LabelType> = Comparable<JourneyStep<SI, RI, N>> & {
-  label: Label<N>;
+type JourneyStep<SI extends Id, RI extends Id, C extends string[], T extends LabelType = LabelType> = Comparable<JourneyStep<SI, RI, C>> & {
+  label: Label<SI, RI, C>;
 } & (T extends "VEHICLE"
     ? {
         /** @param boardedAt {@link SI} in {@link RAPTOR.stops} */
@@ -161,14 +153,19 @@ type JourneyStep<SI extends Id, RI extends Id, N extends number, T extends Label
       : // eslint-disable-next-line @typescript-eslint/no-empty-object-type
         {});
 
-function makeJSComparable<SI extends Id, RI extends Id, N extends number, T extends LabelType = LabelType>(
-  partialJourneyStep: Omit<JourneyStep<SI, RI, N, T>, keyof Comparable<JourneyStep<SI, RI, N>>>,
-): JourneyStep<SI, RI, N, T> {
-  return { ...partialJourneyStep, compare: (js: JourneyStep<SI, RI, N>) => partialJourneyStep.label.compare(js.label) } as JourneyStep<SI, RI, N, T>;
+function makeJSComparable<SI extends Id, RI extends Id, C extends string[], T extends LabelType = LabelType>(
+  partialJourneyStep: Omit<JourneyStep<SI, RI, C, T>, keyof Comparable<JourneyStep<SI, RI, C>>>,
+): JourneyStep<SI, RI, C, T> {
+  return { ...partialJourneyStep, compare: (js: JourneyStep<SI, RI, C>) => partialJourneyStep.label.compare(js.label) } as JourneyStep<SI, RI, C, T>;
 }
 
-type Journey<SI extends Id, RI extends Id, N extends number> = JourneyStep<SI, RI, N, "DEPARTURE" | "VEHICLE" | "FOOT">[];
+type Journey<SI extends Id, RI extends Id, C extends string[]> = JourneyStep<SI, RI, C, "DEPARTURE" | "VEHICLE" | "FOOT">[];
 
+/**
+ * A bag, i.e. a set using a custom comparison function, keeping only minimal values.
+ *
+ * Warning: once added, elements in the set should not change -- no comparison and filtering would be done in such a case.
+ */
 class Bag<T extends Comparable<T>> {
   protected readonly inner: { val: T; dominated: boolean }[] = [];
 
@@ -416,5 +413,4 @@ export {
   MapRead,
   RAPTORData,
   IRAPTORData,
-  Tuple,
 };

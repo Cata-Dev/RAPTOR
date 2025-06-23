@@ -1,17 +1,11 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import BaseRAPTOR, { RAPTORRunSettings } from "./base";
 import RAPTOR from "./RAPTOR";
-import { ArrayRead, Bag, Criterion, Id, IRAPTORData, JourneyStep, Label, makeJSComparable, Route, timestamp, Tuple } from "./Structures";
+import { ArrayRead, Bag, Criterion, Id, IRAPTORData, JourneyStep, Label, makeJSComparable, Route, timestamp } from "./Structures";
 
-export default class McRAPTOR<
-  N extends number,
-  C extends Tuple<Criterion, N>,
-  SI extends Id = Id,
-  RI extends Id = Id,
-  TI extends Id = Id,
-> extends BaseRAPTOR<SI, RI, TI> {
+export default class McRAPTOR<C extends string[], SI extends Id = Id, RI extends Id = Id, TI extends Id = Id> extends BaseRAPTOR<SI, RI, TI> {
   /** @description A {@link Label} Ti(SI) represents the earliest known arrival time at stop SI with up to i trips. */
-  protected bags: Map<SI, Bag<JourneyStep<SI, RI, N>>>[] = [];
+  protected bags: Map<SI, Bag<JourneyStep<SI, RI, C>>>[] = [];
   /** Set<{@link SI} in {@link stops}> */
   protected marked = new Set<SI>();
 
@@ -20,13 +14,13 @@ export default class McRAPTOR<
    */
   constructor(
     data: IRAPTORData<SI, RI, TI>,
-    protected readonly criteria: C,
+    protected readonly criteria: { [K in keyof C]: Criterion<SI, RI, C> },
   ) {
     super(data);
   }
 
   protected makeBag() {
-    return new Bag<JourneyStep<SI, RI, N>>();
+    return new Bag<JourneyStep<SI, RI, C>>();
   }
 
   /**
@@ -48,7 +42,7 @@ export default class McRAPTOR<
 
   run(ps: SI, pt: SI, departureTime: timestamp, settings: RAPTORRunSettings, rounds: number = RAPTOR.defaultRounds) {
     //Re-initialization
-    this.bags = Array.from({ length: rounds }, () => new Map<SI, Bag<JourneyStep<SI, RI, N>>>());
+    this.bags = Array.from({ length: rounds }, () => new Map<SI, Bag<JourneyStep<SI, RI, C>>>());
     this.marked = new Set<SI>();
     this.k = 0;
 
@@ -100,7 +94,7 @@ export default class McRAPTOR<
 
       // Traverse each route
       for (const [r, p] of Q) {
-        const RouteBag = this.makeBag() as Bag<JourneyStep<SI, RI, N, "VEHICLE">>;
+        const RouteBag = this.makeBag() as Bag<JourneyStep<SI, RI, C, "VEHICLE">>;
 
         const route: Route<SI, RI> = this.routes.get(r)!;
         for (let i = route.stops.indexOf(p); i < route.stops.length; i++) {
@@ -112,7 +106,7 @@ export default class McRAPTOR<
           }
 
           // Step 2: non-dominated merge of route bag to current round stop bag
-          const { added } = this.bags[this.k].get(pi)!.merge(RouteBag as Bag<JourneyStep<SI, RI, N>>);
+          const { added } = this.bags[this.k].get(pi)!.merge(RouteBag as Bag<JourneyStep<SI, RI, C>>);
           if (added > 0) this.marked.add(pi);
 
           // Step 3: populating route bag with previous round & update
@@ -167,7 +161,7 @@ export default class McRAPTOR<
 
           const { added } = this.bags[this.k]
             .get(transfer.to)!
-            .add(makeJSComparable<SI, RI, N, "FOOT">({ boardedAt: p, transfer, label: journeyStep.label.updateTime(arrivalTime) }));
+            .add(makeJSComparable<SI, RI, C, "FOOT">({ boardedAt: p, transfer, label: journeyStep.label.update(arrivalTime, null) }));
           if (added) this.marked.add(transfer.to);
         }
       }
