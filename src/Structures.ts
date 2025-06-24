@@ -70,7 +70,10 @@ class Route<SI extends Id, RI extends Id, TI extends Id = Id> {
    * @param p Stop index in route (trip).
    */
   departureTime(t: number, p: number): timestamp {
-    return this.trips.at(t)?.times.at(p)?.[0] ?? 0;
+    const time = this.trips.at(t)?.times.at(p)?.[1];
+    if (time === undefined) throw new Error(`No departure time for stop at index ${p} in trip at index ${t} (indexes out of bounds?).`);
+
+    return time;
   }
 }
 
