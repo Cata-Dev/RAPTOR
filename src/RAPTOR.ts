@@ -71,9 +71,6 @@ export default class RAPTOR<SI extends Id = Id, RI extends Id = Id, TI extends I
     this.multiLabel[this.k].set(ps, makeJSComparable({ label: new Label([], departureTime) }));
     this.marked.add(ps);
 
-    // Preliminary foot-paths lookup to join stops close to ps => use them in first round as fake departure stops
-    this.footPathsLookup(settings.walkSpeed);
-
     /** Map<{@link RI} in {@link routes}, {@link SI} in {@link stops}> */
     const Q = new Map<RI, SI>();
 

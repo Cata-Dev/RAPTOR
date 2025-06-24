@@ -86,9 +86,6 @@ export default class McRAPTOR<C extends string[], SI extends Id = Id, RI extends
     );
     this.marked.add(ps);
 
-    // Preliminary foot-paths lookup to join stops close to ps => use them in first round as fake departure stops
-    this.footPathsLookup(settings.walkSpeed);
-
     /** Map<{@link RI} in {@link routes}, {@link SI} in {@link stops}> */
     const Q = new Map<RI, SI>();
 
