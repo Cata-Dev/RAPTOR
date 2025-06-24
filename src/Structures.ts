@@ -273,7 +273,7 @@ class Bag<T extends Comparable<T>> {
       }
     }
 
-    if (idx) {
+    if (idx !== null) {
       this.inner[idx].val = newEl;
       this.inner[idx].dominated = dom;
     }
