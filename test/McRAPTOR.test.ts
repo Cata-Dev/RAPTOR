@@ -1,9 +1,10 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { describe, expect, test } from "@jest/globals";
 import McRAPTOR from "../src/McRAPTOR";
-import { Criterion, Id, JourneyStep, RAPTORData } from "../src/structures";
+import { /*Criterion, Id, JourneyStep,*/ RAPTORData } from "../src/structures";
 import oneLine from "./assets/oneLine";
 
+/*
 function isJourneyStepVehicle<SI extends Id, RI extends Id, C extends string[]>(
   js: Parameters<Criterion<SI, RI, C>["update"]>[1],
 ): js is JourneyStep<SI, RI, C, "VEHICLE"> {
@@ -23,6 +24,7 @@ const bufferTime: Criterion<Id, Id, ["bufferTime"]> = {
     );
   },
 };
+*/
 
 const MAX_ROUNDS = 5;
 const pt = 4;
