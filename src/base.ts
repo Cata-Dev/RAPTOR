@@ -28,12 +28,12 @@ export default class BaseRAPTOR<SI extends Id = Id, RI extends Id = Id, TI exten
   }
 
   /**
-   * @param length Length of the path.
+   * @param length Length of the path, in m.
    * @param walkSpeed Walk speed, in m/s
    * @returns Duration in ms
    */
   protected walkDuration(length: number, walkSpeed: RAPTORRunSettings["walkSpeed"]): number {
-    return (length / walkSpeed) * 1000;
+    return length / walkSpeed;
   }
 }
 
