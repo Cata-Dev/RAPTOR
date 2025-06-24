@@ -75,7 +75,9 @@ class Route<SI extends Id, RI extends Id, TI extends Id = Id> {
 }
 
 interface Comparable<T> {
-  /* Compares with another value `other`, returns `-1` if it's superior to `other`, `0` if equal, `1` otherwise */
+  /**
+   * @param compare Compares with another value `other`, returns `-1` if it's superior to `other`, `0` if equal, `1` otherwise
+   */
   compare(other: T): -1 | 0 | 1;
 }
 
