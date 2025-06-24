@@ -205,8 +205,8 @@ export default class McRAPTOR<C extends string[], SI extends Id = Id, RI extends
               previousStep &&
               "boardedAt" in previousStep &&
               "boardedAt" in j &&
-              j.boardedAt === previousStep.boardedAt[0] &&
-              j.label.time === previousStep.label.time,
+              j.label.time === previousStep.label.time &&
+              j.boardedAt === previousStep.boardedAt[0],
           )
         )
           throw new Error(`Impossible journey (cyclic).`);
