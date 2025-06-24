@@ -178,14 +178,14 @@ export default class McRAPTOR<C extends string[], SI extends Id = Id, RI extends
   }
 
   protected traceBackFromStep(from: JourneyStep<SI, RI, C>, round: number): Journey<SI, RI, C> {
-    if (round < 1 || round > this.bags.length) throw new Error(`Invalid round (${round}) provided.`);
+    if (round < 0 || round > this.bags.length) throw new Error(`Invalid round (${round}) provided.`);
 
     let k = round;
     let trace: Journey<SI, RI, C> = [];
 
     let previousStep: JourneyStep<SI, RI, C> | null = from;
     while (previousStep !== null) {
-      trace = [previousStep, ...trace];
+      trace = ["boardedAt" in previousStep ? { ...previousStep, boardedAt: previousStep.boardedAt[0] } : previousStep, ...trace];
 
       if (k < 0) throw new Error(`No journey in round ${round}.`); // Unable to get back to source
 
@@ -197,19 +197,19 @@ export default class McRAPTOR<C extends string[], SI extends Id = Id, RI extends
 
         previousStep = null;
       } else {
+        previousStep = previousStep.boardedAt[1];
+
         if (
           trace.find(
             (j) =>
-              "boardedAt" in j &&
               previousStep &&
               "boardedAt" in previousStep &&
+              "boardedAt" in j &&
               j.boardedAt === previousStep.boardedAt[0] &&
               j.label.time === previousStep.label.time,
           )
         )
           throw new Error(`Impossible journey (cyclic).`);
-
-        previousStep = previousStep.boardedAt[1];
       }
     }
 
