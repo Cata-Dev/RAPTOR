@@ -5,18 +5,17 @@ name: Test
 
 on:
   push:
-    branches: [ main, dev ]
+    branches: [main, dev]
   pull_request:
-    branches: [ main, dev, no-local-pruning ]
+    branches: [main, dev, no-local-pruning]
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
 
     strategy:
       matrix:
-        node-version: [ 22.x ]
+        node-version: [22.x]
 
     steps:
       - uses: actions/checkout@v4
@@ -30,20 +29,19 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
-          cache: 'pnpm'
+          cache: "pnpm"
 
       - run: pnpm install
       - run: pnpm run --if-present build
 
   test:
-
     needs: build
 
     runs-on: ubuntu-latest
 
     strategy:
       matrix:
-        node-version: [ 22.x ]
+        node-version: [22.x]
 
     steps:
       - uses: actions/checkout@v4
@@ -57,7 +55,15 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
-          cache: 'pnpm'
+          cache: "pnpm"
 
       - run: pnpm install
       - run: pnpm run --if-present test
+
+      - name: Generating coverage badges
+        uses: jpb06/coverage-badges-action@latest
+        with:
+          # Branches are filtered through triggers
+          branches: "*"
+          badges-icon: jest
+          badges-labels-prefix: "Coverage: "
