@@ -1,7 +1,6 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { describe, expect, test } from "@jest/globals";
-import RAPTOR from "../src/RAPTOR";
-import { RAPTORData } from "../src/structures";
+import { RAPTOR, RAPTORData } from "../src/main";
 import oneLine from "./assets/oneLine";
 
 const MAX_ROUNDS = 5;
