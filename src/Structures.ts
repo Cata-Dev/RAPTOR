@@ -32,7 +32,7 @@ interface MapRead<K, V> {
 interface Trip<TI extends Id = Id> {
   id: TI;
   /**
-   * @param stopTimes Time of arrival & departure at each stop.
+   * @param times Time of arrival & departure at each stop.
    */
   times: ArrayRead<[timestamp, timestamp]>;
 }
