@@ -253,9 +253,7 @@ class Bag<T extends Comparable<T>> {
   merge(b: Bag<T>) {
     const initialSize = this.size;
 
-    for (const elNew of b.inner) {
-      if (!elNew.dominated) this.addOnly(elNew.val);
-    }
+    for (const elNew of b.inner) if (!elNew.dominated) this.addOnly(elNew.val);
 
     const pruned = this.prune();
 
