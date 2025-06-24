@@ -1,6 +1,6 @@
 import BaseRAPTOR from "./base";
 import RAPTOR from "./RAPTOR";
-import { SerializedId, SharedRAPTORData } from "./SharedStructures";
+import { SerializedId, SharedRAPTORData } from "./structures";
 
 export class BaseSharedRAPTOR extends BaseRAPTOR<number | SerializedId, number | SerializedId, number> {
   static readonly dataClass = SharedRAPTORData;

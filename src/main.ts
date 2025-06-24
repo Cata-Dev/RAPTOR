@@ -1,4 +1,4 @@
-export * from "./Structures";
+export * from "./structures";
 export * from "./SharedStructures";
 
 export { default as RAPTOR } from "./RAPTOR";

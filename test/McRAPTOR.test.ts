@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { describe, expect, test } from "@jest/globals";
 import McRAPTOR from "../src/McRAPTOR";
-import { Criterion, Id, JourneyStep, RAPTORData } from "../src/Structures";
+import { Criterion, Id, JourneyStep, RAPTORData } from "../src/structures";
 import oneLine from "./assets/oneLine";
 
 function isJourneyStepVehicle<SI extends Id, RI extends Id, C extends string[]>(
@@ -13,7 +13,6 @@ function isJourneyStepVehicle<SI extends Id, RI extends Id, C extends string[]>(
 const bufferTime: Criterion<Id, Id, ["bufferTime"]> = {
   name: "bufferTime",
   update: (prefixJourney, newJourneyStep) => {
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const lastJourneyStep = prefixJourney.at(-1)!;
     return Math.min(
       lastJourneyStep.label.value("bufferTime"),

@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import BaseRAPTOR, { RAPTORRunSettings } from "./base";
-import { Id, Journey, JourneyStep, Label, makeJSComparable, Route, timestamp } from "./Structures";
+import { Id, Journey, JourneyStep, Label, makeJSComparable, Route, timestamp } from "./structures";
 
 /**
  * @description A RAPTOR instance

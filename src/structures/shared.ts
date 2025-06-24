@@ -1,4 +1,4 @@
-import { FootPath, Stop, Trip, Route, ArrayRead, MapRead, IRAPTORData } from "./Structures";
+import { ArrayRead, FootPath, IRAPTORData, MapRead, Route, Stop, Trip } from "./base";
 
 /**
  * Helper type to override type `T` with type `O`
@@ -8,7 +8,7 @@ type Override<T, O> = Omit<T, keyof O> & O;
 /**
  * Helper type for viewing-only arrays, with some viewing methods of {@link Array}.
  */
-export class ArrayView<T> implements ArrayRead<T> {
+class ArrayView<T> implements ArrayRead<T> {
   protected _length: number | null = null;
 
   constructor(
@@ -133,6 +133,8 @@ class FootPathRetriever extends Retriever<PtrType.Stop, void> implements FootPat
     return a.ptr === b.ptr;
   }
 }
+
+type SerializedId = ReturnType<(typeof SharedRAPTORData)["serializeId"]>;
 
 //
 // Stop
@@ -321,12 +323,10 @@ class RouteRetriever
   }
 }
 
-export type SerializedId = ReturnType<(typeof SharedRAPTORData)["serializeId"]>;
-
 /**
  * Shared-memory enabled RAPTOR data
  */
-export class SharedRAPTORData implements IRAPTORData<number | SerializedId, number | SerializedId, number> {
+class SharedRAPTORData implements IRAPTORData<number | SerializedId, number | SerializedId, number> {
   // Max float64
   static readonly MAX_SAFE_TIMESTAMP: number = 3.4e38;
   readonly MAX_SAFE_TIMESTAMP: number = SharedRAPTORData.MAX_SAFE_TIMESTAMP;
@@ -415,7 +415,9 @@ export class SharedRAPTORData implements IRAPTORData<number | SerializedId, numb
     // Stops length in data buffer
     const stopsDataLengthChunk = new DataView(this.data, 0, Float64Array.BYTES_PER_ELEMENT);
     const getStopsChunkSize = () => stopsDataLengthChunk.getFloat64(0);
-    const setStopsChunkSize = (length: number) => { stopsDataLengthChunk.setFloat64(0, length); };
+    const setStopsChunkSize = (length: number) => {
+      stopsDataLengthChunk.setFloat64(0, length);
+    };
 
     if (stopsChunkSize !== null) setStopsChunkSize(stopsChunkSize);
 
@@ -714,3 +716,5 @@ export class SharedRAPTORData implements IRAPTORData<number | SerializedId, numb
     );
   }
 }
+
+export { ArrayView, SerializedId, SharedRAPTORData };

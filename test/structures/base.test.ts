@@ -1,5 +1,5 @@
 import { describe, expect, test } from "@jest/globals";
-import { Route } from "../src/Structures";
+import { Route } from "../../src/structures/base";
 
 describe("Route class", () => {
   const data: ConstructorParameters<typeof Route<number, number, number>> = [

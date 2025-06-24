@@ -1,4 +1,4 @@
-import { FootPath, RAPTORData } from "../../src/Structures";
+import { FootPath, RAPTORData } from "../../src/structures";
 
 /**
  * 1 route with 4 stops and 2 trips

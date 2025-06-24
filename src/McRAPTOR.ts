@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import BaseRAPTOR, { RAPTORRunSettings } from "./base";
 import RAPTOR from "./RAPTOR";
-import { Bag, Criterion, Id, IRAPTORData, Journey, JourneyStep, Label, makeJSComparable, Route, timestamp } from "./Structures";
+import { Bag, Criterion, Id, IRAPTORData, Journey, JourneyStep, Label, makeJSComparable, Route, timestamp } from "./structures";
 
 export default class McRAPTOR<C extends string[], SI extends Id = Id, RI extends Id = Id, TI extends Id = Id> extends BaseRAPTOR<SI, RI, TI> {
   /** @description A {@link Label} Ti(SI) represents the earliest known arrival time at stop SI with up to i trips. */

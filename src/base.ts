@@ -1,4 +1,4 @@
-import { Id, MapRead, Stop, Route, IRAPTORData } from "./Structures";
+import { Id, MapRead, Stop, Route, IRAPTORData } from "./structures";
 
 interface RAPTORRunSettings {
   walkSpeed: number;
