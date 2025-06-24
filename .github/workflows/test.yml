@@ -60,6 +60,12 @@ jobs:
       - run: pnpm install
       - run: pnpm run --if-present test
 
+      - name: Push coverage to Qlty
+        uses: qltysh/qlty-action/coverage@latest
+        with:
+          token: { { secrets.QLTY_COVERAGE_TOKEN } }
+          files: coverage/lcov.info
+
       - name: Generating coverage badges
         uses: jpb06/coverage-badges-action@latest
         with:
