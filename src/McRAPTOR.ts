@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
+import { inspect } from "util";
 import BaseRAPTOR, { RAPTORRunSettings } from "./base";
 import RAPTOR from "./RAPTOR";
 import { Bag, Criterion, Id, IRAPTORData, Journey, JourneyStep, Label, makeJSComparable, Route, timestamp } from "./Structures";
@@ -48,7 +49,7 @@ export default class McRAPTOR<C extends string[], SI extends Id = Id, RI extends
       for (const transfer of stop.transfers) {
         if (transfer.to === p) continue;
 
-        for (const pJourneyStep of this.bags[this.k].get(transfer.to)!) {
+        for (const pJourneyStep of this.bags[this.k].get(p)!) {
           const arrivalTime: timestamp = pJourneyStep.label.time + this.walkDuration(transfer.length, walkSpeed);
 
           const { added } = this.bags[this.k].get(transfer.to)!.add(
@@ -218,7 +219,7 @@ export default class McRAPTOR<C extends string[], SI extends Id = Id, RI extends
 
   getBestJourneys(pt: SI): (null | Journey<SI, RI, C>[])[] {
     return Array.from({ length: this.bags.length }, (_, i): null | Journey<SI, RI, C>[] => {
-      const ptJourneySteps = this.bags[this.bags.length - 1].get(pt);
+      const ptJourneySteps = this.bags[i].get(pt);
       if (!ptJourneySteps) return null;
 
       const journeys = ptJourneySteps
