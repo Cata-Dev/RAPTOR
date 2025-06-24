@@ -63,7 +63,7 @@ jobs:
       - name: Push coverage to Qlty
         uses: qltysh/qlty-action/coverage@latest
         with:
-          token: { { secrets.QLTY_COVERAGE_TOKEN } }
+          token: ${{ secrets.QLTY_COVERAGE_TOKEN }}
           files: coverage/lcov.info
 
       - name: Generating coverage badges
