@@ -145,18 +145,17 @@ export default class RAPTOR<SI extends Id = Id, RI extends Id = Id, TI extends I
     }
   }
 
-  protected traceBack(from: SI, initRound: number): Journey<SI, RI, []> {
-    if (initRound < 1 || initRound > this.multiLabel.length) throw new Error(`Invalid round (${initRound}) provided.`);
+  protected traceBackFromStep(from: JourneyStep<SI, RI, []>, initRound: number): Journey<SI, RI, []> {
+    if (initRound < 0 || initRound > this.multiLabel.length) throw new Error(`Invalid initRound (${initRound}) provided.`);
 
     let k = initRound;
     let trace: Journey<SI, RI, []> = [];
 
-    let previousStop: SI | null = from;
-    while (previousStop !== null) {
-      if (k < 0) throw new Error(`No journey in round ${initRound}.`); // Unable to get back to source
+    let previousStep: JourneyStep<SI, RI, []> | null = from;
+    while (previousStep !== null) {
+      trace = ["boardedAt" in previousStep ? { ...previousStep, boardedAt: previousStep.boardedAt[0] } : previousStep, ...trace];
 
-      const previousStep = this.multiLabel[k].get(previousStop);
-      if (!previousStep) throw new Error(`Invalid stop ${previousStop}.`); // Should never get here, unless invalid "from" stop
+      if (k < 0) throw new Error(`No journey in initRound ${initRound}.`); // Unable to get back to source
 
       if (!("boardedAt" in previousStep)) {
         if (previousStep.label.time >= this.MAX_SAFE_TIMESTAMP) {
@@ -164,15 +163,22 @@ export default class RAPTOR<SI extends Id = Id, RI extends Id = Id, TI extends I
           continue;
         }
 
-        previousStop = null;
+        previousStep = null;
       } else {
-        if (trace.find((j) => "boardedAt" in j && j.boardedAt === previousStep.boardedAt[0] && j.label.time === previousStep.label.time))
+        previousStep = previousStep.boardedAt[1];
+
+        if (
+          trace.find(
+            (j) =>
+              previousStep &&
+              "boardedAt" in previousStep &&
+              "boardedAt" in j &&
+              j.label.time === previousStep.label.time &&
+              j.boardedAt === previousStep.boardedAt[0],
+          )
+        )
           throw new Error(`Impossible journey (cyclic).`);
-
-        previousStop = previousStep.boardedAt[0];
       }
-
-      trace = ["boardedAt" in previousStep ? { ...previousStep, boardedAt: previousStep.boardedAt[0] } : previousStep, ...trace];
     }
 
     return trace;
@@ -181,7 +187,10 @@ export default class RAPTOR<SI extends Id = Id, RI extends Id = Id, TI extends I
   getBestJourneys(pt: SI): (null | Journey<SI, RI, []>)[] {
     return Array.from({ length: this.multiLabel.length }, (_, k) => {
       try {
-        return this.traceBack(pt, k);
+        const ptJourneyStep = this.multiLabel[k].get(pt);
+        if (!ptJourneyStep) return null;
+
+        return this.traceBackFromStep(ptJourneyStep, k);
       } catch {
         return null;
       }
