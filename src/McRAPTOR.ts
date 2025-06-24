@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import BaseRAPTOR, { RAPTORRunSettings } from "./base";
 import RAPTOR from "./RAPTOR";
-import { ArrayRead, Bag, Criterion, Id, IRAPTORData, JourneyStep, Label, makeJSComparable, Route, timestamp } from "./Structures";
+import { Bag, Criterion, Id, IRAPTORData, JourneyStep, Label, makeJSComparable, Route, timestamp } from "./Structures";
 
 export default class McRAPTOR<C extends string[], SI extends Id = Id, RI extends Id = Id, TI extends Id = Id> extends BaseRAPTOR<SI, RI, TI> {
   /** @description A {@link Label} Ti(SI) represents the earliest known arrival time at stop SI with up to i trips. */
@@ -38,6 +38,26 @@ export default class McRAPTOR<C extends string[], SI extends Id = Id, RI extends
     }
 
     return null;
+  }
+
+  protected footPathsLookup(walkSpeed: RAPTORRunSettings["walkSpeed"]) {
+    // Copy current state of marked stops
+    for (const p of new Set(this.marked)) {
+      const stop = this.stops.get(p)!;
+
+      for (const transfer of stop.transfers) {
+        if (transfer.to === p) continue;
+
+        for (const journeyStep of this.bags[this.k].get(transfer.to)!) {
+          const arrivalTime: timestamp = journeyStep.label.time + this.walkDuration(transfer.length, walkSpeed);
+
+          const { added } = this.bags[this.k]
+            .get(transfer.to)!
+            .add(makeJSComparable<SI, RI, C, "FOOT">({ boardedAt: p, transfer, label: journeyStep.label.update(arrivalTime, null) }));
+          if (added) this.marked.add(transfer.to);
+        }
+      }
+    }
   }
 
   run(ps: SI, pt: SI, departureTime: timestamp, settings: RAPTORRunSettings, rounds: number = RAPTOR.defaultRounds) {
@@ -78,15 +98,11 @@ export default class McRAPTOR<C extends string[], SI extends Id = Id, RI extends
       // Mark improvement
       Q.clear();
       for (const p of this.marked) {
-        const connectedRoutes = (this.stops.get(p)?.connectedRoutes ?? ([] as RI[])) satisfies ArrayRead<RI>;
+        const connectedRoutes = this.stops.get(p)!.connectedRoutes;
 
         for (const r of connectedRoutes) {
           const p2 = Q.get(r);
-          if (
-            p2 == undefined ||
-            (this.routes.get(r)?.stops ?? ([] as ArrayRead<SI>)).indexOf(p) < (this.routes.get(r)?.stops ?? ([] as ArrayRead<SI>)).indexOf(p2)
-          )
-            Q.set(r, p);
+          if (!p2 || this.routes.get(r)!.stops.indexOf(p) < this.routes.get(r)!.stops.indexOf(p2)) Q.set(r, p);
         }
 
         this.marked.delete(p);
@@ -144,27 +160,6 @@ export default class McRAPTOR<C extends string[], SI extends Id = Id, RI extends
 
       // Stopping criterion
       if (this.marked.size === 0) break;
-    }
-  }
-
-  protected footPathsLookup(walkSpeed: RAPTORRunSettings["walkSpeed"]) {
-    // Copy current state of marked stops
-    for (const p of new Set(this.marked)) {
-      const stop = this.stops.get(p);
-      if (stop === undefined) continue;
-
-      for (const transfer of stop.transfers) {
-        if (transfer.to === p) continue;
-
-        for (const journeyStep of this.bags[this.k].get(transfer.to)!) {
-          const arrivalTime: timestamp = journeyStep.label.time + this.walkDuration(transfer.length, walkSpeed);
-
-          const { added } = this.bags[this.k]
-            .get(transfer.to)!
-            .add(makeJSComparable<SI, RI, C, "FOOT">({ boardedAt: p, transfer, label: journeyStep.label.update(arrivalTime, null) }));
-          if (added) this.marked.add(transfer.to);
-        }
-      }
     }
   }
 }

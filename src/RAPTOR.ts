@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import BaseRAPTOR, { RAPTORRunSettings } from "./base";
-import { Route, timestamp, Id, ArrayRead, Journey, Label, JourneyStep, makeJSComparable } from "./Structures";
+import { Id, Journey, JourneyStep, Label, makeJSComparable, Route, timestamp } from "./Structures";
 
 /**
  * @description A RAPTOR instance
@@ -32,8 +32,7 @@ export default class RAPTOR<SI extends Id = Id, RI extends Id = Id, TI extends I
   protected footPathsLookup(walkSpeed: RAPTORRunSettings["walkSpeed"]) {
     // Copy current state of marked stops
     for (const p of new Set(this.marked)) {
-      const stop = this.stops.get(p);
-      if (stop === undefined) continue;
+      const stop = this.stops.get(p)!;
 
       for (const transfer of stop.transfers) {
         if (transfer.to === p) continue;
@@ -87,15 +86,11 @@ export default class RAPTOR<SI extends Id = Id, RI extends Id = Id, TI extends I
       // Mark improvement
       Q.clear();
       for (const p of this.marked) {
-        const connectedRoutes = (this.stops.get(p)?.connectedRoutes ?? ([] as RI[])) satisfies ArrayRead<RI>;
+        const connectedRoutes = this.stops.get(p)!.connectedRoutes;
 
         for (const r of connectedRoutes) {
           const p2 = Q.get(r);
-          if (
-            !p2 ||
-            (this.routes.get(r)?.stops ?? ([] as ArrayRead<SI>)).indexOf(p) < (this.routes.get(r)?.stops ?? ([] as ArrayRead<SI>)).indexOf(p2)
-          )
-            Q.set(r, p);
+          if (!p2 || this.routes.get(r)!.stops.indexOf(p) < this.routes.get(r)!.stops.indexOf(p2)) Q.set(r, p);
         }
 
         this.marked.delete(p);
