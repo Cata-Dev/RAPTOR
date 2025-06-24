@@ -83,7 +83,12 @@ interface Comparable<T> {
 
 interface Criterion<SI extends Id, RI extends Id, C extends string[], N extends C[number] = C[number]> {
   name: N;
-  update: (prefixJourney: Journey<SI, RI, C>, newJourneyStep: Omit<JourneyStep<SI, RI, C>, "label">, time: timestamp, stop: SI) => number;
+  update: (
+    prefixJourney: Journey<SI, RI, C>,
+    newJourneyStep: Omit<JourneyStep<SI, RI, C>, "label" | keyof Comparable<never>>,
+    time: timestamp,
+    stop: SI,
+  ) => number;
 }
 
 /** A tuple of size N+1 (time + other criteria) */
@@ -135,12 +140,14 @@ class Label<SI extends Id, RI extends Id, C extends string[]> implements Compara
   }
 }
 
-type JourneyStep<SI extends Id, RI extends Id, C extends string[], T extends LabelType = LabelType> = Comparable<JourneyStep<SI, RI, C>> & {
+type JourneyStep<SI extends Id, RI extends Id, C extends string[], T extends LabelType = LabelType, F extends boolean = false> = Comparable<
+  JourneyStep<SI, RI, C>
+> & {
   label: Label<SI, RI, C>;
 } & (T extends "VEHICLE"
     ? {
         /** @param boardedAt {@link SI} in {@link RAPTOR.stops} */
-        boardedAt: SI;
+        boardedAt: F extends true ? SI : [SI, JourneyStep<SI, RI, C>];
         /** @param route {@link Route} in {@link RAPTOR.routes} */
         route: Route<SI, RI>;
         tripIndex: number;
@@ -148,8 +155,8 @@ type JourneyStep<SI extends Id, RI extends Id, C extends string[], T extends Lab
     : T extends "FOOT"
       ? {
           /** @param boardedAt {@link SI} in {@link RAPTOR.stops} */
-          boardedAt: SI;
-          /** @param boardedAt {@link SI} in {@link RAPTOR.stops} */
+          boardedAt: F extends true ? SI : [SI, JourneyStep<SI, RI, C>];
+          /** @param transfer {@link FootPath<SI>} in {@link RAPTOR.stops} */
           transfer: FootPath<SI>;
         }
       : // eslint-disable-next-line @typescript-eslint/no-empty-object-type
@@ -161,7 +168,7 @@ function makeJSComparable<SI extends Id, RI extends Id, C extends string[], T ex
   return { ...partialJourneyStep, compare: (js: JourneyStep<SI, RI, C>) => partialJourneyStep.label.compare(js.label) } as JourneyStep<SI, RI, C, T>;
 }
 
-type Journey<SI extends Id, RI extends Id, C extends string[]> = JourneyStep<SI, RI, C, "DEPARTURE" | "VEHICLE" | "FOOT">[];
+type Journey<SI extends Id, RI extends Id, C extends string[]> = JourneyStep<SI, RI, C, "DEPARTURE" | "VEHICLE" | "FOOT", true>[];
 
 /**
  * A bag, i.e. a set using a custom comparison function, keeping only minimal values.
@@ -195,7 +202,7 @@ class Bag<T extends Comparable<T>> {
    * @returns The bag itself
    */
   addOnly(el: T) {
-    let inf = false;
+    let inf = this.inner.length > 0 ? false : true;
 
     for (const v of this.inner)
       if (!v.dominated && el.compare(v.val) == 1) {
@@ -285,6 +292,10 @@ class Bag<T extends Comparable<T>> {
 
   *[Symbol.iterator]() {
     for (const v of this.inner) if (!v.dominated) yield v.val;
+  }
+
+  values() {
+    return this[Symbol.iterator]();
   }
 }
 

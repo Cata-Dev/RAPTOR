@@ -37,11 +37,12 @@ export default class RAPTOR<SI extends Id = Id, RI extends Id = Id, TI extends I
       for (const transfer of stop.transfers) {
         if (transfer.to === p) continue;
 
-        const arrivalTime: timestamp = (this.multiLabel[this.k].get(p)?.label.time ?? Infinity) + this.walkDuration(transfer.length, walkSpeed);
-        if (arrivalTime < (this.multiLabel[this.k].get(transfer.to)?.label.time ?? Infinity)) {
+        const pJourneyStep = this.multiLabel[this.k].get(p)!;
+        const arrivalTime: timestamp = pJourneyStep.label.time + this.walkDuration(transfer.length, walkSpeed);
+        if (arrivalTime < this.multiLabel[this.k].get(transfer.to)!.label.time) {
           this.multiLabel[this.k].set(
             transfer.to,
-            makeJSComparable<SI, RI, [], "FOOT">({ boardedAt: p, transfer, label: new Label([], arrivalTime) }),
+            makeJSComparable<SI, RI, [], "FOOT">({ boardedAt: [p, pJourneyStep], transfer, label: new Label([], arrivalTime) }),
           );
 
           this.marked.add(transfer.to);
@@ -112,7 +113,15 @@ export default class RAPTOR<SI extends Id = Id, RI extends Id = Id, TI extends I
               arrivalTime < Math.min(this.multiLabel[this.k].get(pi)?.label.time ?? Infinity, this.multiLabel[this.k].get(pt)?.label.time ?? Infinity)
             ) {
               // local & target pruning
-              this.multiLabel[this.k].set(pi, makeJSComparable<SI, RI, [], "VEHICLE">({ ...t, route, label: new Label([], arrivalTime) }));
+              this.multiLabel[this.k].set(
+                pi,
+                makeJSComparable<SI, RI, [], "VEHICLE">({
+                  boardedAt: [t.boardedAt, this.multiLabel[this.k].get(t.boardedAt)!],
+                  route,
+                  tripIndex: t.tripIndex,
+                  label: new Label([], arrivalTime),
+                }),
+              );
               this.marked.add(pi);
             }
           }
@@ -157,13 +166,13 @@ export default class RAPTOR<SI extends Id = Id, RI extends Id = Id, TI extends I
 
         previousStop = null;
       } else {
-        if (trace.find((j) => "boardedAt" in j && j.boardedAt === previousStep.boardedAt && j.label.time === previousStep.label.time))
+        if (trace.find((j) => "boardedAt" in j && j.boardedAt === previousStep.boardedAt[0] && j.label.time === previousStep.label.time))
           throw new Error(`Impossible journey (cyclic).`);
 
-        previousStop = previousStep.boardedAt;
+        previousStop = previousStep.boardedAt[0];
       }
 
-      trace = [previousStep, ...trace];
+      trace = ["boardedAt" in previousStep ? { ...previousStep, boardedAt: previousStep.boardedAt[0] } : previousStep, ...trace];
     }
 
     return trace;

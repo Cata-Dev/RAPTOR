@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import BaseRAPTOR, { RAPTORRunSettings } from "./base";
 import RAPTOR from "./RAPTOR";
-import { Bag, Criterion, Id, IRAPTORData, JourneyStep, Label, makeJSComparable, Route, timestamp } from "./Structures";
+import { Bag, Criterion, Id, IRAPTORData, Journey, JourneyStep, Label, makeJSComparable, Route, timestamp } from "./Structures";
 
 export default class McRAPTOR<C extends string[], SI extends Id = Id, RI extends Id = Id, TI extends Id = Id> extends BaseRAPTOR<SI, RI, TI> {
   /** @description A {@link Label} Ti(SI) represents the earliest known arrival time at stop SI with up to i trips. */
@@ -48,12 +48,21 @@ export default class McRAPTOR<C extends string[], SI extends Id = Id, RI extends
       for (const transfer of stop.transfers) {
         if (transfer.to === p) continue;
 
-        for (const journeyStep of this.bags[this.k].get(transfer.to)!) {
-          const arrivalTime: timestamp = journeyStep.label.time + this.walkDuration(transfer.length, walkSpeed);
+        for (const pJourneyStep of this.bags[this.k].get(transfer.to)!) {
+          const arrivalTime: timestamp = pJourneyStep.label.time + this.walkDuration(transfer.length, walkSpeed);
 
-          const { added } = this.bags[this.k]
-            .get(transfer.to)!
-            .add(makeJSComparable<SI, RI, C, "FOOT">({ boardedAt: p, transfer, label: journeyStep.label.update(arrivalTime, null) }));
+          const { added } = this.bags[this.k].get(transfer.to)!.add(
+            makeJSComparable<SI, RI, C, "FOOT">({
+              boardedAt: [p, pJourneyStep],
+              transfer,
+              label: pJourneyStep.label.update(arrivalTime, [
+                this.traceBackFromStep(pJourneyStep, this.k),
+                { boardedAt: [p, pJourneyStep], transfer },
+                arrivalTime,
+                transfer.to,
+              ]),
+            }),
+          );
           if (added) this.marked.add(transfer.to);
         }
       }
@@ -118,7 +127,8 @@ export default class McRAPTOR<C extends string[], SI extends Id = Id, RI extends
 
           // Step 1: update route labels w.r.t. current stop pi
           for (const journeyStep of RouteBag) {
-            journeyStep.label.update(route.trips.at(journeyStep.tripIndex)!.times.at(i)![0], null);
+            const tArr = route.trips.at(journeyStep.tripIndex)!.times.at(i)![0];
+            journeyStep.label.update(tArr, [this.traceBackFromStep(journeyStep.boardedAt[1], this.k), { ...journeyStep }, tArr, pi]);
           }
 
           // Step 2: non-dominated merge of route bag to current round stop bag
@@ -132,7 +142,7 @@ export default class McRAPTOR<C extends string[], SI extends Id = Id, RI extends
               RouteBag.updateOnly(
                 journeyStep,
                 makeJSComparable({
-                  boardedAt: pi,
+                  boardedAt: [pi, journeyStep],
                   route,
                   tripIndex: t.tripIndex,
                   label: new Label(this.criteria, route.trips.at(t.tripIndex)!.times.at(i)![0]),
@@ -144,7 +154,7 @@ export default class McRAPTOR<C extends string[], SI extends Id = Id, RI extends
             if (t && (!("route" in journeyStep) || journeyStep.route.id != r || journeyStep.tripIndex != t.tripIndex))
               RouteBag.add(
                 makeJSComparable({
-                  boardedAt: pi,
+                  boardedAt: [pi, journeyStep],
                   route,
                   tripIndex: t.tripIndex,
                   label: new Label(this.criteria, route.trips.at(t.tripIndex)!.times.at(i)![0]),
@@ -161,5 +171,64 @@ export default class McRAPTOR<C extends string[], SI extends Id = Id, RI extends
       // Stopping criterion
       if (this.marked.size === 0) break;
     }
+  }
+
+  protected traceBackFromStep(from: JourneyStep<SI, RI, C>, round: number): Journey<SI, RI, C> {
+    if (round < 1 || round > this.bags.length) throw new Error(`Invalid round (${round}) provided.`);
+
+    let k = round;
+    let trace: Journey<SI, RI, C> = [];
+
+    let previousStep: JourneyStep<SI, RI, C> | null = from;
+    while (previousStep !== null) {
+      trace = [previousStep, ...trace];
+
+      if (k < 0) throw new Error(`No journey in round ${round}.`); // Unable to get back to source
+
+      if (!("boardedAt" in previousStep)) {
+        if (previousStep.label.time >= this.MAX_SAFE_TIMESTAMP) {
+          k--;
+          continue;
+        }
+
+        previousStep = null;
+      } else {
+        if (
+          trace.find(
+            (j) =>
+              "boardedAt" in j &&
+              previousStep &&
+              "boardedAt" in previousStep &&
+              j.boardedAt === previousStep.boardedAt[0] &&
+              j.label.time === previousStep.label.time,
+          )
+        )
+          throw new Error(`Impossible journey (cyclic).`);
+
+        previousStep = previousStep.boardedAt[1];
+      }
+    }
+
+    return trace;
+  }
+
+  getBestJourneys(pt: SI): (null | Journey<SI, RI, C>[])[] {
+    return Array.from({ length: this.bags.length }, (_, i): null | Journey<SI, RI, C>[] => {
+      const ptJourneySteps = this.bags[this.bags.length - 1].get(pt);
+      if (!ptJourneySteps) return null;
+
+      const journeys = ptJourneySteps
+        .values()
+        .map((js) => {
+          try {
+            return this.traceBackFromStep(js, i);
+          } catch (_) {
+            return null;
+          }
+        })
+        .filter((j) => !!j)
+        .toArray();
+      return journeys.length ? journeys : null;
+    });
   }
 }
