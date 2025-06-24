@@ -230,7 +230,7 @@ class Bag<T extends Comparable<T>> {
       if (this.inner[i].dominated) this.inner.splice(i, 1);
       else ++i;
 
-    return this.size - initialSize;
+    return initialSize - this.size;
   }
 
   /**
