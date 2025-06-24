@@ -45,8 +45,10 @@ export default {
         connectedRoutes: [1],
         transfers: [
           // Not better
-          { to: 2, length: 2 },
-          { to: 3, length: 4 },
+          { to: 2, length: 3 },
+          { to: 3, length: 5 },
+          // Dumb
+          { to: 1, length: 1 },
         ] as FootPath<number>[],
       },
       {
@@ -54,7 +56,7 @@ export default {
         connectedRoutes: [1],
         transfers: [
           // Not better
-          { to: 4, length: 4 },
+          { to: 4, length: 5 },
         ] as FootPath<number>[],
       },
       {
@@ -101,24 +103,26 @@ export default {
         connectedRoutes: [1],
         transfers: [
           // Not better
-          { to: 2, length: 2 },
-          { to: 3, length: 4 },
+          { to: 2, length: 3 },
+          { to: 3, length: 5 },
+          // Dumb
+          { to: 1, length: 1 },
         ] as FootPath<number>[],
       },
       {
         id: 2,
         connectedRoutes: [1],
         transfers: [
-          // Better!
-          { to: 3, length: 1 },
           // Not better
-          { to: 4, length: 4 },
+          { to: 4, length: 5 },
         ] as FootPath<number>[],
       },
       {
         id: 3,
         connectedRoutes: [1],
         transfers: [
+          // Better!
+          { to: 4, length: 1 },
           // Not better, going back
           { to: 1, length: 1 },
         ] as FootPath<number>[],
