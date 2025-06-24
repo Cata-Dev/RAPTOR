@@ -179,16 +179,12 @@ export default class RAPTOR<SI extends Id = Id, RI extends Id = Id, TI extends I
   }
 
   getBestJourneys(pt: SI): (null | Journey<SI, RI, []>)[] {
-    const journeys: (null | Journey<SI, RI, []>)[] = Array.from({ length: this.multiLabel.length }, () => null);
-
-    for (let k = 1; k < journeys.length; k++) {
+    return Array.from({ length: this.multiLabel.length }, (_, k) => {
       try {
-        journeys[k] = this.traceBack(pt, k);
+        return this.traceBack(pt, k);
       } catch {
-        /* empty */
+        return null;
       }
-    }
-
-    return journeys;
+    });
   }
 }
