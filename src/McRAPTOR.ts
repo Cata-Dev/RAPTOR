@@ -128,8 +128,12 @@ export default class McRAPTOR<C extends string[], SI extends Id = Id, RI extends
           // Step 1: update route labels w.r.t. current stop pi
           for (const journeyStep of RouteBag) {
             const tArr = route.trips.at(journeyStep.tripIndex)!.times.at(i)![0];
-            journeyStep.label.update(tArr, [this.traceBackFromStep(journeyStep.boardedAt[1], this.k), { ...journeyStep }, tArr, pi]);
+            RouteBag.updateOnly(journeyStep, {
+              ...journeyStep,
+              label: journeyStep.label.update(tArr, [this.traceBackFromStep(journeyStep.boardedAt[1], this.k), { ...journeyStep }, tArr, pi]),
+            });
           }
+          RouteBag.prune();
 
           // Step 2: non-dominated merge of route bag to current round stop bag
           const { added } = this.bags[this.k].get(pi)!.merge(RouteBag as Bag<JourneyStep<SI, RI, C>>);
