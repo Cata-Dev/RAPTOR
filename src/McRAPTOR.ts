@@ -1,5 +1,4 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
-import { inspect } from "util";
 import BaseRAPTOR, { RAPTORRunSettings } from "./base";
 import RAPTOR from "./RAPTOR";
 import { Bag, Criterion, Id, IRAPTORData, Journey, JourneyStep, Label, makeJSComparable, Route, timestamp } from "./Structures";
@@ -178,17 +177,17 @@ export default class McRAPTOR<C extends string[], SI extends Id = Id, RI extends
     }
   }
 
-  protected traceBackFromStep(from: JourneyStep<SI, RI, C>, round: number): Journey<SI, RI, C> {
-    if (round < 0 || round > this.bags.length) throw new Error(`Invalid round (${round}) provided.`);
+  protected traceBackFromStep(from: JourneyStep<SI, RI, C>, initRound: number): Journey<SI, RI, C> {
+    if (initRound < 0 || initRound > this.bags.length) throw new Error(`Invalid initRound (${initRound}) provided.`);
 
-    let k = round;
+    let k = initRound;
     let trace: Journey<SI, RI, C> = [];
 
     let previousStep: JourneyStep<SI, RI, C> | null = from;
     while (previousStep !== null) {
       trace = ["boardedAt" in previousStep ? { ...previousStep, boardedAt: previousStep.boardedAt[0] } : previousStep, ...trace];
 
-      if (k < 0) throw new Error(`No journey in round ${round}.`); // Unable to get back to source
+      if (k < 0) throw new Error(`No journey in initRound ${initRound}.`); // Unable to get back to source
 
       if (!("boardedAt" in previousStep)) {
         if (previousStep.label.time >= this.MAX_SAFE_TIMESTAMP) {
