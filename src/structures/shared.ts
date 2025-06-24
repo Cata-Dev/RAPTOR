@@ -169,7 +169,8 @@ class StopRetriever
       (idx) =>
         idx < this.connectedRoutesChunkSize
           ? this.sDataView[this.ptr + 1 + 1 + idx]
-          : this.attachedData!.connectedRoutes.at(idx - this.connectedRoutesChunkSize)!,
+          : // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+            this.attachedData!.connectedRoutes.at(idx - this.connectedRoutesChunkSize)!,
       (a, b) => a === b,
     );
   }
@@ -192,7 +193,8 @@ class StopRetriever
               this.ptr + 1 + this.connectedRoutesChunkSize + 1 + 1 + idx * FootPathRetriever._chunkSize,
               PtrType.Stop,
             )
-          : this.attachedData!.transfers.at(idx - originalLength)!,
+          : // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+            this.attachedData!.transfers.at(idx - originalLength)!,
       (a, b) =>
         a instanceof FootPathRetriever && b instanceof FootPathRetriever
           ? FootPathRetriever.equals(a, b)
@@ -234,7 +236,6 @@ class TripRetriever extends Retriever<PtrType.Route, void> implements Override<T
       (idx) => this.rDataView.subarray(this.ptr + 2 + idx * 2, this.ptr + 2 + (idx + 1) * 2) as unknown as [number, number],
       (a, b) =>
         (a as unknown as Float64Array).byteOffset === (b as unknown as Float64Array).byteOffset &&
-        a.length === b.length &&
         (a as unknown as Float64Array).buffer === (b as unknown as Float64Array).buffer,
     );
   }
@@ -276,6 +277,7 @@ class RouteRetriever
 
     return new ArrayView(
       () => originalLength + (this.attachedData?.stops.length ?? 0),
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       (idx) => (idx < originalLength ? this.rDataView[this.ptr + 2 + idx] : this.attachedData!.stops.at(idx - originalLength)!),
       (a, b) => a === b,
     );
@@ -308,14 +310,15 @@ class RouteRetriever
               this.ptrTripsChunkSize + 1 + this._tripsChunkSizes.reduce((acc, v, i) => (i < idx ? acc + v : acc), 0),
               PtrType.Route,
             )
-          : this.attachedData!.trips.at(idx - this._tripsChunkSizes.length)!;
+          : // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+            this.attachedData!.trips.at(idx - this._tripsChunkSizes.length)!;
       },
       (a, b) => a.id === b.id,
     );
   }
 
   departureTime(t: number, p: number): number {
-    return this.trips.at(t)?.times.at(p)?.[1] ?? 0;
+    return this.trips.at(t).times.at(p)?.[1] ?? 0;
   }
 
   get chunkSize() {
@@ -384,6 +387,7 @@ class SharedRAPTORData implements IRAPTORData<number | SerializedId, number | Se
                     v.transfers.length * 2),
                 0,
               )) +
+              // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
               routes!.reduce<number>(
                 (acc, [_, stops, trips]) =>
                   acc +
@@ -470,6 +474,7 @@ class SharedRAPTORData implements IRAPTORData<number | SerializedId, number | Se
       const rMapping = new Map<number, number>();
 
       // `routes` must be defined or no constructor call would have matched
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       for (const [id, stops, trips] of routes!) {
         rMapping.set(id, idx);
         this.rDataView[idx++] = id;
