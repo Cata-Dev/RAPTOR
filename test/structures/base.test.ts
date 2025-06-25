@@ -97,8 +97,8 @@ describe("Label class", () => {
     });
 
     test("Comparison", () => {
-      expect(l.compare(l1)).toBe(-1);
-      expect(l1.compare(l)).toBe(-1);
+      expect(l.compare(l1)).toBe(null);
+      expect(l1.compare(l)).toBe(null);
       expect(l1.compare(new Label<number, number, ["c1", "c2"]>([c1, c2], 3, [4, 5]))).toBe(0);
       expect(l1.compare(new Label<number, number, ["c1", "c2"]>([c1, c2], 4, [5, 6]))).toBe(1);
     });

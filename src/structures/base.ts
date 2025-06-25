@@ -79,9 +79,9 @@ class Route<SI extends Id, RI extends Id, TI extends Id = Id> {
 
 interface Comparable<T> {
   /**
-   * @param compare Compares with another value `other`, returns `-1` if it's superior to `other`, `0` if equal, `1` otherwise
+   * @param compare Compares with another value `other`, returns `< 0` if it's superior to `other`, `0` if equal, `> 0` if inferior, and `null` if not comparable
    */
-  compare(other: T): -1 | 0 | 1;
+  compare(other: T): number | null;
 }
 
 interface Criterion<SI extends Id, RI extends Id, C extends string[], N extends C[number] = C[number]> {
@@ -132,14 +132,15 @@ class Label<SI extends Id, RI extends Id, C extends string[]> implements Compara
    * @param l The label to be compared with
    * @returns `-1` if this label is dominated by {@link l}, `0` if they are equal, `1` otherwise
    */
-  compare(l: Label<SI, RI, C>): -1 | 0 | 1 {
+  compare(l: Label<SI, RI, C>) {
+    let sup: 0 | -1 = 0;
     let inf: 0 | 1 = 0;
     for (const criterionName of Object.keys(this.values) as (keyof typeof this.values)[]) {
-      if (this.values[criterionName] > l.values[criterionName]) return -1;
+      if (this.values[criterionName] > l.values[criterionName]) sup = -1;
       if (this.values[criterionName] < l.values[criterionName]) inf = 1;
     }
 
-    return inf;
+    return inf && sup ? null : inf || sup;
   }
 }
 
@@ -213,9 +214,12 @@ class Bag<T extends Comparable<T>> {
     let inf = this.inner.length > 0 ? false : true;
 
     for (const v of this.inner)
-      if (!v.dominated && el.compare(v.val) == 1) {
+      if (!v.dominated) {
+        const cmp = el.compare(v.val);
+        if (cmp === 1) {
         inf = true;
         v.dominated = true;
+        } else if (cmp === null) inf = true;
       }
 
     if (inf) {
