@@ -248,7 +248,7 @@ class Bag<T extends Comparable<T>> {
   /**
    * Adds (O(n^2)) an element in the bag, keeping only minimal values.
    * @param el Element to add in the bag
-   * @returns The bag itself
+   * @returns Wether the element has been added or not, the number of pruned elements
    */
   add(el: T) {
     const added = this.addOnly(el);
@@ -260,7 +260,7 @@ class Bag<T extends Comparable<T>> {
   /**
    * {@link add}s (O(n^2)) everything from another bag in this bag.
    * @param b Bag to merge from
-   * @returns Number of added elements
+   * @returns Number of added and pruned elements
    */
   merge(b: Bag<T>) {
     const initialSize = this.size;
