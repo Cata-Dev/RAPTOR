@@ -9,7 +9,7 @@ function isCriterionJourneyStepVehicle<SI extends Id, RI extends Id, C extends s
 function isCriterionJourneyStepFoot<SI extends Id, RI extends Id, C extends string[]>(
   js: Parameters<Criterion<SI, RI, C>["update"]>[1],
 ): js is JourneyStep<SI, RI, C, "FOOT"> {
-  return "route" in js;
+  return "transfer" in js;
 }
 
 const bufferTime: Criterion<Id, Id, ["bufferTime"]> = {
