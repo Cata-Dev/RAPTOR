@@ -208,21 +208,19 @@ class Bag<T extends Comparable<T>> {
   /**
    * Adds (O(n)) an element in the bag, marking new dominated values but not removing them, see {@link add}.
    * @param el Element to add in the bag
-   * @returns The bag itself
+   * @returns Wether the element has been added or not
    */
   addOnly(el: T) {
-    let inf = this.inner.length > 0 ? false : true;
+    let alreadyHaveBetter = false;
 
     for (const v of this.inner)
       if (!v.dominated) {
         const cmp = el.compare(v.val);
-        if (cmp === 1) {
-        inf = true;
-        v.dominated = true;
-        } else if (cmp === null) inf = true;
+        if (cmp === 1) v.dominated = true;
+        else if (cmp !== null && cmp <= 0) alreadyHaveBetter = true;
       }
 
-    if (inf) {
+    if (!alreadyHaveBetter) {
       this.inner.push({ val: el, dominated: false });
       return true;
     }
