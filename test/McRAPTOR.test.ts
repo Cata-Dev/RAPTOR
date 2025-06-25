@@ -4,34 +4,23 @@ import { TestAsset } from "./assets/asset";
 import oneLine from "./assets/oneLine";
 import twoLines from "./assets/twoLines";
 
-describe("One line", () => {
-  for (const [datasetName, dataset] of Object.entries(oneLine) as [keyof typeof oneLine, TestAsset][]) {
-    describe(datasetName, () => {
-      const raptorData = new RAPTORData(...dataset.data);
-      const raptorInstance = new McRAPTOR(raptorData, []);
+for (const [datasetName, dataset] of [
+  ["One line", oneLine],
+  ["Two lines", twoLines],
+] satisfies [unknown, unknown][]) {
+  describe(datasetName, () => {
+    for (const [assetName, asset] of Object.entries(dataset) as [keyof typeof dataset, TestAsset][]) {
+      describe(assetName, () => {
+        const raptorData = new RAPTORData(...asset.data);
+        const raptorInstance = new McRAPTOR(raptorData, []);
 
-      for (const test of dataset.tests) {
-        raptorInstance.run(...test.params);
-        const res = raptorInstance.getBestJourneys(test.params[1]);
-        for (const journeys of res) expect(journeys?.length ?? 1).toBe(1);
-        test.validate(res.map((journeys) => (journeys ? journeys[0] : journeys)));
-      }
-    });
-  }
-});
-
-describe("Two lines", () => {
-  for (const [datasetName, dataset] of Object.entries(twoLines) as [keyof typeof twoLines, TestAsset][]) {
-    describe(datasetName, () => {
-      const raptorData = new RAPTORData(...dataset.data);
-      const raptorInstance = new McRAPTOR(raptorData, []);
-
-      for (const test of dataset.tests) {
-        raptorInstance.run(...test.params);
-        const res = raptorInstance.getBestJourneys(test.params[1]);
-        for (const journeys of res) expect(journeys?.length ?? 1).toBe(1);
-        test.validate(res.map((journeys) => (journeys ? journeys[0] : journeys)));
-      }
-    });
-  }
-});
+        for (const test of asset.tests) {
+          raptorInstance.run(...test.params);
+          const res = raptorInstance.getBestJourneys(test.params[1]);
+          for (const journeys of res) expect(journeys?.length ?? 1).toBe(1);
+          test.validate(res.map((journeys) => (journeys ? journeys[0] : journeys)));
+        }
+      });
+    }
+  });
+}
