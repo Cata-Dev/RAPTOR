@@ -270,6 +270,12 @@ class Bag<T extends Comparable<T>> {
     return { added: this.size - initialSize + pruned, pruned };
   }
 
+  /**
+   * Updates an element in the bag, marking dominated elements
+   * @param oldEl Element to update currently in the bag
+   * @param newEl New element to put in its place
+   * @returns The bag
+   */
   updateOnly(oldEl: T, newEl: T) {
     let idx: number | null = null;
     let dom = false;
@@ -291,11 +297,17 @@ class Bag<T extends Comparable<T>> {
     return this;
   }
 
+  /**
+   * Updates an element in the bag, removing it if it's being dominated, and removing possible dominated elements
+   * @param oldEl Element to update currently in the bag
+   * @param newEl New element to put in its place
+   * @returns Number of pruned elements, possibly including the updated element
+   */
   update(oldEl: T, newEl: T) {
     this.updateOnly(oldEl, newEl);
-    this.prune();
+    const pruned = this.prune();
 
-    return this;
+    return pruned;
   }
 
   *[Symbol.iterator]() {
