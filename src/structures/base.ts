@@ -199,10 +199,10 @@ class Bag<T extends Comparable<T>> {
   }
 
   /**
-   * O(1)
+   * O(n)...
    */
   get size() {
-    return this.inner.length;
+    return this.values().toArray().length;
   }
 
   /**
@@ -235,14 +235,14 @@ class Bag<T extends Comparable<T>> {
    * @returns #Removed elements
    */
   prune() {
-    const initialSize = this.size;
+    const initialLength = this.inner.length;
 
     let i = 0;
-    while (i < this.size)
+    while (i < this.inner.length)
       if (this.inner[i].dominated) this.inner.splice(i, 1);
       else ++i;
 
-    return initialSize - this.size;
+    return initialLength - this.inner.length;
   }
 
   /**
