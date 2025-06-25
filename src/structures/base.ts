@@ -86,6 +86,8 @@ interface Comparable<T> {
 
 interface Criterion<SI extends Id, RI extends Id, C extends string[], N extends C[number] = C[number]> {
   name: N;
+  /** Usually 0, +/-Infinity or 1 */
+  initialValue: number;
   update: (
     prefixJourney: Journey<SI, RI, C>,
     newJourneyStep: Omit<JourneyStep<SI, RI, C>, "label" | keyof Comparable<never>>,
@@ -96,15 +98,14 @@ interface Criterion<SI extends Id, RI extends Id, C extends string[], N extends 
 
 /** A tuple of size N+1 (time + other criteria) */
 class Label<SI extends Id, RI extends Id, C extends string[]> implements Comparable<Label<SI, RI, C>> {
-  protected readonly values: { time: timestamp } & Record<C[number], number>;
+  protected readonly values: Record<C[number] | "time", number>;
 
   constructor(
     protected readonly criteria: { [K in keyof C]: Criterion<SI, RI, C> }, //, K
     time: number,
-    values?: { [K in keyof C]: number },
   ) {
     this.values = criteria.reduce<Partial<{ time: timestamp } & Record<C[number], number>>>(
-      (acc, v, i) => ({ ...acc, [(v as Criterion<SI, RI, C>).name]: values?.[i] ?? Infinity }),
+      (acc, v) => ({ ...acc, [(v as Criterion<SI, RI, C>).name]: v.initialValue }),
       {
         time,
       } as Partial<{ time: timestamp } & Record<C[number], number>>,
@@ -120,11 +121,10 @@ class Label<SI extends Id, RI extends Id, C extends string[]> implements Compara
   }
 
   update(time: number, data: Parameters<Criterion<SI, RI, C>["update"]>) {
-    return new Label<SI, RI, C>(
-      this.criteria,
-      time,
-      (this.criteria as Criterion<SI, RI, C>[]).map((c) => c.update(...data)) as { [K in keyof typeof this.criteria]: number },
-    );
+    const updated = new Label<SI, RI, C>(this.criteria, time);
+    for (const c of this.criteria as Criterion<SI, RI, C>[]) updated.values[c.name] = c.update(...data);
+
+    return updated;
   }
 
   /**
