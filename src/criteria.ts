@@ -19,12 +19,14 @@ const bufferTime: Criterion<Id, Id, ["bufferTime"]> = {
     const lastJourneyStep = prefixJourney.at(-1);
     if (!lastJourneyStep) throw new Error("A journey should at least contain the DEPARTURE label.");
 
-    return Math.max(
+    if (!isCriterionJourneyStepVehicle(newJourneyStep)) return lastJourneyStep.label.value("bufferTime");
+
+    return Math.min(
       lastJourneyStep.label.value("bufferTime"),
-      -(isCriterionJourneyStepVehicle(newJourneyStep)
-        ? newJourneyStep.route.departureTime(newJourneyStep.tripIndex, newJourneyStep.route.stops.indexOf(newJourneyStep.boardedAt[0])) -
-          lastJourneyStep.label.time
-        : Infinity),
+      -(
+        newJourneyStep.route.departureTime(newJourneyStep.tripIndex, newJourneyStep.route.stops.indexOf(newJourneyStep.boardedAt[0])) -
+        lastJourneyStep.label.time
+      ),
     );
   },
 };
