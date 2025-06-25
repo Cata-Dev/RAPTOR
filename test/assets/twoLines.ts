@@ -1,8 +1,7 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
-import { expect, test } from "@jest/globals";
+import { describe, expect, test } from "@jest/globals";
 import { FootPath } from "../../src/main";
 import { TestAsset, TestDataset } from "./asset";
-import { describe } from "node:test";
 
 const MAX_ROUNDS = 6;
 const PARAMS: TestAsset["tests"][number]["params"] = [1, 7, 0, { walkSpeed: 1 }, MAX_ROUNDS];
@@ -314,7 +313,7 @@ export default {
       {
         params: PARAMS,
         validate: (res) => {
-          void describe("Run result is exact, early departure", () => {
+          describe("Run result is exact, early departure", () => {
             baseValidate1(res);
             test("k=2,3,4...", () => {
               for (const i of [2, 3]) {
