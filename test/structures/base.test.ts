@@ -41,6 +41,8 @@ describe("Route class", () => {
     expect(route.departureTime(1, 0)).toBe(4);
     expect(route.departureTime(1, 2)).toBe(12);
     expect(() => route.departureTime(2, 0)).toThrow("No departure time");
+    expect(() => route.departureTime(10, 3)).toThrow("No departure time");
     expect(() => route.departureTime(0, 3)).toThrow("No departure time");
+    expect(() => route.departureTime(0, 10)).toThrow("No departure time");
   });
 });
