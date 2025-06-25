@@ -1,30 +1,8 @@
 import { describe, expect } from "@jest/globals";
-import { McRAPTOR, /*Criterion, Id, JourneyStep,*/ RAPTORData } from "../src/main";
+import { McRAPTOR, RAPTORData } from "../src/main";
 import { TestAsset } from "./assets/asset";
 import oneLine from "./assets/oneLine";
 import twoLines from "./assets/twoLines";
-
-/*
-function isJourneyStepVehicle<SI extends Id, RI extends Id, C extends string[]>(
-  js: Parameters<Criterion<SI, RI, C>["update"]>[1],
-): js is JourneyStep<SI, RI, C, "VEHICLE"> {
-  return "route" in js;
-}
-
-const bufferTime: Criterion<Id, Id, ["bufferTime"]> = {
-  name: "bufferTime",
-  update: (prefixJourney, newJourneyStep) => {
-    const lastJourneyStep = prefixJourney.at(-1)!;
-    return Math.min(
-      lastJourneyStep.label.value("bufferTime"),
-      isJourneyStepVehicle(newJourneyStep) && "boardedAt" in lastJourneyStep && newJourneyStep.boardedAt[0] != lastJourneyStep.boardedAt
-        ? lastJourneyStep.label.time -
-            newJourneyStep.route.departureTime(newJourneyStep.tripIndex, newJourneyStep.route.stops.indexOf(newJourneyStep.boardedAt[0]))
-        : Infinity,
-    );
-  },
-};
-*/
 
 describe("One line", () => {
   for (const [datasetName, dataset] of Object.entries(oneLine) as [keyof typeof oneLine, TestAsset][]) {
