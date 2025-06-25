@@ -1,159 +1,258 @@
-import { FootPath, RAPTORData } from "../../src/main";
+/* eslint-disable @typescript-eslint/no-non-null-assertion */
+import { expect, test } from "@jest/globals";
+import { FootPath } from "../../src/main";
+import { TestAsset, TestDataset } from "./asset";
+
+const MAX_ROUNDS = 6;
+const PARAMS: TestAsset["tests"][number]["params"] = [1, 4, 0, { walkSpeed: 1 }, MAX_ROUNDS];
+
+const baseValidate: TestAsset["tests"][number]["validate"] = (res) => {
+  test("Run result is exact (generic)", () => {
+    expect(res[0]).toBe(null);
+    for (let i = 3; i < MAX_ROUNDS; ++i) expect(res[i]).toBe(null);
+    for (const i of [1, 2]) {
+      expect(res[i]!.length).toBe(2);
+
+      const js0 = res[i]![0];
+      expect(Object.keys(js0).length).toBe(2);
+      expect(Object.keys(js0)).toContain("compare");
+      expect(Object.keys(js0)).toContain("label");
+      expect(js0.label.time).toBe(0);
+
+      expect(Object.keys(res[i]![1]).length).toEqual(5);
+      expect(res[i]![1].label.time).toBe(6);
+
+      const js1 = res[i]![1];
+      if (!("route" in js1)) throw new Error("First journey step isn't VEHICLE");
+
+      expect(js1.boardedAt).toBe(1);
+      expect(js1.route.id).toBe(1);
+      expect(js1.tripIndex).toBe(0);
+    }
+  });
+};
 
 /**
  * 1 route with 4 stops and 2 trips
  */
 export default {
-  withoutTransfers: [
-    [
-      { id: 1, connectedRoutes: [1], transfers: [] as FootPath<number>[] },
-      { id: 2, connectedRoutes: [1], transfers: [] as FootPath<number>[] },
-      { id: 3, connectedRoutes: [1], transfers: [] as FootPath<number>[] },
-      { id: 4, connectedRoutes: [1], transfers: [] as FootPath<number>[] },
-    ],
-    [
+  withoutTransfers: {
+    data: [
       [
-        1,
-        [1, 2, 3, 4],
+        { id: 1, connectedRoutes: [1], transfers: [] as FootPath<number>[] },
+        { id: 2, connectedRoutes: [1], transfers: [] as FootPath<number>[] },
+        { id: 3, connectedRoutes: [1], transfers: [] as FootPath<number>[] },
+        { id: 4, connectedRoutes: [1], transfers: [] as FootPath<number>[] },
+      ],
+      [
         [
-          {
-            id: 1,
-            times: [
-              [0, 0],
-              [2, 2],
-              [4, 4],
-              [6, 6],
-            ],
-          },
-          {
-            id: 2,
-            times: [
-              [3, 3],
-              [5, 5],
-              [7, 7],
-              [9, 9],
-            ],
-          },
+          1,
+          [1, 2, 3, 4],
+          [
+            {
+              id: 1,
+              times: [
+                [0, 0],
+                [2, 2],
+                [4, 4],
+                [6, 6],
+              ],
+            },
+            {
+              id: 2,
+              times: [
+                [3, 3],
+                [5, 5],
+                [7, 7],
+                [9, 9],
+              ],
+            },
+          ],
         ],
       ],
     ],
-  ],
-  withSlowTransfers: [
-    [
+    tests: [
       {
-        id: 1,
-        connectedRoutes: [1],
-        transfers: [
-          // Not better
-          { to: 2, length: 3 },
-          { to: 3, length: 5 },
-          // Dumb
-          { to: 1, length: 1 },
-        ] as FootPath<number>[],
+        params: PARAMS,
+        validate: baseValidate,
       },
-      {
-        id: 2,
-        connectedRoutes: [1],
-        transfers: [
-          // Not better
-          { to: 4, length: 5 },
-        ] as FootPath<number>[],
-      },
-      {
-        id: 3,
-        connectedRoutes: [1],
-        transfers: [
-          // Going back
-          { to: 2, length: 1 },
-        ] as FootPath<number>[],
-      },
-      { id: 4, connectedRoutes: [1], transfers: [] as FootPath<number>[] },
     ],
-    [
+  },
+  withSlowTransfers: {
+    data: [
       [
-        1,
-        [1, 2, 3, 4],
+        {
+          id: 1,
+          connectedRoutes: [1],
+          transfers: [
+            // Not better
+            { to: 2, length: 3 },
+            { to: 3, length: 5 },
+            // Dumb
+            { to: 1, length: 1 },
+          ] as FootPath<number>[],
+        },
+        {
+          id: 2,
+          connectedRoutes: [1],
+          transfers: [
+            // Not better
+            { to: 4, length: 5 },
+          ] as FootPath<number>[],
+        },
+        {
+          id: 3,
+          connectedRoutes: [1],
+          transfers: [
+            // Going back
+            { to: 2, length: 1 },
+          ] as FootPath<number>[],
+        },
+        { id: 4, connectedRoutes: [1], transfers: [] as FootPath<number>[] },
+      ],
+      [
         [
-          {
-            id: 1,
-            times: [
-              [0, 0],
-              [2, 2],
-              [4, 4],
-              [6, 6],
-            ],
-          },
-          {
-            id: 2,
-            times: [
-              [3, 3],
-              [5, 5],
-              [7, 7],
-              [9, 9],
-            ],
-          },
+          1,
+          [1, 2, 3, 4],
+          [
+            {
+              id: 1,
+              times: [
+                [0, 0],
+                [2, 2],
+                [4, 4],
+                [6, 6],
+              ],
+            },
+            {
+              id: 2,
+              times: [
+                [3, 3],
+                [5, 5],
+                [7, 7],
+                [9, 9],
+              ],
+            },
+          ],
         ],
       ],
     ],
-  ],
-  withFastTransfers: [
-    [
+    tests: [
       {
-        id: 1,
-        connectedRoutes: [1],
-        transfers: [
-          // Not better
-          { to: 2, length: 3 },
-          { to: 3, length: 5 },
-          // Dumb
-          { to: 1, length: 1 },
-        ] as FootPath<number>[],
+        params: PARAMS,
+        validate: baseValidate,
       },
       {
-        id: 2,
-        connectedRoutes: [1],
-        transfers: [
-          // Not better
-          { to: 4, length: 5 },
-        ] as FootPath<number>[],
+        params: [PARAMS[0], PARAMS[1], 4, PARAMS[3], PARAMS[4]],
+        validate: (res) => {
+          test("Run result is exact (late departure)", () => {
+            expect(res[0]).toBe(null);
+            for (let i = 0; i < MAX_ROUNDS; ++i) expect(res[i]).toBe(null);
+          });
+        },
       },
-      {
-        id: 3,
-        connectedRoutes: [1],
-        transfers: [
-          // Better!
-          { to: 4, length: 1 },
-          // Not better, going back
-          { to: 1, length: 1 },
-        ] as FootPath<number>[],
-      },
-      { id: 4, connectedRoutes: [1], transfers: [] as FootPath<number>[] },
     ],
-    [
+  },
+  withFastTransfers: {
+    data: [
       [
-        1,
-        [1, 2, 3, 4],
+        {
+          id: 1,
+          connectedRoutes: [1],
+          transfers: [
+            // Not better
+            { to: 2, length: 3 },
+            { to: 3, length: 5 },
+            // Dumb
+            { to: 1, length: 1 },
+          ] as FootPath<number>[],
+        },
+        {
+          id: 2,
+          connectedRoutes: [1],
+          transfers: [
+            // Not better
+            { to: 4, length: 5 },
+          ] as FootPath<number>[],
+        },
+        {
+          id: 3,
+          connectedRoutes: [1],
+          transfers: [
+            // Better!
+            { to: 4, length: 1 },
+            // Not better, going back
+            { to: 1, length: 1 },
+          ] as FootPath<number>[],
+        },
+        { id: 4, connectedRoutes: [1], transfers: [] as FootPath<number>[] },
+      ],
+      [
         [
-          {
-            id: 1,
-            times: [
-              [0, 0],
-              [2, 2],
-              [4, 4],
-              [6, 6],
-            ],
-          },
-          {
-            id: 2,
-            times: [
-              [3, 3],
-              [5, 5],
-              [7, 7],
-              [9, 9],
-            ],
-          },
+          1,
+          [1, 2, 3, 4],
+          [
+            {
+              id: 1,
+              times: [
+                [0, 0],
+                [2, 2],
+                [4, 4],
+                [6, 6],
+              ],
+            },
+            {
+              id: 2,
+              times: [
+                [3, 3],
+                [5, 5],
+                [7, 7],
+                [9, 9],
+              ],
+            },
+          ],
         ],
       ],
     ],
-  ],
-} satisfies Record<string, ConstructorParameters<typeof RAPTORData<number, number, number>>>;
+    tests: [
+      {
+        params: PARAMS,
+        validate: (res) => {
+          test("Run result is exact", () => {
+            expect(res[0]).toBe(null);
+            for (let i = 3; i < MAX_ROUNDS; ++i) expect(res[i]).toBe(null);
+            for (const i of [1, 2]) {
+              expect(res[i]!.length).toBe(3);
+
+              const js0 = res[i]![0];
+              expect(Object.keys(js0).length).toBe(2);
+              expect(Object.keys(js0)).toContain("compare");
+              expect(Object.keys(js0)).toContain("label");
+              expect(js0.label.time).toBe(0);
+
+              const js1 = res[i]![1];
+              expect(Object.keys(js1).length).toEqual(5);
+              expect(js1.label.time).toBe(4);
+
+              if (!("route" in js1)) throw new Error("First journey step isn't VEHICLE");
+
+              expect(js1.boardedAt).toBe(1);
+              expect(js1.route.id).toBe(1);
+              expect(js1.tripIndex).toBe(0);
+
+              const js2 = res[i]![2];
+              expect(Object.keys(js2).length).toEqual(4);
+              expect(js2.label.time).toBe(5);
+
+              if (!("transfer" in js2)) throw new Error("Second journey step isn't FOOT");
+
+              expect(js2.boardedAt).toBe(3);
+              expect(js2.transfer.to).toBe(4);
+              expect(js2.transfer.length).toBe(1);
+            }
+          });
+        },
+      },
+    ],
+  },
+} satisfies TestDataset;
