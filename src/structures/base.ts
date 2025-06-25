@@ -188,7 +188,12 @@ class Bag<T extends Comparable<T>> {
    */
   static from<T extends Comparable<T>>(bag: InstanceType<typeof Bag<T>>): Bag<T> {
     const b = new Bag<T>();
-    b.inner.push(...bag.inner);
+    b.inner.push(
+      ...bag.inner.map(({ val, dominated }) => ({
+        val,
+        dominated,
+      })),
+    );
     return b;
   }
 
