@@ -1,5 +1,6 @@
 import { describe, expect, test, jest } from "@jest/globals";
 import { Bag, Criterion, Label, Route } from "../../src/main";
+import { setLabelValues } from "./utils";
 
 describe("Route class", () => {
   const data: ConstructorParameters<typeof Route<number, number, number>> = [
@@ -46,13 +47,6 @@ describe("Route class", () => {
     expect(() => route.departureTime(0, 10)).toThrow("No departure time");
   });
 });
-
-function setLabelValues<C extends string[]>(label: Label<number, number, C>, values: { [K in keyof C]: number }) {
-  for (const [i, c] of (label as unknown as { criteria: Criterion<number, number, C>[] }).criteria.entries())
-    (label as unknown as { values: Record<C[number] | "time", number> }).values[c.name] = values[i];
-
-  return label;
-}
 
 const c1Update = jest.fn<Criterion<number, number, ["c1", "c2"]>["update"]>((prefixJourney, newJourneyStep, time, stop) => stop);
 const c1: Criterion<number, number, ["c1", "c2"]> = {
