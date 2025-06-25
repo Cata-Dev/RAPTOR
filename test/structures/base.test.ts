@@ -1,5 +1,5 @@
 import { describe, expect, test, jest } from "@jest/globals";
-import { Criterion, Label, Route } from "../../src/main";
+import { Bag, Criterion, Label, Route } from "../../src/main";
 
 describe("Route class", () => {
   const data: ConstructorParameters<typeof Route<number, number, number>> = [
@@ -47,6 +47,16 @@ describe("Route class", () => {
   });
 });
 
+const c1Update = jest.fn<Criterion<number, number, ["c1", "c2"]>["update"]>((prefixJourney, newJourneyStep, time, stop) => stop);
+const c1: Criterion<number, number, ["c1", "c2"]> = {
+  name: "c1",
+  update: c1Update,
+};
+const c2Update = jest.fn<Criterion<number, number, ["c1", "c2"]>["update"]>((prefixJourney, newJourneyStep, time, stop) => time + stop);
+const c2: Criterion<number, number, ["c1", "c2"]> = {
+  name: "c2",
+  update: c2Update,
+};
 describe("Label class", () => {
   describe("Without criterion", () => {
     const l = new Label([], 0);
@@ -71,17 +81,6 @@ describe("Label class", () => {
   });
 
   describe("With criterion", () => {
-    const c1Update = jest.fn<Criterion<number, number, ["c1", "c2"]>["update"]>((prefixJourney, newJourneyStep, time, stop) => stop);
-    const c1: Criterion<number, number, ["c1", "c2"]> = {
-      name: "c1",
-      update: c1Update,
-    };
-    const c2Update = jest.fn<Criterion<number, number, ["c1", "c2"]>["update"]>((prefixJourney, newJourneyStep, time, stop) => time + stop);
-    const c2: Criterion<number, number, ["c1", "c2"]> = {
-      name: "c2",
-      update: c2Update,
-    };
-
     const l = new Label<number, number, ["c1", "c2"]>([c1, c2], 0);
     const l1 = new Label<number, number, ["c1", "c2"]>([c1, c2], 3, [4, 5]);
 
@@ -159,5 +158,99 @@ describe("Label class", () => {
       expect(l1Updated.value("c1")).toBe(1);
       expect(l1Updated.value("c2")).toBe(3);
     });
+  });
+});
+
+c1Update.mockClear();
+c2Update.mockClear();
+describe("Bag class", () => {
+  test("Scenario", () => {
+    const l = new Label<number, number, ["c1", "c2"]>([c1, c2], 0);
+    const l1 = new Label<number, number, ["c1", "c2"]>([c1, c2], 3, [4, 5]);
+    const l2 = new Label<number, number, ["c1", "c2"]>([c1, c2], 3, [4, 3]);
+    const l3 = new Label<number, number, ["c1", "c2"]>([c1, c2], 3, [4, 2]);
+    const l4 = new Label<number, number, ["c1", "c2"]>([c1, c2], 2, [4, 6]);
+
+    const b = new Bag<Label<number, number, ["c1", "c2"]>>();
+    let { added, pruned } = b.add(l);
+    expect(added).toBe(true);
+    expect(pruned).toBe(0);
+    expect(b.size).toBe(1);
+    for (const label of b) expect(label).toBe(l);
+
+    ({ added, pruned } = b.add(l1));
+    expect(added).toBe(true);
+    expect(pruned).toBe(0);
+    expect(b.size).toBe(2);
+    expect(b.values()).toContain(l);
+    expect(b.values()).toContain(l1);
+
+    added = b.addOnly(l2);
+    expect(added).toBe(true);
+    expect((b as unknown as { inner: [] }).inner.length).toBe(3);
+    expect(b.size).toBe(2);
+    expect(b.values()).toContain(l);
+    expect(b.values()).toContain(l2);
+    expect(b.values()).not.toContain(l1);
+
+    pruned = b.prune();
+    expect(pruned).toBe(1);
+    expect((b as unknown as { inner: [] }).inner.length).toBe(2);
+
+    ({ added, pruned } = b.add(l1));
+    expect(added).toBe(false);
+    expect(pruned).toBe(0);
+    expect(b.size).toBe(2);
+    expect(b.values()).toContain(l);
+    expect(b.values()).toContain(l2);
+
+    const b1 = new Bag<Label<number, number, ["c1", "c2"]>>();
+    b1.add(l);
+    b1.add(l1);
+    b1.add(l2);
+    b1.add(l4);
+    expect(b1.size).toBe(3);
+    expect(b1.values()).toContain(l);
+    expect(b1.values()).toContain(l2);
+    expect(b1.values()).toContain(l4);
+
+    // Update
+    pruned = b1.update(l, l3);
+    expect(pruned).toBe(1);
+    expect(b1.size).toBe(2);
+    expect(b1.values()).toContain(l3);
+    expect(b1.values()).toContain(l4);
+    // Update missing
+    pruned = b1.update(l1, l);
+    expect(pruned).toBe(0);
+    expect(b1.size).toBe(2);
+    expect(b1.values()).toContain(l3);
+    expect(b1.values()).toContain(l4);
+    // Update with dominated
+    ({ added, pruned } = b1.add(l));
+    expect(added).toBe(true);
+    expect(pruned).toBe(0);
+    expect(b1.size).toBe(3);
+    expect(b1.values()).toContain(l);
+    pruned = b1.update(l, l2);
+    expect(pruned).toBe(1);
+    expect(b1.size).toBe(2);
+    expect(b1.values()).toContain(l3);
+    expect(b1.values()).toContain(l4);
+
+    let addedCount: number;
+    // eslint-disable-next-line prefer-const
+    ({ added: addedCount, pruned } = b.merge(b1));
+    expect(addedCount).toBe(2);
+    expect(pruned).toBe(1);
+    expect(b.size).toBe(3);
+    expect(b.values()).toContain(l);
+    expect(b.values()).toContain(l3);
+    expect(b.values()).toContain(l4);
+
+    // Side effects check
+    expect(b1.size).toBe(2);
+    expect(b1.values()).toContain(l3);
+    expect(b1.values()).toContain(l4);
   });
 });
