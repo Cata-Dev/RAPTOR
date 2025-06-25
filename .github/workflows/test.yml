@@ -74,4 +74,4 @@ jobs:
           # Branches are filtered through triggers
           branches: "*"
           badges-icon: jest
-          badges-labels-prefix: "Coverage: "
+          badges-labels-prefix: "Coverage"
