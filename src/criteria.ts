@@ -14,7 +14,7 @@ function isCriterionJourneyStepFoot<SI extends Id, RI extends Id, C extends stri
 
 const bufferTime: Criterion<Id, Id, ["bufferTime"]> = {
   name: "bufferTime",
-  initialValue: -Infinity,
+  initialValue: 0,
   update: (prefixJourney, newJourneyStep) => {
     const lastJourneyStep = prefixJourney.at(-1);
     if (!lastJourneyStep) throw new Error("A journey should at least contain the DEPARTURE label.");
