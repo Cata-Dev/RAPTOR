@@ -14,7 +14,8 @@
   },
   "scripts": {
     "build": "tsc",
-    "prettier": "prettier \"**/*.ts\" --write",
+    "format": "prettier '**/*.ts' --write",
+    "format-check": "prettier '**/*.ts' --check",
     "type-check": "tsc -noEmit",
     "lint": "eslint src test --fix",
     "full-lint": "pnpm run lint && pnpm run type-check",

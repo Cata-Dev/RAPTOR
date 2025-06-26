@@ -1,4 +1,4 @@
-name: Lint
+name: Format
 
 on:
   push:
@@ -34,4 +34,6 @@ jobs:
           cache: "pnpm"
 
       - run: pnpm install
-      - run: pnpm run --if-present full-lint
+
+      - name: Check format
+        run: pnpm run --if-present format-check
