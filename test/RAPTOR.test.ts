@@ -7,11 +7,11 @@ import twoLines from "./assets/twoLines";
 for (const [datasetName, dataset] of [
   ["One line", oneLine],
   ["Two lines", twoLines],
-] satisfies [unknown, unknown][]) {
+] as const) {
   describe(datasetName, () => {
-    for (const [assetName, asset] of Object.entries(dataset) as [keyof typeof dataset, TestAsset][]) {
+    for (const [assetName, asset] of Object.entries(dataset)) {
       describe(assetName, () => {
-        const raptorData = new RAPTORData(...asset.data);
+        const raptorData = new RAPTORData(...(asset.data as TestAsset["data"]));
         const raptorInstance = new RAPTOR(raptorData);
 
         for (const test of asset.tests) {

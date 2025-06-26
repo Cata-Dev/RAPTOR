@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { expect, test } from "@jest/globals";
-import { FootPath } from "../../src/main";
+import { FootPath, Journey } from "../../src/main";
 import { TestAsset, TestDataset } from "./asset";
 
 const MAX_ROUNDS = 6;
@@ -30,6 +30,36 @@ const baseValidate: TestAsset["tests"][number]["validate"] = (res) => {
       expect(js1.tripIndex).toBe(0);
     }
   });
+};
+
+const footValidate = (journey: Journey<number, number, []>) => {
+  expect(journey.length).toBe(3);
+
+  const js0 = journey[0];
+  expect(Object.keys(js0).length).toBe(2);
+  expect(Object.keys(js0)).toContain("compare");
+  expect(Object.keys(js0)).toContain("label");
+  expect(js0.label.time).toBe(0);
+
+  const js1 = journey[1];
+  expect(Object.keys(js1).length).toEqual(5);
+  expect(js1.label.time).toBe(4);
+
+  if (!("route" in js1)) throw new Error("First journey step isn't VEHICLE");
+
+  expect(js1.boardedAt).toBe(1);
+  expect(js1.route.id).toBe(1);
+  expect(js1.tripIndex).toBe(0);
+
+  const js2 = journey[2];
+  expect(Object.keys(js2).length).toEqual(4);
+  expect(js2.label.time).toBe(5);
+
+  if (!("transfer" in js2)) throw new Error("Second journey step isn't FOOT");
+
+  expect(js2.boardedAt).toBe(3);
+  expect(js2.transfer.to).toBe(4);
+  expect(js2.transfer.length).toBe(1);
 };
 
 /**
@@ -221,38 +251,12 @@ export default {
           test("Run result is exact", () => {
             expect(res[0]).toBe(null);
             for (let i = 3; i < MAX_ROUNDS; ++i) expect(res[i]).toBe(null);
-            for (const i of [1, 2]) {
-              expect(res[i]!.length).toBe(3);
-
-              const js0 = res[i]![0];
-              expect(Object.keys(js0).length).toBe(2);
-              expect(Object.keys(js0)).toContain("compare");
-              expect(Object.keys(js0)).toContain("label");
-              expect(js0.label.time).toBe(0);
-
-              const js1 = res[i]![1];
-              expect(Object.keys(js1).length).toEqual(5);
-              expect(js1.label.time).toBe(4);
-
-              if (!("route" in js1)) throw new Error("First journey step isn't VEHICLE");
-
-              expect(js1.boardedAt).toBe(1);
-              expect(js1.route.id).toBe(1);
-              expect(js1.tripIndex).toBe(0);
-
-              const js2 = res[i]![2];
-              expect(Object.keys(js2).length).toEqual(4);
-              expect(js2.label.time).toBe(5);
-
-              if (!("transfer" in js2)) throw new Error("Second journey step isn't FOOT");
-
-              expect(js2.boardedAt).toBe(3);
-              expect(js2.transfer.to).toBe(4);
-              expect(js2.transfer.length).toBe(1);
-            }
+            for (const i of [1, 2]) footValidate(res[i]!);
           });
         },
       },
     ],
   },
 } satisfies TestDataset;
+
+export { MAX_ROUNDS, footValidate };

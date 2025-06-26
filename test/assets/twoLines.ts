@@ -77,7 +77,7 @@ const baseValidate1: TestAsset["tests"][number]["validate"] = (res) => {
 };
 
 /**
- * 1 route with 4 stops and 2 trips
+ * 2 routes with 4 stops and 2 trips each
  */
 export default {
   withoutTransfers: {
