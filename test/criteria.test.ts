@@ -79,7 +79,7 @@ describe("Buffer time", () => {
   });
 
   test("Update with foot transfer", () => {
-    expect(bufferTimeTyped.update([originJS], footJourneyStep, 0, 0)).toBe(0);
+    expect(bufferTimeTyped.update([originJS], footJourneyStep, 0, 0)).toBe(Infinity);
     expect(bufferTimeTyped.update([originJS, vehicleJourneyStep1], footJourneyStep, 0, 0)).toBe(-4);
   });
 
