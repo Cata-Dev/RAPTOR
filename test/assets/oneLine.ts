@@ -9,26 +9,25 @@ const PARAMS: TestAsset["tests"][number]["params"] = [1, 4, 0, { walkSpeed: 1 },
 const baseValidate: TestAsset["tests"][number]["validate"] = (res) => {
   test("Run result is exact (generic)", () => {
     expect(res[0]).toBe(null);
-    for (let i = 3; i < MAX_ROUNDS; ++i) expect(res[i]).toBe(null);
-    for (const i of [1, 2]) {
-      expect(res[i]!.length).toBe(2);
+    for (let i = 2; i < MAX_ROUNDS; ++i) expect(res[i]).toBe(null);
+    const journey = res[1]!;
+    expect(journey.length).toBe(2);
 
-      const js0 = res[i]![0];
-      expect(Object.keys(js0).length).toBe(2);
-      expect(Object.keys(js0)).toContain("compare");
-      expect(Object.keys(js0)).toContain("label");
-      expect(js0.label.time).toBe(0);
+    const js0 = journey[0];
+    expect(Object.keys(js0).length).toBe(2);
+    expect(Object.keys(js0)).toContain("compare");
+    expect(Object.keys(js0)).toContain("label");
+    expect(js0.label.time).toBe(0);
 
-      expect(Object.keys(res[i]![1]).length).toEqual(5);
-      expect(res[i]![1].label.time).toBe(6);
+    expect(Object.keys(journey[1]).length).toEqual(5);
+    expect(journey[1].label.time).toBe(6);
 
-      const js1 = res[i]![1];
-      if (!("route" in js1)) throw new Error("First journey step isn't VEHICLE");
+    const js1 = journey[1];
+    if (!("route" in js1)) throw new Error("First journey step isn't VEHICLE");
 
-      expect(js1.boardedAt).toBe(1);
-      expect(js1.route.id).toBe(1);
-      expect(js1.tripIndex).toBe(0);
-    }
+    expect(js1.boardedAt).toBe(1);
+    expect(js1.route.id).toBe(1);
+    expect(js1.tripIndex).toBe(0);
   });
 };
 
@@ -252,8 +251,8 @@ export default [
           validate: (res) => {
             test("Run result is exact", () => {
               expect(res[0]).toBe(null);
-              for (let i = 3; i < MAX_ROUNDS; ++i) expect(res[i]).toBe(null);
-              for (const i of [1, 2]) footValidate(res[i]!);
+              footValidate(res[1]!);
+              for (let i = 2; i < MAX_ROUNDS; ++i) expect(res[i]).toBe(null);
             });
           },
         },
@@ -262,4 +261,4 @@ export default [
   },
 ] satisfies TestDataset;
 
-export { MAX_ROUNDS, footValidate };
+export { MAX_ROUNDS };

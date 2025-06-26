@@ -222,7 +222,8 @@ export default class McRAPTOR<C extends string[], SI extends Id = Id, RI extends
         .values()
         .map((js) => {
           try {
-            return this.traceBackFromStep(js, k);
+            const journey = this.traceBackFromStep(js, k);
+            return journey.reduce((acc, js) => acc + ("route" in js ? 1 : 0), 0) === k ? journey : null;
           } catch (_) {
             return null;
           }

@@ -1,7 +1,6 @@
 import { expect, test } from "@jest/globals";
-import { Journey } from "../../src/main";
 import { McTestAsset, McTestDataset } from "./asset";
-import oneLine, { footValidate, MAX_ROUNDS } from "./oneLine";
+import oneLine, { MAX_ROUNDS } from "./oneLine";
 import { validateWithoutCriteria } from "./FDOneLine";
 
 export default [
@@ -68,31 +67,29 @@ export default [
           validate: (res) => {
             test("Run result is exact (mid departure, buffer time > 0)", () => {
               expect(res[0]).toBe(null);
-              for (let i = 3; i < MAX_ROUNDS; ++i) expect(res[i]).toBe(null);
-              for (const i of [1, 2]) {
-                expect(res[i]?.length).toBe(1);
-                // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-                const journey = res[i]![0];
+              for (let i = 2; i < MAX_ROUNDS; ++i) expect(res[i]).toBe(null);
+              expect(res[1]?.length).toBe(1);
+              // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+              const journey = res[1]![0];
 
-                expect(journey.length).toBe(2);
+              expect(journey.length).toBe(2);
 
-                const js0 = journey[0];
-                expect(Object.keys(js0).length).toBe(2);
-                expect(Object.keys(js0)).toContain("compare");
-                expect(Object.keys(js0)).toContain("label");
-                expect(js0.label.time).toBe(1);
+              const js0 = journey[0];
+              expect(Object.keys(js0).length).toBe(2);
+              expect(Object.keys(js0)).toContain("compare");
+              expect(Object.keys(js0)).toContain("label");
+              expect(js0.label.time).toBe(1);
 
-                expect(Object.keys(journey[1]).length).toEqual(5);
-                expect(journey[1].label.time).toBe(9);
+              expect(Object.keys(journey[1]).length).toEqual(5);
+              expect(journey[1].label.time).toBe(9);
 
-                const js1 = journey[1];
-                if (!("route" in js1)) throw new Error("First journey step isn't VEHICLE");
+              const js1 = journey[1];
+              if (!("route" in js1)) throw new Error("First journey step isn't VEHICLE");
 
-                expect(js1.boardedAt).toBe(1);
-                expect(js1.route.id).toBe(1);
-                expect(js1.tripIndex).toBe(1);
-                expect(js1.label.value("bufferTime")).toBe(-2);
-              }
+              expect(js1.boardedAt).toBe(1);
+              expect(js1.route.id).toBe(1);
+              expect(js1.tripIndex).toBe(1);
+              expect(js1.label.value("bufferTime")).toBe(-2);
             });
           },
         },
@@ -114,20 +111,17 @@ export default [
             test("Base results are present", () => {
               expect(journeys.every((journeys) => (journeys?.length ?? 1) === 1)).toBe(true);
             });
+            validateWithoutCriteria(oneLine[1].withFastTransfers.tests[0].validate)(journeys);
 
             test("Label buffer times are exact", () => {
-              for (const i of [1, 2]) {
-                // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-                const journeys = res[i]!.filter((journey) => journey.length === 3);
-                expect(journeys.length).toBe(1);
+              // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+              const journeys = res[1]!.filter((journey) => journey.length === 3);
+              expect(journeys.length).toBe(1);
 
-                const journey = journeys[0];
+              const journey = journeys[0];
 
-                footValidate(journey as unknown as Journey<number, number, []>);
-
-                expect(journey[1].label.value("bufferTime")).toBe(-0);
-                expect(journey[2].label.value("bufferTime")).toBe(-0);
-              }
+              expect(journey[1].label.value("bufferTime")).toBe(-0);
+              expect(journey[2].label.value("bufferTime")).toBe(-0);
             });
           },
         },

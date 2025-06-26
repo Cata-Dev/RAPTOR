@@ -1,7 +1,6 @@
 import { expect, test } from "@jest/globals";
-import { Journey } from "../../src/main";
 import { McTestAsset, McTestDataset, TestAsset } from "./asset";
-import oneLine, { footValidate } from "./oneLine";
+import oneLine from "./oneLine";
 
 const validateWithoutCriteria =
   (validate: TestAsset["tests"][number]["validate"]) => (res: Parameters<McTestAsset<string[]>["tests"][number]["validate"]>[0]) => {
@@ -58,35 +57,29 @@ export default [
         {
           params: oneLine[1].withFastTransfers.tests[0].params,
           validate: (res) => {
-            const baseJourneys: Parameters<McTestAsset<["footDistance"]>["tests"][number]["validate"]>[0] = res.map((journeys) => {
-              if (!journeys) return journeys;
-
-              journeys = journeys.filter((j) => j.length === 2);
-
-              return journeys;
-            });
+            const baseJourneys: Parameters<McTestAsset<["footDistance"]>["tests"][number]["validate"]>[0] = res.map((journeys, i) =>
+              i == 1 ? (journeys?.filter((j) => j.length === 3) ?? null) : null,
+            );
             test("Base results are present", () => {
-              expect(baseJourneys.every((journeys) => (journeys?.length ?? 1) === 1)).toBe(true);
+              expect(!!res[1]?.[0]).toBe(true);
             });
+            validateWithoutCriteria(oneLine[1].withFastTransfers.tests[0].validate)(baseJourneys);
 
-            validateWithoutCriteria(oneLine[1].withoutTransfers.tests[0].validate)(baseJourneys);
             test("Label foot distances are exact (same results as RAPTOR)", () => {
-              for (const journeys of baseJourneys) if (journeys?.[0]) expect(journeys[0].at(-1)?.label.value("footDistance")).toBe(0);
+              for (const journeys of baseJourneys)
+                if (journeys?.[0]) {
+                  expect(journeys[0][0]?.label.value("footDistance")).toBe(0);
+                  expect(journeys[0][1]?.label.value("footDistance")).toBe(0);
+                  expect(journeys[0][2]?.label.value("footDistance")).toBe(1);
+                }
             });
 
             test("Label foot distances are exact (results due to criteria)", () => {
-              for (const i of [1, 2]) {
-                // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-                const journeys = res[i]!.filter((journey) => journey.length === 3);
-                expect(journeys.length).toBe(1);
+              // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+              const journeys = res[1]!.filter((journey) => journey.length === 2);
+              expect(journeys.length).toBe(1);
 
-                const journey = journeys[0];
-
-                footValidate(journey as unknown as Journey<number, number, []>);
-
-                expect(journey[1].label.value("footDistance")).toBe(0);
-                expect(journey[2].label.value("footDistance")).toBe(1);
-              }
+              for (const js of journeys[0]) expect(js.label.value("footDistance")).toBe(0);
             });
           },
         },

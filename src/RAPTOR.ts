@@ -187,7 +187,8 @@ export default class RAPTOR<SI extends Id = Id, RI extends Id = Id, TI extends I
         const ptJourneyStep = this.multiLabel[k].get(pt);
         if (!ptJourneyStep) return null;
 
-        return this.traceBackFromStep(ptJourneyStep, k);
+        const journey = this.traceBackFromStep(ptJourneyStep, k);
+        return journey.reduce((acc, js) => acc + ("route" in js ? 1 : 0), 0) === k ? journey : null;
       } catch {
         return null;
       }
