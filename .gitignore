@@ -106,6 +106,9 @@ $RECYCLE.BIN/
 # Windows shortcuts
 *.lnk
 
+# User scripts
+git_push.sh
+
 # Others
 lib/
 # Outputs

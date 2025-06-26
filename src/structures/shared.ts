@@ -1,4 +1,4 @@
-import { FootPath, Stop, Trip, Route, ArrayRead, MapRead, IRAPTORData } from "./Structures";
+import { ArrayRead, FootPath, IRAPTORData, MapRead, Route, Stop, Trip } from "./base";
 
 /**
  * Helper type to override type `T` with type `O`
@@ -8,7 +8,7 @@ type Override<T, O> = Omit<T, keyof O> & O;
 /**
  * Helper type for viewing-only arrays, with some viewing methods of {@link Array}.
  */
-export class ArrayView<T> implements ArrayRead<T> {
+class ArrayView<T> implements ArrayRead<T> {
   protected _length: number | null = null;
 
   constructor(
@@ -134,6 +134,8 @@ class FootPathRetriever extends Retriever<PtrType.Stop, void> implements FootPat
   }
 }
 
+type SerializedId = ReturnType<(typeof SharedRAPTORData)["serializeId"]>;
+
 //
 // Stop
 //
@@ -167,7 +169,8 @@ class StopRetriever
       (idx) =>
         idx < this.connectedRoutesChunkSize
           ? this.sDataView[this.ptr + 1 + 1 + idx]
-          : this.attachedData!.connectedRoutes.at(idx - this.connectedRoutesChunkSize)!,
+          : // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+            this.attachedData!.connectedRoutes.at(idx - this.connectedRoutesChunkSize)!,
       (a, b) => a === b,
     );
   }
@@ -190,7 +193,8 @@ class StopRetriever
               this.ptr + 1 + this.connectedRoutesChunkSize + 1 + 1 + idx * FootPathRetriever._chunkSize,
               PtrType.Stop,
             )
-          : this.attachedData!.transfers.at(idx - originalLength)!,
+          : // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+            this.attachedData!.transfers.at(idx - originalLength)!,
       (a, b) =>
         a instanceof FootPathRetriever && b instanceof FootPathRetriever
           ? FootPathRetriever.equals(a, b)
@@ -232,7 +236,6 @@ class TripRetriever extends Retriever<PtrType.Route, void> implements Override<T
       (idx) => this.rDataView.subarray(this.ptr + 2 + idx * 2, this.ptr + 2 + (idx + 1) * 2) as unknown as [number, number],
       (a, b) =>
         (a as unknown as Float64Array).byteOffset === (b as unknown as Float64Array).byteOffset &&
-        a.length === b.length &&
         (a as unknown as Float64Array).buffer === (b as unknown as Float64Array).buffer,
     );
   }
@@ -274,6 +277,7 @@ class RouteRetriever
 
     return new ArrayView(
       () => originalLength + (this.attachedData?.stops.length ?? 0),
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       (idx) => (idx < originalLength ? this.rDataView[this.ptr + 2 + idx] : this.attachedData!.stops.at(idx - originalLength)!),
       (a, b) => a === b,
     );
@@ -306,14 +310,15 @@ class RouteRetriever
               this.ptrTripsChunkSize + 1 + this._tripsChunkSizes.reduce((acc, v, i) => (i < idx ? acc + v : acc), 0),
               PtrType.Route,
             )
-          : this.attachedData!.trips.at(idx - this._tripsChunkSizes.length)!;
+          : // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+            this.attachedData!.trips.at(idx - this._tripsChunkSizes.length)!;
       },
       (a, b) => a.id === b.id,
     );
   }
 
   departureTime(t: number, p: number): number {
-    return this.trips.at(t)?.times.at(p)?.[1] ?? 0;
+    return this.trips.at(t).times.at(p)?.[1] ?? 0;
   }
 
   get chunkSize() {
@@ -321,12 +326,10 @@ class RouteRetriever
   }
 }
 
-export type SerializedId = ReturnType<(typeof SharedRAPTORData)["serializeId"]>;
-
 /**
  * Shared-memory enabled RAPTOR data
  */
-export class SharedRAPTORData implements IRAPTORData<number | SerializedId, number | SerializedId, number> {
+class SharedRAPTORData implements IRAPTORData<number | SerializedId, number | SerializedId, number> {
   // Max float64
   static readonly MAX_SAFE_TIMESTAMP: number = 3.4e38;
   readonly MAX_SAFE_TIMESTAMP: number = SharedRAPTORData.MAX_SAFE_TIMESTAMP;
@@ -384,6 +387,7 @@ export class SharedRAPTORData implements IRAPTORData<number | SerializedId, numb
                     v.transfers.length * 2),
                 0,
               )) +
+              // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
               routes!.reduce<number>(
                 (acc, [_, stops, trips]) =>
                   acc +
@@ -415,7 +419,9 @@ export class SharedRAPTORData implements IRAPTORData<number | SerializedId, numb
     // Stops length in data buffer
     const stopsDataLengthChunk = new DataView(this.data, 0, Float64Array.BYTES_PER_ELEMENT);
     const getStopsChunkSize = () => stopsDataLengthChunk.getFloat64(0);
-    const setStopsChunkSize = (length: number) => stopsDataLengthChunk.setFloat64(0, length);
+    const setStopsChunkSize = (length: number) => {
+      stopsDataLengthChunk.setFloat64(0, length);
+    };
 
     if (stopsChunkSize !== null) setStopsChunkSize(stopsChunkSize);
 
@@ -468,6 +474,7 @@ export class SharedRAPTORData implements IRAPTORData<number | SerializedId, numb
       const rMapping = new Map<number, number>();
 
       // `routes` must be defined or no constructor call would have matched
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       for (const [id, stops, trips] of routes!) {
         rMapping.set(id, idx);
         this.rDataView[idx++] = id;
@@ -714,3 +721,5 @@ export class SharedRAPTORData implements IRAPTORData<number | SerializedId, numb
     );
   }
 }
+
+export { ArrayView, SerializedId, SharedRAPTORData };
