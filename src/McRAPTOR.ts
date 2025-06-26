@@ -3,7 +3,7 @@ import BaseRAPTOR, { RAPTORRunSettings } from "./base";
 import RAPTOR from "./RAPTOR";
 import { Bag, Criterion, Id, IRAPTORData, Journey, JourneyStep, Label, makeJSComparable, Route, timestamp } from "./structures";
 
-export default class McRAPTOR<C extends string[], SI extends Id = Id, RI extends Id = Id, TI extends Id = Id> extends BaseRAPTOR<SI, RI, TI> {
+export default class McRAPTOR<C extends string[], SI extends Id = Id, RI extends Id = Id, TI extends Id = Id> extends BaseRAPTOR<C, SI, RI, TI> {
   /** @description A {@link Label} Ti(SI) represents the earliest known arrival time at stop SI with up to i trips. */
   protected bags: Map<SI, Bag<JourneyStep<SI, RI, C>>>[] = [];
   /** Set<{@link SI} in {@link stops}> */
@@ -188,45 +188,6 @@ export default class McRAPTOR<C extends string[], SI extends Id = Id, RI extends
       // Stopping criterion
       if (this.marked.size === 0) break;
     }
-  }
-
-  protected traceBackFromStep(from: JourneyStep<SI, RI, C>, initRound: number): Journey<SI, RI, C> {
-    if (initRound < 0 || initRound > this.bags.length) throw new Error(`Invalid initRound (${initRound}) provided.`);
-
-    let k = initRound;
-    let trace: Journey<SI, RI, C> = [];
-
-    let previousStep: JourneyStep<SI, RI, C> | null = from;
-    while (previousStep !== null) {
-      trace = ["boardedAt" in previousStep ? { ...previousStep, boardedAt: previousStep.boardedAt[0] } : previousStep, ...trace];
-
-      if (k < 0) throw new Error(`No journey in initRound ${initRound}.`); // Unable to get back to source
-
-      if (!("boardedAt" in previousStep)) {
-        if (previousStep.label.time >= this.MAX_SAFE_TIMESTAMP) {
-          k--;
-          continue;
-        }
-
-        previousStep = null;
-      } else {
-        previousStep = previousStep.boardedAt[1];
-
-        if (
-          trace.find(
-            (j) =>
-              previousStep &&
-              "boardedAt" in previousStep &&
-              "boardedAt" in j &&
-              j.label.time === previousStep.label.time &&
-              j.boardedAt === previousStep.boardedAt[0],
-          )
-        )
-          throw new Error(`Impossible journey (cyclic).`);
-      }
-    }
-
-    return trace;
   }
 
   getBestJourneys(pt: SI): (null | Journey<SI, RI, C>[])[] {

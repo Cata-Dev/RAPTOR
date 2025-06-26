@@ -1,4 +1,4 @@
-import { Id, MapRead, Stop, Route, IRAPTORData } from "./structures";
+import { Id, MapRead, Stop, Route, IRAPTORData, JourneyStep, Journey } from "./structures";
 
 interface RAPTORRunSettings {
   walkSpeed: number;
@@ -7,7 +7,7 @@ interface RAPTORRunSettings {
 /**
  * @description A RAPTOR instance
  */
-export default class BaseRAPTOR<SI extends Id = Id, RI extends Id = Id, TI extends Id = Id> {
+export default class BaseRAPTOR<C extends string[] = [], SI extends Id = Id, RI extends Id = Id, TI extends Id = Id> {
   static defaultRounds = 6;
 
   readonly stops: MapRead<SI, Stop<SI, RI>>;
@@ -34,6 +34,45 @@ export default class BaseRAPTOR<SI extends Id = Id, RI extends Id = Id, TI exten
    */
   protected walkDuration(length: number, walkSpeed: RAPTORRunSettings["walkSpeed"]): number {
     return length / walkSpeed;
+  }
+
+  protected traceBackFromStep(from: JourneyStep<SI, RI, C>, initRound: number): Journey<SI, RI, C> {
+    if (initRound < 0 || initRound > this.k) throw new Error(`Invalid initRound (${initRound}) provided.`);
+
+    let k = initRound;
+    let trace: Journey<SI, RI, C> = [];
+
+    let previousStep: JourneyStep<SI, RI, C> | null = from;
+    while (previousStep !== null) {
+      trace = ["boardedAt" in previousStep ? { ...previousStep, boardedAt: previousStep.boardedAt[0] } : previousStep, ...trace];
+
+      if (k < 0) throw new Error(`No journey in initRound ${initRound}.`); // Unable to get back to source
+
+      if (!("boardedAt" in previousStep)) {
+        if (previousStep.label.time >= this.MAX_SAFE_TIMESTAMP) {
+          k--;
+          continue;
+        }
+
+        previousStep = null;
+      } else {
+        previousStep = previousStep.boardedAt[1];
+
+        if (
+          trace.find(
+            (j) =>
+              previousStep &&
+              "boardedAt" in previousStep &&
+              "boardedAt" in j &&
+              j.label.time === previousStep.label.time &&
+              j.boardedAt === previousStep.boardedAt[0],
+          )
+        )
+          throw new Error(`Impossible journey (cyclic).`);
+      }
+    }
+
+    return trace;
   }
 }
 
