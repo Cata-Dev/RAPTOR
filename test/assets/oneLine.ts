@@ -65,198 +65,201 @@ const footValidate = (journey: Journey<number, number, []>) => {
 /**
  * 1 route with 4 stops and 2 trips
  */
-export default {
-  withoutTransfers: {
-    data: [
-      [
-        { id: 1, connectedRoutes: [1], transfers: [] as FootPath<number>[] },
-        { id: 2, connectedRoutes: [1], transfers: [] as FootPath<number>[] },
-        { id: 3, connectedRoutes: [1], transfers: [] as FootPath<number>[] },
-        { id: 4, connectedRoutes: [1], transfers: [] as FootPath<number>[] },
-      ],
-      [
+export default [
+  "One line",
+  {
+    withoutTransfers: {
+      data: [
         [
-          1,
-          [1, 2, 3, 4],
+          { id: 1, connectedRoutes: [1], transfers: [] as FootPath<number>[] },
+          { id: 2, connectedRoutes: [1], transfers: [] as FootPath<number>[] },
+          { id: 3, connectedRoutes: [1], transfers: [] as FootPath<number>[] },
+          { id: 4, connectedRoutes: [1], transfers: [] as FootPath<number>[] },
+        ],
+        [
           [
-            {
-              id: 1,
-              times: [
-                [0, 0],
-                [2, 2],
-                [4, 4],
-                [6, 6],
-              ],
-            },
-            {
-              id: 2,
-              times: [
-                [3, 3],
-                [5, 5],
-                [7, 7],
-                [9, 9],
-              ],
-            },
+            1,
+            [1, 2, 3, 4],
+            [
+              {
+                id: 1,
+                times: [
+                  [0, 0],
+                  [2, 2],
+                  [4, 4],
+                  [6, 6],
+                ],
+              },
+              {
+                id: 2,
+                times: [
+                  [3, 3],
+                  [5, 5],
+                  [7, 7],
+                  [9, 9],
+                ],
+              },
+            ],
           ],
         ],
       ],
-    ],
-    tests: [
-      {
-        params: PARAMS,
-        validate: baseValidate,
-      },
-    ],
-  },
-  withSlowTransfers: {
-    data: [
-      [
+      tests: [
         {
-          id: 1,
-          connectedRoutes: [1],
-          transfers: [
-            // Not better
-            { to: 2, length: 3 },
-            { to: 3, length: 5 },
-            // Dumb
-            { to: 1, length: 1 },
-          ] as FootPath<number>[],
+          params: PARAMS,
+          validate: baseValidate,
         },
-        {
-          id: 2,
-          connectedRoutes: [1],
-          transfers: [
-            // Not better
-            { to: 4, length: 5 },
-          ] as FootPath<number>[],
-        },
-        {
-          id: 3,
-          connectedRoutes: [1],
-          transfers: [
-            // Going back
-            { to: 2, length: 1 },
-          ] as FootPath<number>[],
-        },
-        { id: 4, connectedRoutes: [1], transfers: [] as FootPath<number>[] },
       ],
-      [
+    },
+    withSlowTransfers: {
+      data: [
         [
-          1,
-          [1, 2, 3, 4],
+          {
+            id: 1,
+            connectedRoutes: [1],
+            transfers: [
+              // Not better
+              { to: 2, length: 3 },
+              { to: 3, length: 5 },
+              // Dumb
+              { to: 1, length: 1 },
+            ] as FootPath<number>[],
+          },
+          {
+            id: 2,
+            connectedRoutes: [1],
+            transfers: [
+              // Not better
+              { to: 4, length: 5 },
+            ] as FootPath<number>[],
+          },
+          {
+            id: 3,
+            connectedRoutes: [1],
+            transfers: [
+              // Going back
+              { to: 2, length: 1 },
+            ] as FootPath<number>[],
+          },
+          { id: 4, connectedRoutes: [1], transfers: [] as FootPath<number>[] },
+        ],
+        [
           [
-            {
-              id: 1,
-              times: [
-                [0, 0],
-                [2, 2],
-                [4, 4],
-                [6, 6],
-              ],
-            },
-            {
-              id: 2,
-              times: [
-                [3, 3],
-                [5, 5],
-                [7, 7],
-                [9, 9],
-              ],
-            },
+            1,
+            [1, 2, 3, 4],
+            [
+              {
+                id: 1,
+                times: [
+                  [0, 0],
+                  [2, 2],
+                  [4, 4],
+                  [6, 6],
+                ],
+              },
+              {
+                id: 2,
+                times: [
+                  [3, 3],
+                  [5, 5],
+                  [7, 7],
+                  [9, 9],
+                ],
+              },
+            ],
           ],
         ],
       ],
-    ],
-    tests: [
-      {
-        params: PARAMS,
-        validate: baseValidate,
-      },
-      {
-        params: [PARAMS[0], PARAMS[1], 4, PARAMS[3], PARAMS[4]],
-        validate: (res) => {
-          test("Run result is exact (late departure)", () => {
-            expect(res[0]).toBe(null);
-            for (let i = 0; i < MAX_ROUNDS; ++i) expect(res[i]).toBe(null);
-          });
-        },
-      },
-    ],
-  },
-  withFastTransfers: {
-    data: [
-      [
+      tests: [
         {
-          id: 1,
-          connectedRoutes: [1],
-          transfers: [
-            // Not better
-            { to: 2, length: 3 },
-            { to: 3, length: 5 },
-            // Dumb
-            { to: 1, length: 1 },
-          ] as FootPath<number>[],
+          params: PARAMS,
+          validate: baseValidate,
         },
         {
-          id: 2,
-          connectedRoutes: [1],
-          transfers: [
-            // Not better
-            { to: 4, length: 5 },
-          ] as FootPath<number>[],
+          params: [PARAMS[0], PARAMS[1], 4, PARAMS[3], PARAMS[4]],
+          validate: (res) => {
+            test("Run result is exact (late departure)", () => {
+              expect(res[0]).toBe(null);
+              for (let i = 0; i < MAX_ROUNDS; ++i) expect(res[i]).toBe(null);
+            });
+          },
         },
-        {
-          id: 3,
-          connectedRoutes: [1],
-          transfers: [
-            // Better!
-            { to: 4, length: 1 },
-            // Not better, going back
-            { to: 1, length: 1 },
-          ] as FootPath<number>[],
-        },
-        { id: 4, connectedRoutes: [1], transfers: [] as FootPath<number>[] },
       ],
-      [
+    },
+    withFastTransfers: {
+      data: [
         [
-          1,
-          [1, 2, 3, 4],
+          {
+            id: 1,
+            connectedRoutes: [1],
+            transfers: [
+              // Not better
+              { to: 2, length: 3 },
+              { to: 3, length: 5 },
+              // Dumb
+              { to: 1, length: 1 },
+            ] as FootPath<number>[],
+          },
+          {
+            id: 2,
+            connectedRoutes: [1],
+            transfers: [
+              // Not better
+              { to: 4, length: 5 },
+            ] as FootPath<number>[],
+          },
+          {
+            id: 3,
+            connectedRoutes: [1],
+            transfers: [
+              // Better!
+              { to: 4, length: 1 },
+              // Not better, going back
+              { to: 1, length: 1 },
+            ] as FootPath<number>[],
+          },
+          { id: 4, connectedRoutes: [1], transfers: [] as FootPath<number>[] },
+        ],
+        [
           [
-            {
-              id: 1,
-              times: [
-                [0, 0],
-                [2, 2],
-                [4, 4],
-                [6, 6],
-              ],
-            },
-            {
-              id: 2,
-              times: [
-                [3, 3],
-                [5, 5],
-                [7, 7],
-                [9, 9],
-              ],
-            },
+            1,
+            [1, 2, 3, 4],
+            [
+              {
+                id: 1,
+                times: [
+                  [0, 0],
+                  [2, 2],
+                  [4, 4],
+                  [6, 6],
+                ],
+              },
+              {
+                id: 2,
+                times: [
+                  [3, 3],
+                  [5, 5],
+                  [7, 7],
+                  [9, 9],
+                ],
+              },
+            ],
           ],
         ],
       ],
-    ],
-    tests: [
-      {
-        params: PARAMS,
-        validate: (res) => {
-          test("Run result is exact", () => {
-            expect(res[0]).toBe(null);
-            for (let i = 3; i < MAX_ROUNDS; ++i) expect(res[i]).toBe(null);
-            for (const i of [1, 2]) footValidate(res[i]!);
-          });
+      tests: [
+        {
+          params: PARAMS,
+          validate: (res) => {
+            test("Run result is exact", () => {
+              expect(res[0]).toBe(null);
+              for (let i = 3; i < MAX_ROUNDS; ++i) expect(res[i]).toBe(null);
+              for (const i of [1, 2]) footValidate(res[i]!);
+            });
+          },
         },
-      },
-    ],
+      ],
+    },
   },
-} satisfies TestDataset;
+] satisfies TestDataset;
 
 export { MAX_ROUNDS, footValidate };

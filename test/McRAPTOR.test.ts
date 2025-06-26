@@ -5,12 +5,10 @@ import FDOneLine from "./assets/FDOneLine";
 import { McTestAsset, TestAsset } from "./assets/asset";
 import oneLine from "./assets/oneLine";
 import twoLines from "./assets/twoLines";
+import FDTwoLines from "./assets/FDTwoLines";
 
 // Same as RAPTOR
-for (const [datasetName, dataset] of [
-  ["One line", oneLine],
-  ["Two lines", twoLines],
-] as const) {
+for (const [datasetName, dataset] of [oneLine, twoLines] as const) {
   describe(datasetName, () => {
     for (const [assetName, asset] of Object.entries(dataset)) {
       describe(assetName, () => {
@@ -29,7 +27,7 @@ for (const [datasetName, dataset] of [
 }
 
 // With foot distance criterion
-for (const [datasetName, dataset] of [["Foot distance, one line", FDOneLine]] as const) {
+for (const [datasetName, dataset] of [FDOneLine] as const) {
   describe(datasetName, () => {
     for (const [assetName, asset] of Object.entries(dataset)) {
       describe(assetName, () => {
@@ -47,7 +45,7 @@ for (const [datasetName, dataset] of [["Foot distance, one line", FDOneLine]] as
 }
 
 // With buffer time criterion
-for (const [datasetName, dataset] of [["Buffer time, one line", BTOneLine]] as const) {
+for (const [datasetName, dataset] of [BTOneLine] as const) {
   describe(datasetName, () => {
     for (const [assetName, asset] of Object.entries(dataset)) {
       describe(assetName, () => {

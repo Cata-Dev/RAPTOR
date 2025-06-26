@@ -8,7 +8,7 @@ interface TestAsset {
   }[];
 }
 
-type TestDataset = Record<string, TestAsset>;
+type TestDataset = [string, Record<string, TestAsset>];
 
 interface McTestAsset<C extends string[]> {
   data: ConstructorParameters<typeof RAPTORData<number, number, number>>;
@@ -18,4 +18,4 @@ interface McTestAsset<C extends string[]> {
   }[];
 }
 
-type McTestDataset<C extends string[]> = Record<string, McTestAsset<C>>;
+type McTestDataset<C extends string[]> = [string, Record<string, McTestAsset<C>>];
