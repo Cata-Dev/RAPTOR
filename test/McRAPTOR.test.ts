@@ -6,6 +6,7 @@ import { McTestAsset, TestAsset } from "./assets/asset";
 import oneLine from "./assets/oneLine";
 import twoLines from "./assets/twoLines";
 import FDTwoLines from "./assets/FDTwoLines";
+import BTTwoLines from "./assets/BTTwoLines";
 
 // Same as RAPTOR
 for (const [datasetName, dataset] of [oneLine, twoLines] as const) {
@@ -45,7 +46,7 @@ for (const [datasetName, dataset] of [FDOneLine, FDTwoLines] as const) {
 }
 
 // With buffer time criterion
-for (const [datasetName, dataset] of [BTOneLine] as const) {
+for (const [datasetName, dataset] of [BTOneLine, BTTwoLines] as const) {
   describe(datasetName, () => {
     for (const [assetName, asset] of Object.entries(dataset)) {
       describe(assetName, () => {
