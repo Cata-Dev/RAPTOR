@@ -16,17 +16,23 @@
     "build": "tsc",
     "prettier": "prettier \"**/*.ts\" --write",
     "type-check": "tsc -noEmit",
-    "lint": "eslint ./src/ --fix",
+    "lint": "eslint src test --fix",
     "full-lint": "pnpm run lint && pnpm run type-check",
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "jest --coverage",
     "prepare": "pnpm run build"
   },
   "author": "Catatomik",
   "license": "MIT",
   "devDependencies": {
-    "eslint": "^8.56.0",
-    "prettier": "^3.2.5",
-    "typescript": "5.3.3",
-    "typescript-eslint": "^7.1.0"
+    "@jest/globals": "^30.0.2",
+    "@tsconfig/node22": "^22.0.2",
+    "@types/node": "^22",
+    "eslint": "^9.29.0",
+    "globals": "^16.2.0",
+    "jest": "^30.0.2",
+    "prettier": "^3.5.3",
+    "ts-jest": "^29.4.0",
+    "typescript": "5.8.3",
+    "typescript-eslint": "^8.34.1"
   }
 }
