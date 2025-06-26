@@ -11,7 +11,7 @@ const baseValidate = (validate: TestAsset["tests"][number]["validate"]) =>
 
     validate(singleResults as Parameters<TestAsset["tests"][number]["validate"]>[0]);
 
-    test("Foot distances are correct", () => {
+    test("Label foot distances are exact", () => {
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       for (const journey of singleResults) if (journey) expect(journey.at(-1)!.label.value("footDistance")).toBe(0);
     });
@@ -54,12 +54,12 @@ export default {
             return journeys;
           });
           test("Base results are present", () => {
-            expect(baseJourneys.every((journeys) => (journeys?.length ?? 1) === 1));
+            expect(baseJourneys.every((journeys) => (journeys?.length ?? 1) === 1)).toBe(true);
           });
 
           baseValidate(oneLine.withoutTransfers.tests[0].validate)(baseJourneys);
 
-          test("Criteria-specific results are exact", () => {
+          test("Label foot distances are exact", () => {
             for (const i of [1, 2]) {
               // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
               const journeys = res[i]!.filter((journey) => journey.length === 3);
