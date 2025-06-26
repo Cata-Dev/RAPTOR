@@ -76,6 +76,57 @@ const baseValidateVF = (journey: Journey<number, number, []>) => {
   });
 };
 
+const routes: TestAsset["data"][1] = [
+  [
+    1,
+    [1, 2, 3, 4],
+    [
+      {
+        id: 1,
+        times: [
+          [0, 0],
+          [2, 2],
+          [4, 4],
+          [6, 6],
+        ],
+      },
+      {
+        id: 2,
+        times: [
+          [2, 2],
+          [4, 4],
+          [6, 6],
+          [8, 8],
+        ],
+      },
+    ],
+  ],
+  [
+    2,
+    [5, 3, 6, 7],
+    [
+      {
+        id: 1,
+        times: [
+          [1, 1],
+          [3, 3],
+          [5, 5],
+          [7, 7],
+        ],
+      },
+      {
+        id: 2,
+        times: [
+          [4, 4],
+          [6, 6],
+          [8, 8],
+          [10, 10],
+        ],
+      },
+    ],
+  ],
+];
+
 /**
  * 2 routes with 4 stops and 2 trips each
  */
@@ -93,56 +144,7 @@ export default [
           { id: 6, connectedRoutes: [2], transfers: [] as FootPath<number>[] },
           { id: 7, connectedRoutes: [2], transfers: [] as FootPath<number>[] },
         ],
-        [
-          [
-            1,
-            [1, 2, 3, 4],
-            [
-              {
-                id: 1,
-                times: [
-                  [0, 0],
-                  [2, 2],
-                  [4, 4],
-                  [6, 6],
-                ],
-              },
-              {
-                id: 2,
-                times: [
-                  [2, 2],
-                  [4, 4],
-                  [6, 6],
-                  [8, 8],
-                ],
-              },
-            ],
-          ],
-          [
-            2,
-            [5, 3, 6, 7],
-            [
-              {
-                id: 1,
-                times: [
-                  [1, 1],
-                  [3, 3],
-                  [5, 5],
-                  [7, 7],
-                ],
-              },
-              {
-                id: 2,
-                times: [
-                  [4, 4],
-                  [6, 6],
-                  [8, 8],
-                  [10, 10],
-                ],
-              },
-            ],
-          ],
-        ],
+        routes,
       ],
       tests: [
         {
@@ -173,56 +175,7 @@ export default [
           { id: 6, connectedRoutes: [2], transfers: [] as FootPath<number>[] },
           { id: 7, connectedRoutes: [2], transfers: [{ to: 1, length: 10 }] as FootPath<number>[] },
         ],
-        [
-          [
-            1,
-            [1, 2, 3, 4],
-            [
-              {
-                id: 1,
-                times: [
-                  [0, 0],
-                  [2, 2],
-                  [4, 4],
-                  [6, 6],
-                ],
-              },
-              {
-                id: 2,
-                times: [
-                  [2, 2],
-                  [4, 4],
-                  [6, 6],
-                  [8, 8],
-                ],
-              },
-            ],
-          ],
-          [
-            2,
-            [5, 3, 6, 7],
-            [
-              {
-                id: 1,
-                times: [
-                  [1, 1],
-                  [3, 3],
-                  [5, 5],
-                  [7, 7],
-                ],
-              },
-              {
-                id: 2,
-                times: [
-                  [4, 4],
-                  [6, 6],
-                  [8, 8],
-                  [10, 10],
-                ],
-              },
-            ],
-          ],
-        ],
+        routes,
       ],
       tests: [
         {
@@ -261,56 +214,7 @@ export default [
           { id: 6, connectedRoutes: [2], transfers: [] as FootPath<number>[] },
           { id: 7, connectedRoutes: [2], transfers: [{ to: 1, length: 10 }] as FootPath<number>[] },
         ],
-        [
-          [
-            1,
-            [1, 2, 3, 4],
-            [
-              {
-                id: 1,
-                times: [
-                  [0, 0],
-                  [2, 2],
-                  [4, 4],
-                  [6, 6],
-                ],
-              },
-              {
-                id: 2,
-                times: [
-                  [2, 2],
-                  [4, 4],
-                  [6, 6],
-                  [8, 8],
-                ],
-              },
-            ],
-          ],
-          [
-            2,
-            [5, 3, 6, 7],
-            [
-              {
-                id: 1,
-                times: [
-                  [1, 1],
-                  [3, 3],
-                  [5, 5],
-                  [7, 7],
-                ],
-              },
-              {
-                id: 2,
-                times: [
-                  [4, 4],
-                  [6, 6],
-                  [8, 8],
-                  [10, 10],
-                ],
-              },
-            ],
-          ],
-        ],
+        routes,
       ],
       tests: [
         {
