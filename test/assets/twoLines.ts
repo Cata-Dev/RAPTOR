@@ -320,45 +320,44 @@ export default [
             describe("Run result is exact, early departure", () => {
               baseValidateVF(res[1]!);
               test("k=2", () => {
-                for (const i of [2]) {
-                  expect(res[i]!.length).toBe(4);
+                const journey = res[2]!;
+                expect(journey.length).toBe(4);
 
-                  const js0 = res[i]![0];
-                  expect(Object.keys(js0).length).toBe(2);
-                  expect(Object.keys(js0)).toContain("compare");
-                  expect(Object.keys(js0)).toContain("label");
-                  expect(js0.label.time).toBe(0);
+                const js0 = journey[0];
+                expect(Object.keys(js0).length).toBe(2);
+                expect(Object.keys(js0)).toContain("compare");
+                expect(Object.keys(js0)).toContain("label");
+                expect(js0.label.time).toBe(0);
 
-                  expect(Object.keys(res[i]![1]).length).toEqual(5);
-                  expect(res[i]![1].label.time).toBe(2);
+                expect(Object.keys(journey[1]).length).toEqual(5);
+                expect(journey[1].label.time).toBe(2);
 
-                  const js1 = res[i]![1];
-                  if (!("route" in js1)) throw new Error("First journey step isn't VEHICLE");
+                const js1 = journey[1];
+                if (!("route" in js1)) throw new Error("First journey step isn't VEHICLE");
 
-                  expect(js1.boardedAt).toBe(1);
-                  expect(js1.route.id).toBe(1);
-                  expect(js1.tripIndex).toBe(0);
+                expect(js1.boardedAt).toBe(1);
+                expect(js1.route.id).toBe(1);
+                expect(js1.tripIndex).toBe(0);
 
-                  expect(Object.keys(res[i]![2]).length).toEqual(4);
-                  expect(res[i]![2].label.time).toBe(5);
+                expect(Object.keys(journey[2]).length).toEqual(4);
+                expect(journey[2].label.time).toBe(5);
 
-                  const js2 = res[i]![2];
-                  if (!("transfer" in js2)) throw new Error("Second journey step isn't FOOT");
+                const js2 = journey[2];
+                if (!("transfer" in js2)) throw new Error("Second journey step isn't FOOT");
 
-                  expect(js2.boardedAt).toBe(2);
-                  expect(js2.transfer.to).toBe(6);
-                  expect(js2.transfer.length).toBe(3);
+                expect(js2.boardedAt).toBe(2);
+                expect(js2.transfer.to).toBe(6);
+                expect(js2.transfer.length).toBe(3);
 
-                  expect(Object.keys(res[i]![3]).length).toEqual(5);
-                  expect(res[i]![3].label.time).toBe(7);
+                expect(Object.keys(journey[3]).length).toEqual(5);
+                expect(journey[3].label.time).toBe(7);
 
-                  const js3 = res[i]![3];
-                  if (!("route" in js3)) throw new Error("Second journey step isn't VEHICLE");
+                const js3 = journey[3];
+                if (!("route" in js3)) throw new Error("Second journey step isn't VEHICLE");
 
-                  expect(js3.boardedAt).toBe(6);
-                  expect(js3.route.id).toBe(2);
-                  expect(js3.tripIndex).toBe(0);
-                }
+                expect(js3.boardedAt).toBe(6);
+                expect(js3.route.id).toBe(2);
+                expect(js3.tripIndex).toBe(0);
               });
             });
             for (let i = 3; i < MAX_ROUNDS; ++i) baseValidateN(res[i]);
@@ -398,6 +397,7 @@ export default [
               expect(j1js2.boardedAt).toBe(4);
               expect(j1js2.transfer.to).toBe(7);
               expect(j1js2.transfer.length).toBe(5);
+
               const j2 = res[2]!;
               expect(j2.length).toBe(3);
 
