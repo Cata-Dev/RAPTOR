@@ -314,6 +314,8 @@ export default {
       {
         params: PARAMS,
         validate: (res) => {
+          for (let i = 0; i < 1; ++i) baseValidateN(res[i]);
+          for (let i = 4; i < MAX_ROUNDS; ++i) baseValidateN(res[i]);
           describe("Run result is exact, early departure", () => {
             baseValidateVF(res[1]!);
             test("k=2,3,4...", () => {
@@ -363,9 +365,9 @@ export default {
       {
         params: [PARAMS[0], PARAMS[1], 2, PARAMS[3], PARAMS[4]],
         validate: (res) => {
+          for (let i = 0; i < 1; ++i) baseValidateN(res[i]);
+          for (let i = 4; i < MAX_ROUNDS; ++i) baseValidateN(res[i]);
           test("Run result is exact, late departure", () => {
-            for (let i = 0; i < 1; ++i) expect(res[i]).toBe(null);
-            for (let i = 4; i < MAX_ROUNDS; ++i) expect(res[i]).toBe(null);
             for (const i of [1]) {
               expect(res[i]!.length).toBe(3);
 
