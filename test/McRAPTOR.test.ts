@@ -27,7 +27,7 @@ for (const [datasetName, dataset] of [oneLine, twoLines] as const) {
 }
 
 // With foot distance criterion
-for (const [datasetName, dataset] of [FDOneLine] as const) {
+for (const [datasetName, dataset] of [FDOneLine, FDTwoLines] as const) {
   describe(datasetName, () => {
     for (const [assetName, asset] of Object.entries(dataset)) {
       describe(assetName, () => {
