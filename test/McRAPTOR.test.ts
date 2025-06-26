@@ -1,10 +1,12 @@
 import { describe, expect } from "@jest/globals";
-import { footDistance, McRAPTOR, RAPTORData } from "../src/main";
+import { bufferTime, footDistance, McRAPTOR, RAPTORData } from "../src/main";
+import BTOneLine from "./assets/BTOneLine";
 import FDOneLine from "./assets/FDOneLine";
 import { McTestAsset, TestAsset } from "./assets/asset";
 import oneLine from "./assets/oneLine";
 import twoLines from "./assets/twoLines";
 
+// Same as RAPTOR
 for (const [datasetName, dataset] of [
   ["One line", oneLine],
   ["Two lines", twoLines],
@@ -26,12 +28,31 @@ for (const [datasetName, dataset] of [
   });
 }
 
+// With foot distance criterion
 for (const [datasetName, dataset] of [["Foot distance, one line", FDOneLine]] as const) {
   describe(datasetName, () => {
     for (const [assetName, asset] of Object.entries(dataset)) {
       describe(assetName, () => {
         const raptorData = new RAPTORData(...(asset.data as McTestAsset<["footDistance"]>["data"]));
         const raptorInstance = new McRAPTOR<["footDistance"], number, number, number>(raptorData, [footDistance]);
+
+        for (const test of asset.tests) {
+          raptorInstance.run(...test.params);
+          const res = raptorInstance.getBestJourneys(test.params[1]);
+          test.validate(res);
+        }
+      });
+    }
+  });
+}
+
+// With buffer time criterion
+for (const [datasetName, dataset] of [["Buffer time, one line", BTOneLine]] as const) {
+  describe(datasetName, () => {
+    for (const [assetName, asset] of Object.entries(dataset)) {
+      describe(assetName, () => {
+        const raptorData = new RAPTORData(...(asset.data as McTestAsset<["bufferTime"]>["data"]));
+        const raptorInstance = new McRAPTOR<["bufferTime"], number, number, number>(raptorData, [bufferTime]);
 
         for (const test of asset.tests) {
           raptorInstance.run(...test.params);
