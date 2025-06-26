@@ -1,25 +1,8 @@
 import { expect, test } from "@jest/globals";
 import { Journey } from "../../src/main";
-import { McTestAsset, McTestDataset, TestAsset } from "./asset";
+import { McTestAsset, McTestDataset } from "./asset";
 import oneLine, { footValidate, MAX_ROUNDS } from "./oneLine";
-
-const baseValidate = (validate: TestAsset["tests"][number]["validate"]) =>
-  ((res) => {
-    // Should still be correct
-    for (const journeys of res) expect(journeys?.length ?? 1).toBe(1);
-    const singleResults = res.map((journeys) => (journeys ? journeys[0] : journeys));
-
-    validate(singleResults as Parameters<TestAsset["tests"][number]["validate"]>[0]);
-
-    test("Label buffer times are exact", () => {
-      for (const journey of singleResults)
-        if (journey) {
-          expect(journey[0].label.value("bufferTime")).toBe(Infinity);
-          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-          expect(journey.at(-1)!.label.value("bufferTime")).toBe(-0);
-        }
-    });
-  }) as McTestAsset<["bufferTime"]>["tests"][number]["validate"];
+import { validateWithoutCriteria } from "./FDOneLine";
 
 export default {
   withoutTransfers: {
@@ -27,7 +10,17 @@ export default {
     tests: [
       {
         params: oneLine.withoutTransfers.tests[0].params,
-        validate: baseValidate(oneLine.withoutTransfers.tests[0].validate),
+        validate: (res) => {
+          validateWithoutCriteria(oneLine.withoutTransfers.tests[0].validate)(res);
+          test("Label buffer times are exact", () => {
+            for (const journeys of res)
+              if (journeys?.[0]) {
+                expect(journeys[0][0].label.value("bufferTime")).toBe(Infinity);
+                // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                expect(journeys[0].at(-1)!.label.value("bufferTime")).toBe(-0);
+              }
+          });
+        },
       },
     ],
   },
@@ -36,11 +29,31 @@ export default {
     tests: [
       {
         params: oneLine.withSlowTransfers.tests[0].params,
-        validate: baseValidate(oneLine.withSlowTransfers.tests[0].validate),
+        validate: (res) => {
+          validateWithoutCriteria(oneLine.withSlowTransfers.tests[0].validate);
+          test("Label buffer times are exact", () => {
+            for (const journeys of res)
+              if (journeys?.[0]) {
+                expect(journeys[0][0].label.value("bufferTime")).toBe(Infinity);
+                // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                expect(journeys[0].at(-1)!.label.value("bufferTime")).toBe(-0);
+              }
+          });
+        },
       },
       {
         params: oneLine.withSlowTransfers.tests[1].params,
-        validate: baseValidate(oneLine.withSlowTransfers.tests[1].validate),
+        validate: (res) => {
+          validateWithoutCriteria(oneLine.withSlowTransfers.tests[1].validate);
+          test("Label buffer times are exact", () => {
+            for (const journeys of res)
+              if (journeys?.[0]) {
+                expect(journeys[0][0].label.value("bufferTime")).toBe(Infinity);
+                // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                expect(journeys[0].at(-1)!.label.value("bufferTime")).toBe(-0);
+              }
+          });
+        },
       },
       {
         params: [
