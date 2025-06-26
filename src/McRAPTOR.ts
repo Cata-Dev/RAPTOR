@@ -19,10 +19,6 @@ export default class McRAPTOR<C extends string[], SI extends Id = Id, RI extends
     super(data);
   }
 
-  protected makeBag() {
-    return new Bag<JourneyStep<SI, RI, C>>();
-  }
-
   /**
    * @description Finds the earliest {@link Trip} on route `r` at stop `p` departing after `after`.
    * @param r Route Id.
@@ -77,7 +73,7 @@ export default class McRAPTOR<C extends string[], SI extends Id = Id, RI extends
 
     // Initialization
     for (const [stopId] of this.stops) {
-      this.bags[0].set(stopId, this.makeBag());
+      this.bags[0].set(stopId, new Bag<JourneyStep<SI, RI, C>>());
     }
     this.bags[0].get(ps)!.add(
       makeJSComparable({
@@ -88,6 +84,23 @@ export default class McRAPTOR<C extends string[], SI extends Id = Id, RI extends
 
     /** Map<{@link RI} in {@link routes}, {@link SI} in {@link stops}> */
     const Q = new Map<RI, SI>();
+
+    // k=0: check for direct foot path to pt
+    const transferToPt = this.stops
+      .get(ps)!
+      .transfers[Symbol.iterator]()
+      .find((transfer) => transfer.to === pt);
+    if (transferToPt) {
+      const psJS = this.bags[0].get(ps)!.values().next().value!;
+      const tArr = departureTime + this.walkDuration(transferToPt.length, settings.walkSpeed);
+      const newJS = { boardedAt: [ps, psJS] satisfies [SI, unknown], transfer: transferToPt };
+      this.bags[this.k].get(pt)!.add(
+        makeJSComparable<SI, RI, C, "FOOT">({
+          ...newJS,
+          label: psJS.label.update(tArr, [[psJS], newJS, tArr, pt]),
+        }),
+      );
+    }
 
     for (this.k = 1; this.k < rounds; this.k++) {
       // Copying
@@ -100,6 +113,9 @@ export default class McRAPTOR<C extends string[], SI extends Id = Id, RI extends
         }
         this.bags[this.k].set(stopId, Bag.from(journeySteps));
       }
+      if (this.k === 1)
+        // Be sure to not take into account the early, direct foot transfer
+        this.bags[this.k].set(pt, new Bag<JourneyStep<SI, RI, C>>());
 
       // Mark improvement
       Q.clear();
@@ -116,7 +132,7 @@ export default class McRAPTOR<C extends string[], SI extends Id = Id, RI extends
 
       // Traverse each route
       for (const [r, p] of Q) {
-        const RouteBag = this.makeBag() as Bag<JourneyStep<SI, RI, C, "VEHICLE">>;
+        const RouteBag = new Bag<JourneyStep<SI, RI, C, "VEHICLE">>();
 
         const route: Route<SI, RI> = this.routes.get(r)!;
         for (let i = route.stops.indexOf(p); i < route.stops.length; i++) {

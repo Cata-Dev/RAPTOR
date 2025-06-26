@@ -191,6 +191,8 @@ export default [
             id: 1,
             connectedRoutes: [1],
             transfers: [
+              // OK at k=0
+              { to: 4, length: 10 },
               // Not better
               { to: 2, length: 3 },
               { to: 3, length: 5 },
@@ -249,8 +251,27 @@ export default [
         {
           params: PARAMS,
           validate: (res) => {
+            test("Direct foot path", () => {
+              const footOnly = res[0]!;
+              expect(footOnly.length).toBe(2);
+
+              const js0 = footOnly[0];
+              expect(Object.keys(js0).length).toBe(2);
+              expect(Object.keys(js0)).toContain("compare");
+              expect(Object.keys(js0)).toContain("label");
+              expect(js0.label.time).toBe(0);
+
+              const js1 = footOnly[1];
+              expect(Object.keys(js1).length).toEqual(4);
+              expect(js1.label.time).toBe(10);
+
+              if (!("transfer" in js1)) throw new Error("First journey step isn't FOOT");
+
+              expect(js1.boardedAt).toBe(1);
+              expect(js1.transfer.to).toBe(4);
+              expect(js1.transfer.length).toBe(10);
+            });
             test("Run result is exact", () => {
-              expect(res[0]).toBe(null);
               footValidate(res[1]!);
               for (let i = 2; i < MAX_ROUNDS; ++i) expect(res[i]).toBe(null);
             });

@@ -101,13 +101,9 @@ export default [
         {
           params: oneLine[1].withFastTransfers.tests[0].params,
           validate: (res) => {
-            const journeys: Parameters<McTestAsset<["bufferTime"]>["tests"][number]["validate"]>[0] = res.map((journeys) => {
-              if (!journeys) return journeys;
-
-              journeys = journeys.filter((j) => j.length === 3);
-
-              return journeys;
-            });
+            const journeys: Parameters<McTestAsset<["bufferTime"]>["tests"][number]["validate"]>[0] = res.map((journeys) =>
+              journeys?.length ? journeys : null,
+            );
             test("Base results are present", () => {
               expect(journeys.every((journeys) => (journeys?.length ?? 1) === 1)).toBe(true);
             });

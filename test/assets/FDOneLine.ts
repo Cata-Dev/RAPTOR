@@ -4,7 +4,6 @@ import oneLine from "./oneLine";
 
 const validateWithoutCriteria =
   (validate: TestAsset["tests"][number]["validate"]) => (res: Parameters<McTestAsset<string[]>["tests"][number]["validate"]>[0]) => {
-    // No foot transfer: should not change anything
     for (const journeys of res) expect(journeys?.length ?? 1).toBe(1);
     const singleResults = res.map((journeys) => (journeys ? journeys[0] : journeys));
 
@@ -58,7 +57,7 @@ export default [
           params: oneLine[1].withFastTransfers.tests[0].params,
           validate: (res) => {
             const baseJourneys: Parameters<McTestAsset<["footDistance"]>["tests"][number]["validate"]>[0] = res.map((journeys, i) =>
-              i == 1 ? (journeys?.filter((j) => j.length === 3) ?? null) : null,
+              i === 0 ? (journeys?.filter((j) => j.length === 2) ?? null) : i === 1 ? (journeys?.filter((j) => j.length === 3) ?? null) : null,
             );
             test("Base results are present", () => {
               expect(!!res[1]?.[0]).toBe(true);
@@ -66,11 +65,18 @@ export default [
             validateWithoutCriteria(oneLine[1].withFastTransfers.tests[0].validate)(baseJourneys);
 
             test("Label foot distances are exact (same results as RAPTOR)", () => {
-              for (const journeys of baseJourneys)
-                if (journeys?.[0]) {
-                  expect(journeys[0][0]?.label.value("footDistance")).toBe(0);
-                  expect(journeys[0][1]?.label.value("footDistance")).toBe(0);
-                  expect(journeys[0][2]?.label.value("footDistance")).toBe(1);
+              for (const [k, journeys] of baseJourneys.entries())
+                if (k === 0) {
+                  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                  const journey = journeys![0];
+                  expect(journey[0]?.label.value("footDistance")).toBe(0);
+                  expect(journey[1]?.label.value("footDistance")).toBe(10);
+                } else if (k === 1) {
+                  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                  const journey = journeys![0];
+                  expect(journey[0]?.label.value("footDistance")).toBe(0);
+                  expect(journey[1]?.label.value("footDistance")).toBe(0);
+                  expect(journey[2]?.label.value("footDistance")).toBe(1);
                 }
             });
 
