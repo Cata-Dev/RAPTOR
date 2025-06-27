@@ -1,4 +1,4 @@
-import { McRAPTOR, RAPTOR, RAPTORData } from "../../src/main";
+import { McRAPTOR, RAPTOR, RAPTORData } from "../../src";
 
 interface TestAsset {
   data: ConstructorParameters<typeof RAPTORData<number, number, number>>;

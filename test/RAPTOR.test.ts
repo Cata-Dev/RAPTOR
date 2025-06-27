@@ -1,5 +1,5 @@
 import { describe } from "@jest/globals";
-import { RAPTOR, RAPTORData } from "../src/main";
+import { RAPTOR, RAPTORData } from "../src";
 import { TestAsset } from "./assets/asset";
 import oneLine from "./assets/oneLine";
 import twoLines from "./assets/twoLines";

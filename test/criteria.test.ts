@@ -1,5 +1,5 @@
 import { describe, expect, test } from "@jest/globals";
-import { Criterion, JourneyStep, Label, makeJSComparable, Route, footDistance, bufferTime } from "../src/main";
+import { Criterion, JourneyStep, Label, makeJSComparable, Route, footDistance, bufferTime } from "../src";
 import { setLabelValues } from "./structures/utils";
 
 describe("Foot distance", () => {

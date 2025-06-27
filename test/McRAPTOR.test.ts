@@ -1,5 +1,5 @@
 import { describe, expect } from "@jest/globals";
-import { bufferTime, footDistance, McRAPTOR, RAPTORData } from "../src/main";
+import { bufferTime, footDistance, McRAPTOR, RAPTORData } from "../src";
 import BTOneLine from "./assets/BTOneLine";
 import FDOneLine from "./assets/FDOneLine";
 import { McTestAsset, TestAsset } from "./assets/asset";
