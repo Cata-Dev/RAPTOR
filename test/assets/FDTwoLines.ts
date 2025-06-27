@@ -14,6 +14,7 @@ export default [
           params: twoLines[1].withoutTransfers.tests[0].params,
           validate: (res) => {
             validateWithoutCriteria(twoLines[1].withoutTransfers.tests[0].validate)(res);
+            for (const journeys of res) expect(journeys?.length ?? 1).toBe(1);
             test("Label foot distances are exact", () => {
               for (const journeys of res) if (journeys?.[0]) expect(journeys[0].at(-1)?.label.value("footDistance")).toBe(0);
             });
@@ -28,6 +29,7 @@ export default [
           params: twoLines[1].withSlowTransfers.tests[0].params,
           validate: (res) => {
             validateWithoutCriteria(twoLines[1].withSlowTransfers.tests[0].validate)(res);
+            for (const journeys of res) expect(journeys?.length ?? 1).toBe(1);
             test("Label foot distances are exact", () => {
               for (const journey of res[1]!) expect(journey.at(-1)?.label.value("footDistance")).toBe(5);
             });
@@ -41,10 +43,11 @@ export default [
         {
           params: twoLines[1].withFastTransfers.tests[0].params,
           validate: (res) => {
-            validateWithoutCriteria(twoLines[1].withFastTransfers.tests[0].validate)(res);
-            test("Label foot distances are exact", () => {
-              for (const journey of res[1]!) expect(journey.at(-1)?.label.value("footDistance")).toBe(5);
-              for (const journey of res[2]!) expect(journey.at(-1)?.label.value("footDistance")).toBe(3);
+            const [journeysWithoutCriteria, journeysFromCriteria] = validateWithoutCriteria(twoLines[1].withFastTransfers.tests[0].validate)(res);
+            test("Label foot distances are exact (same results as RAPTOR)", () => {
+              expect(journeysWithoutCriteria[1]?.at(-1)?.label.value("footDistance")).toBe(5);
+              expect(journeysWithoutCriteria[2]?.at(-1)?.label.value("footDistance")).toBe(3);
+            });
             });
           },
         },
@@ -52,6 +55,7 @@ export default [
           params: twoLines[1].withFastTransfers.tests[1].params,
           validate: (res) => {
             validateWithoutCriteria(twoLines[1].withFastTransfers.tests[1].validate)(res);
+            for (const journeys of res) expect(journeys?.length ?? 1).toBe(1);
             test("Label foot distances are exact", () => {
               for (const journey of res[1]!) expect(journey.at(-1)?.label.value("footDistance")).toBe(5);
               for (const journey of res[2]!) expect(journey.at(-1)?.label.value("footDistance")).toBe(0);
@@ -67,6 +71,7 @@ export default [
           params: twoLines[1].withMandatoryTransfer.tests[0].params,
           validate: (res) => {
             validateWithoutCriteria(twoLines[1].withMandatoryTransfer.tests[0].validate)(res);
+            for (const journeys of res) expect(journeys?.length ?? 1).toBe(1);
             test("Label foot distances are exact", () => {
               expect(res[2]![0].at(-1)?.label.value("footDistance")).toBe(5);
             });
