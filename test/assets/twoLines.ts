@@ -271,7 +271,7 @@ export default [
           params: [PARAMS[0], PARAMS[1], 2, PARAMS[3], PARAMS[4]],
           validate: (res) => {
             for (let i = 0; i < 1; ++i) baseValidateN(res[i]);
-            for (let i = 4; i < MAX_ROUNDS; ++i) baseValidateN(res[i]);
+            for (let i = 3; i < MAX_ROUNDS; ++i) baseValidateN(res[i]);
             test("Run result is exact, late departure", () => {
               const j1 = res[1]!;
               expect(j1.length).toBe(3);
@@ -331,6 +331,108 @@ export default [
               expect(j2js2.route.id).toBe(2);
               expect(j2js2.tripIndex).toBe(1);
             });
+          },
+        },
+      ],
+    },
+    withMandatoryTransfer: {
+      data: [
+        [
+          { id: 1, connectedRoutes: [1], transfers: [] },
+          { id: 2, connectedRoutes: [1], transfers: [] },
+          { id: 3, connectedRoutes: [1], transfers: [{ to: 4, length: 5 }] },
+          { id: 4, connectedRoutes: [2], transfers: [] },
+          { id: 5, connectedRoutes: [2], transfers: [] },
+          { id: 6, connectedRoutes: [2], transfers: [] },
+        ],
+        [
+          [
+            1,
+            [1, 2, 3],
+            [
+              {
+                id: 1,
+                times: [
+                  [1, 1],
+                  [3, 3],
+                  [5, 5],
+                ],
+              },
+              {
+                id: 2,
+                times: [
+                  [4, 4],
+                  [6, 6],
+                  [8, 8],
+                ],
+              },
+            ],
+          ],
+          [
+            2,
+            [4, 5, 6],
+            [
+              {
+                id: 1,
+                times: [
+                  [11, 11],
+                  [13, 13],
+                  [15, 15],
+                ],
+              },
+              {
+                id: 2,
+                times: [
+                  [15, 15],
+                  [17, 17],
+                  [19, 19],
+                ],
+              },
+            ],
+          ],
+        ],
+      ],
+      tests: [
+        {
+          params: [1, 6, 0, PARAMS[3], PARAMS[4]] as typeof PARAMS,
+          validate: (res) => {
+            for (let i = 0; i < 2; ++i) baseValidateN(res[i]);
+            test("2 trips witch a mandatory foot transfer", () => {
+              const journey = res[2]!;
+
+              expect(journey.length).toBe(4);
+
+              const js0 = journey[0];
+              expect(Object.keys(js0).length).toBe(2);
+              expect(Object.keys(js0)).toContain("compare");
+              expect(Object.keys(js0)).toContain("label");
+              expect(js0.label.time).toBe(0);
+
+              const js1 = journey[1];
+              expect(Object.keys(js1).length).toEqual(5);
+              expect(js1.label.time).toBe(5);
+              if (!("route" in js1)) throw new Error("First journey step isn't VEHICLE");
+              expect(js1.boardedAt).toBe(1);
+              expect(js1.route.id).toBe(1);
+              expect(js1.tripIndex).toBe(0);
+
+              const js2 = journey[2];
+              expect(Object.keys(js2).length).toEqual(4);
+              expect(js2.label.time).toBe(10);
+              if (!("transfer" in js2)) throw new Error("Second journey step isn't FOOT");
+              expect(js2.boardedAt).toBe(3);
+              expect(js2.transfer.to).toBe(4);
+              expect(js2.transfer.length).toBe(5);
+
+              const js3 = journey[3];
+              expect(Object.keys(js3).length).toEqual(5);
+              expect(js3.label.time).toBe(15);
+              if (!("route" in js3)) throw new Error("Third journey step isn't VEHICLE");
+              expect(js3.boardedAt).toBe(4);
+              expect(js3.route.id).toBe(2);
+              expect(js3.tripIndex).toBe(0);
+            });
+            for (let i = 3; i < MAX_ROUNDS; ++i) baseValidateN(res[i]);
           },
         },
       ],

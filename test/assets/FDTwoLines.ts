@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { expect, test } from "@jest/globals";
 import { McTestDataset } from "./asset";
 import { validateWithoutCriteria } from "./FDOneLine";
@@ -28,7 +29,6 @@ export default [
           validate: (res) => {
             validateWithoutCriteria(twoLines[1].withSlowTransfers.tests[0].validate)(res);
             test("Label foot distances are exact", () => {
-              // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
               for (const journey of res[1]!) expect(journey.at(-1)?.label.value("footDistance")).toBe(5);
             });
           },
@@ -43,8 +43,8 @@ export default [
           validate: (res) => {
             validateWithoutCriteria(twoLines[1].withFastTransfers.tests[0].validate)(res);
             test("Label foot distances are exact", () => {
-              // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
               for (const journey of res[1]!) expect(journey.at(-1)?.label.value("footDistance")).toBe(5);
+              for (const journey of res[2]!) expect(journey.at(-1)?.label.value("footDistance")).toBe(3);
             });
           },
         },
@@ -52,6 +52,24 @@ export default [
           params: twoLines[1].withFastTransfers.tests[1].params,
           validate: (res) => {
             validateWithoutCriteria(twoLines[1].withFastTransfers.tests[1].validate)(res);
+            test("Label foot distances are exact", () => {
+              for (const journey of res[1]!) expect(journey.at(-1)?.label.value("footDistance")).toBe(5);
+              for (const journey of res[2]!) expect(journey.at(-1)?.label.value("footDistance")).toBe(0);
+            });
+          },
+        },
+      ],
+    },
+    withMandatoryTransfer: {
+      data: twoLines[1].withMandatoryTransfer.data,
+      tests: [
+        {
+          params: twoLines[1].withMandatoryTransfer.tests[0].params,
+          validate: (res) => {
+            validateWithoutCriteria(twoLines[1].withMandatoryTransfer.tests[0].validate)(res);
+            test("Label foot distances are exact", () => {
+              expect(res[2]![0].at(-1)?.label.value("footDistance")).toBe(5);
+            });
           },
         },
       ],

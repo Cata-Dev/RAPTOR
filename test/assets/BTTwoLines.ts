@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { expect, test } from "@jest/globals";
 import { McTestDataset } from "./asset";
 import { validateWithoutCriteria } from "./FDOneLine";
@@ -55,6 +56,23 @@ export default [
             test("Label foot distances are exact", () => {
               expect(res[1]?.[0].at(-1)?.label.value("bufferTime")).toBe(-0);
               expect(res[2]?.[0].at(-1)?.label.value("bufferTime")).toBe(-0);
+            });
+          },
+        },
+      ],
+    },
+    withMandatoryTransfer: {
+      data: twoLines[1].withMandatoryTransfer.data,
+      tests: [
+        {
+          params: twoLines[1].withMandatoryTransfer.tests[0].params,
+          validate: (res) => {
+            validateWithoutCriteria(twoLines[1].withMandatoryTransfer.tests[0].validate)(res);
+            test("Label foot distances are exact", () => {
+              expect(res[2]![0][0].label.value("bufferTime")).toBe(Infinity);
+              expect(res[2]![0][1].label.value("bufferTime")).toBe(-1);
+              expect(res[2]![0][2].label.value("bufferTime")).toBe(-1);
+              expect(res[2]![0][3].label.value("bufferTime")).toBe(-1);
             });
           },
         },
