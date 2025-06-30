@@ -4,7 +4,7 @@ import RAPTOR from "./RAPTOR";
 import { Bag, Criterion, Id, IRAPTORData, Journey, JourneyStep, Label, makeJSComparable, Route, timestamp } from "./structures";
 
 export default class McRAPTOR<C extends string[], SI extends Id = Id, RI extends Id = Id, TI extends Id = Id> extends BaseRAPTOR<C, SI, RI, TI> {
-  /** @description A {@link Label} Ti(SI) represents the earliest known arrival time at stop SI with up to i trips. */
+  /** @description A {@link Label} Bags_i(SI) stores earliest known arrival times and best values for criteria at stop `SI` with up to `i` trips. */
   protected bags: Map<SI, Bag<JourneyStep<SI, RI, C>>>[] = [];
   /** Set<{@link SI} in {@link stops}> */
   protected marked = new Set<SI>();
@@ -65,6 +65,14 @@ export default class McRAPTOR<C extends string[], SI extends Id = Id, RI extends
     }
   }
 
+  /**
+   * Scans earliest catchable trips after taking step {@link fromJourneyStep}, on route {@link route} at stop {@link stop} ({@link stopIndex}), and executes a callback {@link cb}.
+   * @param route Route to scan for trips
+   * @param stop Stop where boarding should take place
+   * @param stopIndex Index of stop
+   * @param fromJourneyStep Journey step from which to board
+   * @param cb A callback taking any new feasible journey step
+   */
   protected forEachNDEt(
     route: Route<SI, RI, TI>,
     stop: SI,
