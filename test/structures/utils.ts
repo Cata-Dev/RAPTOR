@@ -1,4 +1,4 @@
-import { Criterion, Label } from "../../src/main";
+import { Criterion, Label } from "../../src";
 
 function setLabelValues<C extends string[]>(label: Label<number, number, C>, values: { [K in keyof C]: number }) {
   for (const [i, c] of (label as unknown as { criteria: Criterion<number, number, C>[] }).criteria.entries())

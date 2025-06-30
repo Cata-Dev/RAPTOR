@@ -1,5 +1,5 @@
 import { describe, expect, test, jest } from "@jest/globals";
-import { Bag, Criterion, Label, Route } from "../../src/main";
+import { Bag, Criterion, Label, Route } from "../../src";
 import { setLabelValues } from "./utils";
 
 describe("Route class", () => {
