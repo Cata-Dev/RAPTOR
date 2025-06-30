@@ -65,6 +65,41 @@ export default class McRAPTOR<C extends string[], SI extends Id = Id, RI extends
     }
   }
 
+  protected forEachNDEt(
+    route: Route<SI, RI, TI>,
+    stop: SI,
+    stopIndex: number,
+    fromJourneyStep: JourneyStep<SI, RI, C>,
+    cb: (newJourneyStep: JourneyStep<SI, RI, C, "VEHICLE">) => void,
+  ) {
+    let t = this.et(route, stop, fromJourneyStep.label.time);
+    const previousLabels: Label<SI, RI, C>[] = [];
+    while (t) {
+      const tArr = route.trips.at(t.tripIndex)!.times.at(stopIndex)![0];
+      const partialJourneyStep = {
+        boardedAt: [stop, fromJourneyStep] satisfies [SI, unknown],
+        route,
+        tripIndex: t.tripIndex,
+      };
+      const label = fromJourneyStep.label.update(tArr, [this.traceBackFromStep(fromJourneyStep, this.k), partialJourneyStep, tArr, stop]);
+      if (previousLabels.some((previousLabel) => (label.compare(previousLabel) ?? 2) <= 0))
+        // New label is dominated, stop looking for earliest catchable trips
+        break;
+
+      cb(makeJSComparable({ ...partialJourneyStep, label }));
+
+      previousLabels.push(label);
+      t = this.et(
+        route,
+        stop,
+        route.departureTime(t.tripIndex, stopIndex) +
+          // Force taking a future trip
+          // Implies the time step between 2 trips is at least 1
+          1,
+      );
+    }
+  }
+
   run(ps: SI, pt: SI, departureTime: timestamp, settings: RAPTORRunSettings, rounds: number = RAPTOR.defaultRounds) {
     //Re-initialization
     this.bags = Array.from({ length: rounds }, () => new Map<SI, Bag<JourneyStep<SI, RI, C>>>());
@@ -145,8 +180,8 @@ export default class McRAPTOR<C extends string[], SI extends Id = Id, RI extends
             const tArr = route.trips.at(journeyStep.tripIndex)!.times.at(i)![0];
             RouteBagPi.addOnly(
               makeJSComparable({
-              ...journeyStep,
-              label: journeyStep.label.update(tArr, [this.traceBackFromStep(journeyStep.boardedAt[1], this.k), { ...journeyStep }, tArr, pi]),
+                ...journeyStep,
+                label: journeyStep.label.update(tArr, [this.traceBackFromStep(journeyStep.boardedAt[1], this.k), { ...journeyStep }, tArr, pi]),
               }),
             );
           }
@@ -158,31 +193,16 @@ export default class McRAPTOR<C extends string[], SI extends Id = Id, RI extends
           if (added > 0) this.marked.add(pi);
 
           // Step 3: populating route bag with previous round & update
-          for (const journeyStep of RouteBag) {
-            const t = this.et(route, pi, journeyStep.label.time);
-            if (t && (journeyStep.route.id != r || journeyStep.tripIndex != t.tripIndex))
-              RouteBag.updateOnly(
-                journeyStep,
-                makeJSComparable({
-                  boardedAt: [pi, journeyStep],
-                  route,
-                  tripIndex: t.tripIndex,
-                  label: new Label(this.criteria, route.trips.at(t.tripIndex)!.times.at(i)![0]),
-                }),
-              );
-          }
-          for (const journeyStep of this.bags[this.k - 1].get(pi)!) {
-            const t = this.et(route, pi, journeyStep.label.time);
-            if (t && (!("route" in journeyStep) || journeyStep.route.id != r || journeyStep.tripIndex != t.tripIndex))
-              RouteBag.add(
-                makeJSComparable({
-                  boardedAt: [pi, journeyStep],
-                  route,
-                  tripIndex: t.tripIndex,
-                  label: new Label(this.criteria, route.trips.at(t.tripIndex)!.times.at(i)![0]),
-                }),
-              );
-          }
+          // Update current route bag with possible new earliest catchable trips thanks to this round
+          for (const journeyStep of RouteBag)
+            this.forEachNDEt(route, pi, i, journeyStep, (newJourneyStep) => {
+              if (newJourneyStep.tripIndex != journeyStep.tripIndex) RouteBag.addOnly(newJourneyStep);
+            });
+          for (const journeyStep of this.bags[this.k - 1].get(pi)!)
+            this.forEachNDEt(route, pi, i, journeyStep, (newJourneyStep) => {
+              if (!("route" in journeyStep) || journeyStep.route.id != r || newJourneyStep.tripIndex != journeyStep.tripIndex)
+                RouteBag.addOnly(newJourneyStep);
+            });
           RouteBag.prune();
         }
       }
