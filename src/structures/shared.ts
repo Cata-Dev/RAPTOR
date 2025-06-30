@@ -1,4 +1,4 @@
-import { ArrayRead, FootPath, IRAPTORData, MapRead, Route, Stop, Trip } from "./base";
+import { ArrayRead, FootPath, IRAPTORData, MapRead, RAPTORData, Route, Stop, Trip } from "./base";
 
 type SharedID = number | SerializedId;
 
@@ -356,10 +356,13 @@ class SharedRAPTORData implements IRAPTORData<SharedID, SharedID, number> {
    * @param data Instantiate from {@link SharedRAPTORData.prototype.internalData} exported data
    */
   protected constructor(data: typeof SharedRAPTORData.prototype.internalData);
-  protected constructor(stops: Stop<number, number>[], routes: ConstructorParameters<typeof Route<number, number, number>>[]);
   protected constructor(
-    stopsOrData: typeof SharedRAPTORData.prototype.internalData | Stop<number, number>[],
-    routes?: ConstructorParameters<typeof Route<number, number, number>>[],
+    stops: ConstructorParameters<typeof RAPTORData<number, number, number>>[0],
+    routes: ConstructorParameters<typeof RAPTORData<number, number, number>>[1],
+  );
+  protected constructor(
+    stopsOrData: typeof SharedRAPTORData.prototype.internalData | ConstructorParameters<typeof RAPTORData<number, number, number>>[0],
+    routes?: ConstructorParameters<typeof RAPTORData<number, number, number>>[1],
   ) {
     let stopsChunkSize: number | null = null;
 
@@ -534,7 +537,10 @@ class SharedRAPTORData implements IRAPTORData<SharedID, SharedID, number> {
     };
   }
 
-  static makeFromRawData(stops: Stop<number, number>[], routes: ConstructorParameters<typeof Route<number, number, number>>[]) {
+  static makeFromRawData(
+    stops: ConstructorParameters<typeof RAPTORData<number, number, number>>[0],
+    routes: ConstructorParameters<typeof RAPTORData<number, number, number>>[1],
+  ) {
     return new SharedRAPTORData(stops, routes);
   }
 
