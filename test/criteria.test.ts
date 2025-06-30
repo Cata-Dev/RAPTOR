@@ -66,26 +66,26 @@ describe("Buffer time", () => {
 
   const vehicleJourneyStep1 = makeJSComparable<number, number, ["bufferTime"], "VEHICLE">({
     boardedAt: [0, originJS],
-    route: new Route(0, [0], [{ id: 0, times: [[3, 4]] }]),
+    route: new Route(0, [0], [{ id: 0, times: [[4, 5]] }]),
     tripIndex: 0,
-    label: setLabelValues(new Label<number, number, ["bufferTime"]>([bufferTimeTyped], 4), [-4]),
+    label: setLabelValues(new Label<number, number, ["bufferTime"]>([bufferTimeTyped], 4), [-5]),
   });
 
   const vehicleJourneyStep2 = makeJSComparable<number, number, ["bufferTime"], "VEHICLE">({
     boardedAt: [0, vehicleJourneyStep1],
-    route: new Route(1, [0], [{ id: 0, times: [[8, 9]] }]),
+    route: new Route(1, [0], [{ id: 0, times: [[7, 8]] }]),
     tripIndex: 0,
-    label: setLabelValues(new Label<number, number, ["bufferTime"]>([bufferTimeTyped], 9), [-5]),
+    label: setLabelValues(new Label<number, number, ["bufferTime"]>([bufferTimeTyped], 8), [-4]),
   });
 
   test("Update with foot transfer", () => {
-    expect(bufferTimeTyped.update([originJS], footJourneyStep, 0, 0)).toBe(Infinity);
-    expect(bufferTimeTyped.update([originJS, vehicleJourneyStep1], footJourneyStep, 0, 0)).toBe(-4);
+    expect(bufferTimeTyped.update([originJS], footJourneyStep, 0, 0)).toBe(-Infinity);
+    expect(bufferTimeTyped.update([originJS, vehicleJourneyStep1], footJourneyStep, 0, 0)).toBe(-5);
   });
 
   test("Update with vehicle", () => {
-    expect(bufferTimeTyped.update([originJS], vehicleJourneyStep1, 0, 0)).toBe(-4);
-    expect(bufferTimeTyped.update([originJS, vehicleJourneyStep1], vehicleJourneyStep2, 0, 0)).toBe(-5);
+    expect(bufferTimeTyped.update([originJS], vehicleJourneyStep1, 0, 0)).toBe(-5);
+    expect(bufferTimeTyped.update([originJS, vehicleJourneyStep1], vehicleJourneyStep2, 0, 0)).toBe(-4);
   });
 
   test("Wrong usage", () => {

@@ -48,6 +48,12 @@ export default [
               expect(journeysWithoutCriteria[1]?.at(-1)?.label.value("footDistance")).toBe(5);
               expect(journeysWithoutCriteria[2]?.at(-1)?.label.value("footDistance")).toBe(3);
             });
+
+            test("Label foot distances are exact (new results due to criterion)", () => {
+              for (let k = 0; k < 2; ++k) expect(journeysFromCriteria[k]?.length ?? 0).toBe(0);
+              expect(journeysFromCriteria[2]?.length).toBe(1);
+              expect(journeysFromCriteria[2]![0].at(-1)?.label.value("footDistance")).toBe(0);
+              for (let k = 3; k < journeysFromCriteria.length; ++k) expect(journeysFromCriteria[k]?.length ?? 0).toBe(0);
             });
           },
         },

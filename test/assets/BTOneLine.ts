@@ -17,9 +17,16 @@ export default [
               oneLine[1].withoutTransfers.tests[0].validate,
             )(res);
             test("Label buffer times are exact (same results as RAPTOR)", () => {
-              expect(journeysWithoutCriteria[1]![0].label.value("bufferTime")).toBe(Infinity);
+              expect(journeysWithoutCriteria[1]![0].label.value("bufferTime")).toBe(-Infinity);
               expect(journeysWithoutCriteria[1]!.at(-1)!.label.value("bufferTime")).toBe(-0);
             });
+
+            test("Label buffer times are exact (new results due to criterion)", () => {
+              for (let k = 0; k < 1; ++k) expect(journeysFromCriteria[k]?.length ?? 0).toBe(0);
+              expect(journeysFromCriteria[1]?.length).toBe(1);
+              expect(journeysFromCriteria[1]![0][0].label.value("bufferTime")).toBe(-Infinity);
+              expect(journeysFromCriteria[1]![0].at(-1)!.label.value("bufferTime")).toBe(-3);
+              for (let k = 2; k < journeysFromCriteria.length; ++k) expect(journeysFromCriteria[k]?.length ?? 0).toBe(0);
             });
           },
         },
@@ -35,9 +42,17 @@ export default [
             test("Label buffer times are exact (same results as RAPTOR)", () => {
               for (const journeys of res)
                 if (journeys?.[0]) {
-                  expect(journeys[0][0].label.value("bufferTime")).toBe(Infinity);
+                  expect(journeys[0][0].label.value("bufferTime")).toBe(-Infinity);
                   expect(journeys[0].at(-1)!.label.value("bufferTime")).toBe(-0);
                 }
+            });
+
+            test("Label buffer times are exact (new results due to criterion)", () => {
+              for (let k = 0; k < 1; ++k) expect(journeysFromCriteria[k]?.length ?? 0).toBe(0);
+              expect(journeysFromCriteria[1]?.length).toBe(1);
+              expect(journeysFromCriteria[1]![0][0].label.value("bufferTime")).toBe(-Infinity);
+              expect(journeysFromCriteria[1]![0].at(-1)!.label.value("bufferTime")).toBe(-3);
+              for (let k = 2; k < journeysFromCriteria.length; ++k) expect(journeysFromCriteria[k]?.length ?? 0).toBe(0);
             });
           },
         },
@@ -49,7 +64,7 @@ export default [
             test("Label buffer times are exact", () => {
               for (const journeys of res)
                 if (journeys?.[0]) {
-                  expect(journeys[0][0].label.value("bufferTime")).toBe(Infinity);
+                  expect(journeys[0][0].label.value("bufferTime")).toBe(-Infinity);
                   expect(journeys[0].at(-1)!.label.value("bufferTime")).toBe(-0);
                 }
             });
@@ -103,6 +118,12 @@ export default [
               expect(journeysWithoutCriteria[1]?.[1].label.value("bufferTime")).toBe(-0);
               expect(journeysWithoutCriteria[1]?.[2].label.value("bufferTime")).toBe(-0);
             });
+            test("Label buffer times are exact (new results due to criterion)", () => {
+              for (let k = 0; k < 1; ++k) expect(journeysFromCriteria[k]?.length ?? 0).toBe(0);
+              expect(journeysFromCriteria[1]?.length).toBe(1);
+              expect(journeysFromCriteria[1]![0][0].label.value("bufferTime")).toBe(-Infinity);
+              expect(journeysFromCriteria[1]![0].at(-1)!.label.value("bufferTime")).toBe(-3);
+              for (let k = 2; k < journeysFromCriteria.length; ++k) expect(journeysFromCriteria[k]?.length ?? 0).toBe(0);
             });
           },
         },

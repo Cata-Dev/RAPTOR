@@ -21,7 +21,12 @@ const validateWithoutCriteria =
     });
     validate(journeysWithoutCriteria as Parameters<TestAsset["tests"][number]["validate"]>[0]);
 
-    return [journeysWithoutCriteria, res.map((journeys, k) => journeys?.filter((j) => j !== journeysWithoutCriteria[k]) ?? null)];
+    return [
+      journeysWithoutCriteria,
+      res
+        .map((journeys, k) => journeys?.filter((j) => j !== journeysWithoutCriteria[k]) ?? null)
+        .map((journeys) => (journeys?.length ? journeys : null)),
+    ];
   };
 
 export default [
@@ -88,11 +93,10 @@ export default [
             });
 
             test("Label foot distances are exact (results due to criteria)", () => {
-              // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-              const journeys = res[1]!.filter((journey) => journey.length === 2);
-              expect(journeys.length).toBe(1);
-
-              for (const js of journeys[0]) expect(js.label.value("footDistance")).toBe(0);
+              for (let k = 0; k < 1; ++k) expect(journeysFromCriteria[k]?.length ?? 0).toBe(0);
+              expect(journeysFromCriteria[1]?.length).toBe(1);
+              for (const js of journeysFromCriteria[1]![0]) expect(js.label.value("footDistance")).toBe(0);
+              for (let k = 2; k < journeysFromCriteria.length; ++k) expect(journeysFromCriteria[k]?.length ?? 0).toBe(0);
             });
           },
         },
