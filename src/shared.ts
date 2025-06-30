@@ -66,7 +66,7 @@ export class McSharedRAPTOR<C extends string[]> extends McRAPTOR<C, SharedID, Sh
     super.run(convertedPs, convertedPt, ...rem);
   }
 
-  getBestJourneys(pt: SharedID) {
+  getBestJourneys(pt: SharedID): ReturnType<McRAPTOR<C, SharedID, SharedID, number>["getBestJourneys"]> {
     const convertedPt = typeof pt === "string" ? pt : this.data.stopPointerFromId(pt);
     if (convertedPt === undefined) throw new Error(`Unable to retrieve target stop ${pt}`);
 
