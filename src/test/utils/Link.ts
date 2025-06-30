@@ -66,7 +66,7 @@ export class Link<Type> {
   }
 
   toArrayRevertedRec(): Type[] {
-    if (!this._next || !(this._next instanceof Link)) return [this.value];
+    if (!(this._next instanceof Link)) return [this.value];
     const next = this._next.toArray();
     return [...next, this.value];
   }

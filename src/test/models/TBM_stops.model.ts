@@ -2,12 +2,11 @@
 //
 // See http://mongoosejs.com/docs/models.html
 
-import { TBMEndpoints } from ".";
+import { type ReturnModelType, deleteModelWithClass, getModelForClass, prop } from "@typegoose/typegoose";
 import { TimeStamps } from "@typegoose/typegoose/lib/defaultClasses";
-import { addModelToTypegoose, buildSchema, deleteModelWithClass, getModelForClass, prop } from "@typegoose/typegoose";
 import { modelOptions } from "@typegoose/typegoose/lib/modelOptions";
-import { getName } from "@typegoose/typegoose/lib/internal/utils";
 import { Mongoose } from "mongoose";
+import { TBMEndpoints } from ".";
 
 export enum VehicleType {
   Bus = "BUS",
@@ -29,14 +28,14 @@ export class dbTBM_Stops extends TimeStamps {
   @prop({ required: true })
   public _id!: number;
 
-  @prop({ type: () => [Number, Number], required: true })
+  @prop({ type: () => [Number], required: true })
   public coords!: [number, number];
 
   @prop({ required: true })
   public libelle!: string;
 
   @prop({ required: true })
-  public libelle_lowercase!: string;
+  public libelle_norm!: string;
 
   @prop({ required: true, enum: VehicleType })
   public vehicule!: VehicleType;
@@ -49,16 +48,13 @@ export class dbTBM_Stops extends TimeStamps {
 }
 
 // export type dbTBM_Stops = Omit<InferSchemaType<typeof dbTBM_Stops>, "coords"> & {
-//   coords: [number, number];
+//   coords: Coords;
 // };
 
-export default function init(db: Mongoose) {
+export default function init(db: Mongoose): ReturnModelType<typeof dbTBM_Stops> {
   if (getModelForClass(dbTBM_Stops, { existingMongoose: db })) deleteModelWithClass(dbTBM_Stops);
 
-  const dbTBM_StopsSchema = buildSchema(dbTBM_Stops, { existingMongoose: db });
-  const dbTBM_StopsModelRaw = db.model(getName(dbTBM_Stops), dbTBM_StopsSchema);
-
-  return addModelToTypegoose(dbTBM_StopsModelRaw, dbTBM_Stops, { existingMongoose: db });
+  return getModelForClass(dbTBM_Stops, { existingMongoose: db });
 }
 
 export type dbTBM_StopsModel = ReturnType<typeof init>;

@@ -1,3 +1,6 @@
+import { Ref } from "@typegoose/typegoose";
+import { RefType } from "@typegoose/typegoose/lib/types";
+
 export type resolveCb<T = void> = (value: T) => void;
 export type rejectCb = (reason?: unknown) => void;
 
@@ -76,3 +79,18 @@ export function wait(ms = 1000): Promise<unknown> {
 
   return defP.promise;
 }
+
+export type unpackRefType<T> =
+  T extends Ref<infer D>
+    ? D extends {
+        _id?: RefType;
+      }
+      ? D["_id"]
+      : never
+    : T extends Ref<infer D>[]
+      ? D extends {
+          _id?: RefType;
+        }
+        ? D["_id"][]
+        : never
+      : never;

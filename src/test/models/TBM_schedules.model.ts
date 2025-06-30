@@ -14,30 +14,27 @@ export enum RtScheduleType {
   Deviation = "DEVIATION",
 }
 
-import { TBMEndpoints } from ".";
-import { TimeStamps } from "@typegoose/typegoose/lib/defaultClasses";
 import {
-  addModelToTypegoose,
-  buildSchema,
   deleteModelWithClass,
   getDiscriminatorModelForClass,
   getModelForClass,
   index,
   prop,
-  Ref,
+  type Ref,
+  type ReturnModelType,
 } from "@typegoose/typegoose";
+import { TimeStamps } from "@typegoose/typegoose/lib/defaultClasses";
 import { modelOptions } from "@typegoose/typegoose/lib/modelOptions";
-import { getName } from "@typegoose/typegoose/lib/internal/utils";
+import { Mongoose } from "mongoose";
+import { TBMEndpoints } from ".";
 import { dbTBM_Stops } from "./TBM_stops.model";
 import { dbTBM_Trips } from "./TBM_trips.model";
-import { Mongoose } from "mongoose";
 
-@index({ gid: 1, realtime: 1 }, { unique: true })
-@index({ rs_sv_cours_a: 1 })
+@index({ _id: 1, realtime: 1 }, { unique: true })
 @modelOptions({ options: { customName: TBMEndpoints.Schedules } })
 export class dbTBM_Schedules extends TimeStamps {
-  @prop({ required: true, index: true })
-  public gid!: number;
+  @prop({ required: true })
+  public _id!: number;
 
   @prop({ required: true })
   public hor_theo!: Date;
@@ -48,7 +45,7 @@ export class dbTBM_Schedules extends TimeStamps {
   @prop({ required: true, ref: () => dbTBM_Stops, type: () => Number })
   public rs_sv_arret_p!: Ref<dbTBM_Stops, number>;
 
-  @prop({ required: true, ref: () => dbTBM_Trips, type: () => Number })
+  @prop({ required: true, ref: () => dbTBM_Trips, type: () => Number, index: true })
   public rs_sv_cours_a!: Ref<dbTBM_Trips, number>;
 }
 
@@ -67,16 +64,9 @@ export class dbTBM_Schedules_rt extends dbTBM_Schedules {
   public type!: RtScheduleType;
 }
 
-export default function init(db: Mongoose) {
+export default function init(db: Mongoose): readonly [ReturnModelType<typeof dbTBM_Schedules>, ReturnModelType<typeof dbTBM_Schedules_rt>] {
   if (getModelForClass(dbTBM_Schedules, { existingMongoose: db })) deleteModelWithClass(dbTBM_Schedules);
-  if (getModelForClass(dbTBM_Schedules_rt, { existingMongoose: db })) deleteModelWithClass(dbTBM_Schedules_rt);
-
-  const dbTBM_SchedulesSchema = buildSchema(dbTBM_Schedules, { existingMongoose: db });
-  const dbTBM_SchedulesModelRaw = db.model(getName(dbTBM_Schedules), dbTBM_SchedulesSchema);
-
-  const dbTBM_SchedulesModel = addModelToTypegoose(dbTBM_SchedulesModelRaw, dbTBM_Schedules, {
-    existingMongoose: db,
-  });
+  const dbTBM_SchedulesModel = getModelForClass(dbTBM_Schedules, { existingMongoose: db });
 
   return [dbTBM_SchedulesModel, getDiscriminatorModelForClass(dbTBM_SchedulesModel, dbTBM_Schedules_rt)] as const;
 }

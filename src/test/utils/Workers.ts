@@ -112,6 +112,7 @@ export class WorkerPool<Icb extends (...args: any[]) => unknown, F extends (...a
       const delta = new Duration(Number((process.hrtime.bigint() - startTime) / nsPerMs));
       worker.status = Status.Idle;
       resolve(result);
+      // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
       if (this.debug) console.log(`Finished worker ${worker.id} after ${delta} (${this.queue.size})`);
       this.emit("jobEnded", result);
       this.runCallback();
@@ -131,6 +132,7 @@ export class WorkerPool<Icb extends (...args: any[]) => unknown, F extends (...a
     worker.worker.once("message", onceMessage);
     worker.worker.once("error", onceError);
 
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     if (!res || !rej) return def!.promise;
   }
 
@@ -139,7 +141,7 @@ export class WorkerPool<Icb extends (...args: any[]) => unknown, F extends (...a
       if (!this.queue.size) return;
       job = this.queue.dequeue();
     }
-    return this.run(...job);
+    this.run(...job);
   }
 
   protected getIdleWorker(): poolWorker<Parameters<F>, Awaited<ReturnType<F>>> | undefined {
@@ -150,7 +152,10 @@ export class WorkerPool<Icb extends (...args: any[]) => unknown, F extends (...a
     const def = new Deferred<void>();
 
     if (this.getIdleWorker()) def.resolve();
-    else this.on("jobEnded", () => def.resolve());
+    else
+      this.on("jobEnded", () => {
+        def.resolve();
+      });
 
     return def.promise;
   }

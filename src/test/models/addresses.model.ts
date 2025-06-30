@@ -2,12 +2,11 @@
 //
 // See http://mongoosejs.com/docs/models.html
 
-import { TBMEndpoints } from ".";
+import { type ReturnModelType, deleteModelWithClass, getModelForClass, prop } from "@typegoose/typegoose";
 import { TimeStamps } from "@typegoose/typegoose/lib/defaultClasses";
-import { addModelToTypegoose, buildSchema, deleteModelWithClass, getModelForClass, prop } from "@typegoose/typegoose";
 import { modelOptions } from "@typegoose/typegoose/lib/modelOptions";
-import { getName } from "@typegoose/typegoose/lib/internal/utils";
 import { Mongoose } from "mongoose";
+import { TBMEndpoints } from ".";
 
 @modelOptions({ options: { customName: TBMEndpoints.Addresses } })
 export class dbAddresses extends TimeStamps {
@@ -30,7 +29,7 @@ export class dbAddresses extends TimeStamps {
   public nom_voie!: string;
 
   @prop({ required: true })
-  public nom_voie_lowercase!: string;
+  public nom_voie_norm!: string;
 
   @prop({ required: true })
   public code_postal!: number;
@@ -42,13 +41,10 @@ export class dbAddresses extends TimeStamps {
   public commune!: string;
 }
 
-export default function init(db: Mongoose) {
+export default function init(db: Mongoose): ReturnModelType<typeof dbAddresses> {
   if (getModelForClass(dbAddresses, { existingMongoose: db })) deleteModelWithClass(dbAddresses);
 
-  const dbAddressesSchema = buildSchema(dbAddresses, { existingMongoose: db });
-  const dbAddressesModelRaw = db.model(getName(dbAddresses), dbAddressesSchema);
-
-  return addModelToTypegoose(dbAddressesModelRaw, dbAddresses, { existingMongoose: db });
+  return getModelForClass(dbAddresses, { existingMongoose: db });
 }
 
 export type dbAddressesModel = ReturnType<typeof init>;

@@ -7,13 +7,11 @@ import stopsModelInit, { dbTBM_Stops } from "./models/TBM_stops.model";
 import TBMSchedulesModelInit from "./models/TBM_schedules.model";
 import TBMScheduledRoutesModelInit, { dbTBM_ScheduledRoutes } from "./models/TBMScheduledRoutes.model";
 import NonScheduledRoutesModelInit, { dbFootPaths } from "./models/NonScheduledRoutes.model";
-import RAPTOR from "../main";
-import { RAPTORData, Stop } from "../Structures";
+import { RAPTOR, RAPTORData, Stop } from "../";
 import { HydratedDocument, FilterQuery } from "mongoose";
 import { DocumentType } from "@typegoose/typegoose";
-import { unpackRefType } from "./footPaths/utils/ultils";
 import { benchmark } from "./utils/benchmark";
-import { mapAsync, wait } from "./utils";
+import { mapAsync, unpackRefType, wait } from "./utils";
 import { inspect } from "util";
 
 async function init() {
@@ -36,7 +34,7 @@ async function init() {
       .lean()
       .exec()) as ScheduledRoute[];
 
-    const dbStopProjection = { _id: 1, coords: 1 };
+    const dbStopProjection = { _id: 1, coords: 1 } as const;
     type Stop = Pick<dbTBM_Stops, keyof typeof dbStopProjection>;
 
     const dbStops = (await stopsModel
@@ -97,7 +95,7 @@ async function init() {
               trips.map(({ tripId, schedules }) => ({
                 id: tripId,
                 times: schedules.map((schedule) =>
-                  "hor_estime" in schedule
+                  typeof schedule === "object" && "hor_estime" in schedule
                     ? ([
                         schedule.hor_estime.getTime() || RAPTORData.MAX_SAFE_TIMESTAMP,
                         schedule.hor_estime.getTime() || RAPTORData.MAX_SAFE_TIMESTAMP,
@@ -160,6 +158,7 @@ async function run({ RAPTORInstance, TBMSchedulesModel }: Awaited<ReturnType<typ
 (async () => {
   const initr = await init();
 
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   while (true) {
     const r = await run(initr);
     console.log(inspect(r, false, 3));

@@ -2,14 +2,13 @@
 //
 // See http://mongoosejs.com/docs/models.html
 
-import { TBMEndpoints } from ".";
+import { deleteModelWithClass, getModelForClass, prop, type Ref, type ReturnModelType } from "@typegoose/typegoose";
 import { TimeStamps } from "@typegoose/typegoose/lib/defaultClasses";
-import { addModelToTypegoose, buildSchema, deleteModelWithClass, getModelForClass, prop, Ref } from "@typegoose/typegoose";
 import { modelOptions } from "@typegoose/typegoose/lib/modelOptions";
-import { getName } from "@typegoose/typegoose/lib/internal/utils";
-import { dbTBM_Lines } from "./TBM_lines.model";
-import { dbTBM_Stops } from "./TBM_stops.model";
 import { Mongoose } from "mongoose";
+import { TBMEndpoints } from ".";
+import { dbTBM_Lines } from "./TBM_lines.model";
+import { dbTBM_Stops, VehicleType } from "./TBM_stops.model";
 
 @modelOptions({ options: { customName: TBMEndpoints.Lines_routes } })
 export class dbTBM_Lines_routes extends TimeStamps {
@@ -23,7 +22,7 @@ export class dbTBM_Lines_routes extends TimeStamps {
   public sens!: string;
 
   @prop({ required: true })
-  public vehicule!: string;
+  public vehicule!: VehicleType;
 
   @prop({ required: true, ref: () => dbTBM_Lines, type: () => Number })
   public rs_sv_ligne_a!: Ref<dbTBM_Lines, number>;
@@ -36,13 +35,10 @@ export class dbTBM_Lines_routes extends TimeStamps {
 }
 
 // for more of what you can do here.
-export default function init(db: Mongoose) {
+export default function init(db: Mongoose): ReturnModelType<typeof dbTBM_Lines_routes> {
   if (getModelForClass(dbTBM_Lines_routes, { existingMongoose: db })) deleteModelWithClass(dbTBM_Lines_routes);
 
-  const dbTBM_Lines_routesSchema = buildSchema(dbTBM_Lines_routes, { existingMongoose: db });
-  const dbTBM_Lines_routesModelRaw = db.model(getName(dbTBM_Lines_routes), dbTBM_Lines_routesSchema);
-
-  return addModelToTypegoose(dbTBM_Lines_routesModelRaw, dbTBM_Lines_routes, {
+  return getModelForClass(dbTBM_Lines_routes, {
     existingMongoose: db,
   });
 }

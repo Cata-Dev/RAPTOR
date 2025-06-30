@@ -12,7 +12,7 @@ importers:
         specifier: github:catatomik/dijkstra
         version: https://codeload.github.com/catatomik/dijkstra/tar.gz/e3304b71e4bda9aefb04d2d18b32e7aa369a4aed
       '@typegoose/typegoose':
-        specifier: ^12.2.0
+        specifier: ^12.10.1
         version: 12.17.0(mongoose@8.16.1)
       core-js:
         specifier: ^3.36.0
@@ -20,6 +20,9 @@ importers:
       mongodb:
         specifier: ^6.4.0
         version: 6.17.0
+      mongoose:
+        specifier: ^8.16.1
+        version: 8.16.1
     devDependencies:
       '@jest/globals':
         specifier: ^30.0.2

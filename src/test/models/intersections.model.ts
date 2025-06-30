@@ -2,12 +2,11 @@
 //
 // See http://mongoosejs.com/docs/models.html
 
-import { TBMEndpoints } from ".";
+import { deleteModelWithClass, getModelForClass, prop, type ReturnModelType } from "@typegoose/typegoose";
 import { TimeStamps } from "@typegoose/typegoose/lib/defaultClasses";
-import { addModelToTypegoose, buildSchema, deleteModelWithClass, getModelForClass, prop } from "@typegoose/typegoose";
 import { modelOptions } from "@typegoose/typegoose/lib/modelOptions";
-import { getName } from "@typegoose/typegoose/lib/internal/utils";
 import { Mongoose } from "mongoose";
+import { TBMEndpoints } from ".";
 
 @modelOptions({ options: { customName: TBMEndpoints.Intersections } })
 export class dbIntersections extends TimeStamps {
@@ -19,17 +18,20 @@ export class dbIntersections extends TimeStamps {
 
   @prop({ required: true })
   public nature!: string;
+
+  /** Not used for now
+  @prop({ required: true })
+  public commune!: string;
+
+  @prop({ required: true })
+  public code_commune!: string;
+  */
 }
 
-export default function init(db: Mongoose) {
+export default function init(db: Mongoose): ReturnModelType<typeof dbIntersections> {
   if (getModelForClass(dbIntersections, { existingMongoose: db })) deleteModelWithClass(dbIntersections);
 
-  const dbIntersectionsSchema = buildSchema(dbIntersections, { existingMongoose: db });
-  const dbIntersectionsModelRaw = db.model(getName(dbIntersections), dbIntersectionsSchema);
-
-  return addModelToTypegoose(dbIntersectionsModelRaw, dbIntersections, {
-    existingMongoose: db,
-  });
+  return getModelForClass(dbIntersections, { existingMongoose: db });
 }
 
 export type dbIntersectionsModel = ReturnType<typeof init>;

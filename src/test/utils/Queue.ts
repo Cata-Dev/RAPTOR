@@ -1,4 +1,4 @@
-import { LinkOrEmpty, Link } from "../footPaths/utils/Link";
+import { LinkOrEmpty, Link } from "./Link";
 
 export class Queue<Type> {
   private front: LinkOrEmpty;
@@ -15,7 +15,7 @@ export class Queue<Type> {
     return this._size;
   }
 
-  enqueue(val: Type): Queue<Type> {
+  enqueue(val: Type): this {
     if (this.size === 0) {
       this.front = new Link<Type>(val);
       this.back = this.front;

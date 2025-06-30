@@ -7,8 +7,8 @@
  * @param logStats Wheter to log to the bench to the console at its end, or not
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export async function benchmark<F extends (...args: any[]) => any, ThisType>(
-  this: ThisType,
+export async function benchmark<F extends (...args: any[]) => any>(
+  this: unknown,
   f: F,
   args: Parameters<F>,
   thisArg: unknown = this, // TODO : deeper look on thisArg + ThisType
@@ -26,6 +26,7 @@ export async function benchmark<F extends (...args: any[]) => any, ThisType>(
   const durations = ends.map((e, i) => new Duration(e - starts[i]));
   const totalDuration = new Duration(durations.reduce((acc, v) => acc + v.ms, 0));
   const averageDuration = new Duration(totalDuration.ms / times);
+  // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
   if (logStats) console.log(`Benchmark of ${f.name || "anonymous"} : ${averageDuration}`);
   return {
     fName: f.name,
