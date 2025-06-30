@@ -2,8 +2,8 @@
   "name": "raptor",
   "version": "0.2.0",
   "description": "RAPTOR typescript/Node.js implementation",
-  "main": "lib/main.js",
-  "types": "lib/main.d.ts",
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
   "files": [
     "lib/**/*.js",
     "lib/**/*.d.ts"
