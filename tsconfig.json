@@ -1,16 +1,13 @@
 {
+  "extends": ["@tsconfig/node22/tsconfig.json"],
   "compilerOptions": {
     "outDir": "./lib",
     "rootDir": "./src",
-    "moduleResolution": "Node",
-    "module": "CommonJS",
     "target": "es2015",
-    "strict": true,
-    "skipLibCheck": true,
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
-    "esModuleInterop": true,
     "sourceMap": true,
-    "declaration": true,
+    "declaration": true
   },
+  "include": ["src/**/*.ts"]
 }

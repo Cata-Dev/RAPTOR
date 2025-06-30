@@ -1,0 +1,18 @@
+{
+  "extends": [
+    "@tsconfig/node22/tsconfig.json",
+  ],
+  "compilerOptions": {
+    "sourceMap": true,
+    "declaration": true,
+    "isolatedModules": true,
+    "types": [
+      "node",
+      "jest"
+    ]
+  },
+  "include": [
+    "test/**/*.ts",
+    "src/**/*.ts"
+  ]
+}
