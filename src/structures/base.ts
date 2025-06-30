@@ -274,7 +274,7 @@ class Bag<T extends Comparable<T>> {
    * Updates an element in the bag, marking dominated elements
    * @param oldEl Element to update currently in the bag
    * @param newEl New element to put in its place
-   * @returns The bag
+   * @returns Wether the updated element is now dominated or not
    */
   updateOnly(oldEl: T, newEl: T) {
     let idx: number | null = null;
@@ -282,7 +282,7 @@ class Bag<T extends Comparable<T>> {
 
     for (const [i, v] of this.inner.entries()) {
       if (v.val === oldEl) idx = i;
-      else if (!v.dominated) {
+      else {
         const cmp = newEl.compare(v.val);
         if (cmp == 1) v.dominated = true;
         if (cmp == -1) dom = true;
@@ -294,7 +294,7 @@ class Bag<T extends Comparable<T>> {
       this.inner[idx].dominated = dom;
     }
 
-    return this;
+    return dom;
   }
 
   /**

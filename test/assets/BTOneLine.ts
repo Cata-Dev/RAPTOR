@@ -1,5 +1,6 @@
+/* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { expect, test } from "@jest/globals";
-import { McTestAsset, McTestDataset } from "./asset";
+import { McTestDataset } from "./asset";
 import oneLine, { MAX_ROUNDS } from "./oneLine";
 import { validateWithoutCriteria } from "./FDOneLine";
 
@@ -12,14 +13,20 @@ export default [
         {
           params: oneLine[1].withoutTransfers.tests[0].params,
           validate: (res) => {
-            validateWithoutCriteria(oneLine[1].withoutTransfers.tests[0].validate)(res);
-            test("Label buffer times are exact", () => {
-              for (const journeys of res)
-                if (journeys?.[0]) {
-                  expect(journeys[0][0].label.value("bufferTime")).toBe(Infinity);
-                  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-                  expect(journeys[0].at(-1)!.label.value("bufferTime")).toBe(-0);
-                }
+            const [journeysWithoutCriteria, journeysFromCriteria] = validateWithoutCriteria<["bufferTime"]>(
+              oneLine[1].withoutTransfers.tests[0].validate,
+            )(res);
+            test("Label buffer times are exact (same results as RAPTOR)", () => {
+              expect(journeysWithoutCriteria[1]![0].label.value("bufferTime")).toBe(-Infinity);
+              expect(journeysWithoutCriteria[1]!.at(-1)!.label.value("bufferTime")).toBe(-0);
+            });
+
+            test("Label buffer times are exact (new results due to criterion)", () => {
+              for (let k = 0; k < 1; ++k) expect(journeysFromCriteria[k]?.length ?? 0).toBe(0);
+              expect(journeysFromCriteria[1]?.length).toBe(1);
+              expect(journeysFromCriteria[1]![0][0].label.value("bufferTime")).toBe(-Infinity);
+              expect(journeysFromCriteria[1]![0].at(-1)!.label.value("bufferTime")).toBe(-3);
+              for (let k = 2; k < journeysFromCriteria.length; ++k) expect(journeysFromCriteria[k]?.length ?? 0).toBe(0);
             });
           },
         },
@@ -31,26 +38,33 @@ export default [
         {
           params: oneLine[1].withSlowTransfers.tests[0].params,
           validate: (res) => {
-            validateWithoutCriteria(oneLine[1].withSlowTransfers.tests[0].validate);
-            test("Label buffer times are exact", () => {
+            const [_, journeysFromCriteria] = validateWithoutCriteria<["bufferTime"]>(oneLine[1].withSlowTransfers.tests[0].validate)(res);
+            test("Label buffer times are exact (same results as RAPTOR)", () => {
               for (const journeys of res)
                 if (journeys?.[0]) {
-                  expect(journeys[0][0].label.value("bufferTime")).toBe(Infinity);
-                  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                  expect(journeys[0][0].label.value("bufferTime")).toBe(-Infinity);
                   expect(journeys[0].at(-1)!.label.value("bufferTime")).toBe(-0);
                 }
+            });
+
+            test("Label buffer times are exact (new results due to criterion)", () => {
+              for (let k = 0; k < 1; ++k) expect(journeysFromCriteria[k]?.length ?? 0).toBe(0);
+              expect(journeysFromCriteria[1]?.length).toBe(1);
+              expect(journeysFromCriteria[1]![0][0].label.value("bufferTime")).toBe(-Infinity);
+              expect(journeysFromCriteria[1]![0].at(-1)!.label.value("bufferTime")).toBe(-3);
+              for (let k = 2; k < journeysFromCriteria.length; ++k) expect(journeysFromCriteria[k]?.length ?? 0).toBe(0);
             });
           },
         },
         {
           params: oneLine[1].withSlowTransfers.tests[1].params,
           validate: (res) => {
-            validateWithoutCriteria(oneLine[1].withSlowTransfers.tests[1].validate);
+            validateWithoutCriteria<["bufferTime"]>(oneLine[1].withSlowTransfers.tests[1].validate);
+            for (const journeys of res) expect(journeys?.length ?? 1).toBe(1);
             test("Label buffer times are exact", () => {
               for (const journeys of res)
                 if (journeys?.[0]) {
-                  expect(journeys[0][0].label.value("bufferTime")).toBe(Infinity);
-                  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                  expect(journeys[0][0].label.value("bufferTime")).toBe(-Infinity);
                   expect(journeys[0].at(-1)!.label.value("bufferTime")).toBe(-0);
                 }
             });
@@ -69,11 +83,8 @@ export default [
               expect(res[0]).toBe(null);
               for (let i = 2; i < MAX_ROUNDS; ++i) expect(res[i]).toBe(null);
               expect(res[1]?.length).toBe(1);
-              // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
               const journey = res[1]![0];
-
               expect(journey.length).toBe(2);
-
               const js0 = journey[0];
               expect(Object.keys(js0).length).toBe(2);
               expect(Object.keys(js0)).toContain("compare");
@@ -82,10 +93,8 @@ export default [
 
               expect(Object.keys(journey[1]).length).toEqual(5);
               expect(journey[1].label.time).toBe(9);
-
               const js1 = journey[1];
               if (!("route" in js1)) throw new Error("First journey step isn't VEHICLE");
-
               expect(js1.boardedAt).toBe(1);
               expect(js1.route.id).toBe(1);
               expect(js1.tripIndex).toBe(1);
@@ -101,23 +110,20 @@ export default [
         {
           params: oneLine[1].withFastTransfers.tests[0].params,
           validate: (res) => {
-            const journeys: Parameters<McTestAsset<["bufferTime"]>["tests"][number]["validate"]>[0] = res.map((journeys) =>
-              journeys?.length ? journeys : null,
-            );
-            test("Base results are present", () => {
-              expect(journeys.every((journeys) => (journeys?.length ?? 1) === 1)).toBe(true);
+            const [journeysWithoutCriteria, journeysFromCriteria] = validateWithoutCriteria<["bufferTime"]>(
+              oneLine[1].withFastTransfers.tests[0].validate,
+            )(res);
+
+            test("Label buffer times are exact (same results as RAPTOR)", () => {
+              expect(journeysWithoutCriteria[1]?.[1].label.value("bufferTime")).toBe(-0);
+              expect(journeysWithoutCriteria[1]?.[2].label.value("bufferTime")).toBe(-0);
             });
-            validateWithoutCriteria(oneLine[1].withFastTransfers.tests[0].validate)(journeys);
-
-            test("Label buffer times are exact", () => {
-              // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-              const journeys = res[1]!.filter((journey) => journey.length === 3);
-              expect(journeys.length).toBe(1);
-
-              const journey = journeys[0];
-
-              expect(journey[1].label.value("bufferTime")).toBe(-0);
-              expect(journey[2].label.value("bufferTime")).toBe(-0);
+            test("Label buffer times are exact (new results due to criterion)", () => {
+              for (let k = 0; k < 1; ++k) expect(journeysFromCriteria[k]?.length ?? 0).toBe(0);
+              expect(journeysFromCriteria[1]?.length).toBe(1);
+              expect(journeysFromCriteria[1]![0][0].label.value("bufferTime")).toBe(-Infinity);
+              expect(journeysFromCriteria[1]![0].at(-1)!.label.value("bufferTime")).toBe(-3);
+              for (let k = 2; k < journeysFromCriteria.length; ++k) expect(journeysFromCriteria[k]?.length ?? 0).toBe(0);
             });
           },
         },
