@@ -4,6 +4,20 @@ import eslint from "@eslint/js";
 import tseslint from "typescript-eslint";
 import globals from "globals";
 
+/** @type {import("typescript-eslint").ConfigWithExtends["rules"]} */
+const rules = {
+  "@typescript-eslint/no-unused-vars": [
+    "error",
+    {
+      argsIgnorePattern: "^_",
+      caughtErrorsIgnorePattern: "^_",
+      destructuredArrayIgnorePattern: "^_",
+      varsIgnorePattern: "^_",
+    },
+  ],
+  "@typescript-eslint/restrict-template-expressions": ["error", { allowNumber: true }],
+};
+
 export default tseslint.config(
   {
     files: ["src/**/*.ts"],
@@ -14,10 +28,7 @@ export default tseslint.config(
         project: true,
       },
     },
-    rules: {
-      "@typescript-eslint/no-unused-vars": ["error", { caughtErrorsIgnorePattern: "^_+$", argsIgnorePattern: "^_+$", varsIgnorePattern: "^_+$" }],
-      "@typescript-eslint/restrict-template-expressions": ["error", { allowNumber: true }],
-    },
+    rules,
   },
   {
     files: ["test/**/*.ts"],
@@ -32,6 +43,6 @@ export default tseslint.config(
         ...globals.node,
       },
     },
-    rules: {},
+    rules,
   },
 );
