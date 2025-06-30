@@ -134,7 +134,7 @@ export default class McRAPTOR<C extends string[], SI extends Id = Id, RI extends
       for (const [r, p] of Q) {
         const RouteBag = new Bag<JourneyStep<SI, RI, C, "VEHICLE">>();
 
-        const route: Route<SI, RI> = this.routes.get(r)!;
+        const route = this.routes.get(r)!;
         for (let i = route.stops.indexOf(p); i < route.stops.length; i++) {
           const pi = route.stops.at(i)!;
 
