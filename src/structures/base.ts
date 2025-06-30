@@ -101,7 +101,7 @@ class Label<SI extends Id, RI extends Id, C extends string[]> implements Compara
   protected readonly values: Record<C[number] | "time", number>;
 
   constructor(
-    protected readonly criteria: { [K in keyof C]: Criterion<SI, RI, C> }, //, K
+    readonly criteria: { [K in keyof C]: Criterion<SI, RI, C> }, //, K
     time: number,
   ) {
     this.values = criteria.reduce<Partial<{ time: timestamp } & Record<C[number], number>>>(
