@@ -1,5 +1,7 @@
 import { ArrayRead, FootPath, IRAPTORData, MapRead, Route, Stop, Trip } from "./base";
 
+type SharedID = number | SerializedId;
+
 /**
  * Helper type to override type `T` with type `O`
  */
@@ -144,14 +146,11 @@ interface SharedStop {
   /**
    * Array of route pointers
    */
-  connectedRoutes: ArrayView<number | SerializedId>;
-  transfers: ArrayView<FootPathRetriever | FootPath<number | SerializedId>>;
+  connectedRoutes: ArrayView<SharedID>;
+  transfers: ArrayView<FootPathRetriever | FootPath<SharedID>>;
 }
 
-class StopRetriever
-  extends Retriever<PtrType.Stop, Stop<number | SerializedId, number | SerializedId>>
-  implements Override<Stop<number | SerializedId, number | SerializedId>, SharedStop>
-{
+class StopRetriever extends Retriever<PtrType.Stop, Stop<SharedID, SharedID>> implements Override<Stop<SharedID, SharedID>, SharedStop> {
   get id() {
     return this.sDataView[this.ptr];
   }
@@ -253,13 +252,13 @@ interface SharedRoute {
   /**
    * Array of stop pointers
    */
-  stops: ArrayView<number | SerializedId>;
+  stops: ArrayView<SharedID>;
   trips: ArrayView<Override<Trip<number>, SharedTrip>>;
 }
 
 class RouteRetriever
-  extends Retriever<PtrType.Route, Route<number | SerializedId, number | SerializedId, number>>
-  implements Override<Route<number | SerializedId, number | SerializedId, number>, SharedRoute>
+  extends Retriever<PtrType.Route, Route<SharedID, SharedID, number>>
+  implements Override<Route<SharedID, SharedID, number>, SharedRoute>
 {
   // Lazy compute & save value
   protected _tripsChunkSizes: number[] | null = null;
@@ -329,7 +328,7 @@ class RouteRetriever
 /**
  * Shared-memory enabled RAPTOR data
  */
-class SharedRAPTORData implements IRAPTORData<number | SerializedId, number | SerializedId, number> {
+class SharedRAPTORData implements IRAPTORData<SharedID, SharedID, number> {
   // Max float64
   static readonly MAX_SAFE_TIMESTAMP: number = 3.4e38;
   readonly MAX_SAFE_TIMESTAMP: number = SharedRAPTORData.MAX_SAFE_TIMESTAMP;
@@ -349,8 +348,8 @@ class SharedRAPTORData implements IRAPTORData<number | SerializedId, number | Se
   // Validate pointers
   secure = false;
 
-  protected attachedStops: MapRead<number | SerializedId, Stop<number | SerializedId, number | SerializedId>> = new Map();
-  protected attachedRoutes: MapRead<number | SerializedId, Route<number | SerializedId, number | SerializedId, number>> = new Map();
+  protected attachedStops: MapRead<SharedID, Stop<SharedID, SharedID>> = new Map();
+  protected attachedRoutes: MapRead<SharedID, Route<SharedID, SharedID, number>> = new Map();
 
   /**
    *
@@ -577,7 +576,7 @@ class SharedRAPTORData implements IRAPTORData<number | SerializedId, number | Se
   get stops() {
     return {
       [Symbol.iterator]: function* (this: SharedRAPTORData) {
-        const seen = new Set<number | SerializedId>();
+        const seen = new Set<SharedID>();
 
         const stopRetriever = new StopRetriever(this.sDataView, this.rDataView, 0, PtrType.Stop, null);
         for (let ptr = 0; ptr < this.sDataView.length; ptr += stopRetriever.point(ptr).chunkSize) {
@@ -605,7 +604,7 @@ class SharedRAPTORData implements IRAPTORData<number | SerializedId, number | Se
        * Maps a stop pointer to its corresponding {@link StopRetriever}
        * @param ptr Pointer to a stop
        */
-      get: (ptr: number | SerializedId) => {
+      get: (ptr: SharedID) => {
         if (this.secure && typeof ptr === "number") this.validatePointer(ptr, PtrType.Stop);
 
         const attached = this.attachedStops.get(ptr);
@@ -628,7 +627,7 @@ class SharedRAPTORData implements IRAPTORData<number | SerializedId, number | Se
   get routes() {
     return {
       [Symbol.iterator]: function* (this: SharedRAPTORData) {
-        const seen = new Set<number | SerializedId>();
+        const seen = new Set<SharedID>();
 
         const routeRetriever = new RouteRetriever(this.sDataView, this.rDataView, 0, PtrType.Route, null);
         for (let ptr = 0; ptr < this.rDataView.length; ptr += routeRetriever.point(ptr).chunkSize) {
@@ -656,7 +655,7 @@ class SharedRAPTORData implements IRAPTORData<number | SerializedId, number | Se
        * Maps a route pointer to its corresponding {@link RouteRetriever}
        * @param ptr Pointer to a route
        */
-      get: (ptr: number | SerializedId) => {
+      get: (ptr: SharedID) => {
         if (this.secure && typeof ptr === "number") this.validatePointer(ptr, PtrType.Route);
 
         const attached = this.attachedRoutes.get(ptr);
@@ -722,4 +721,4 @@ class SharedRAPTORData implements IRAPTORData<number | SerializedId, number | Se
   }
 }
 
-export { ArrayView, SerializedId, SharedRAPTORData };
+export { ArrayView, SerializedId, SharedID, SharedRAPTORData };
