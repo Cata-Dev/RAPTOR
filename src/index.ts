@@ -1,5 +1,7 @@
 export * from "./structures";
 
+export * from "./base";
+
 export { default as RAPTOR } from "./RAPTOR";
 export * from "./RAPTOR";
 
