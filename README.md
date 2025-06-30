@@ -25,7 +25,7 @@ Implemented criteria at [src/criteria.ts](./src/criteria.ts):
 
 ## Additions
 
-Some new features are brought in this implementation :
+Some new features are brought in this implementation:
 
 - Enhancing Pareto front to be maximal in general (with any criterion) — [issue](https://github.com/Cata-Dev/RAPTOR/issues/216), [PR](https://github.com/Cata-Dev/RAPTOR/pull/217)  
   This is done by scanning subsequent catchable trips, not only the earliest one.
