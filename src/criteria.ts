@@ -14,14 +14,14 @@ function isCriterionJourneyStepFoot<SI extends Id, RI extends Id, C extends stri
 
 const bufferTime: Criterion<Id, Id, ["bufferTime"]> = {
   name: "bufferTime",
-  initialValue: Infinity,
+  initialValue: -Infinity,
   update: (prefixJourney, newJourneyStep) => {
     const lastJourneyStep = prefixJourney.at(-1);
     if (!lastJourneyStep) throw new Error("A journey should at least contain the DEPARTURE label.");
 
     if (!isCriterionJourneyStepVehicle(newJourneyStep)) return lastJourneyStep.label.value("bufferTime");
 
-    return Math.min(
+    return Math.max(
       lastJourneyStep.label.value("bufferTime"),
       -(
         newJourneyStep.route.departureTime(newJourneyStep.tripIndex, newJourneyStep.route.stops.indexOf(newJourneyStep.boardedAt[0])) -
