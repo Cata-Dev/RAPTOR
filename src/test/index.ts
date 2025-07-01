@@ -133,7 +133,8 @@ async function run({ RAPTORInstance, TBMSchedulesModel }: Awaited<ReturnType<typ
     pt = 2082;
   }
 
-  const minSchedule = (await TBMSchedulesModel.findOne({}).lean())?.updatedAt?.getTime() ?? Infinity;
+  // https://www.mongodb.com/docs/manual/core/aggregation-pipeline-optimization/#-sort----limit-coalescence
+  const minSchedule = (await TBMSchedulesModel.find({}, { hor_estime: 1 }).sort({ hor_estime: 1 }).limit(1))[0]?.hor_estime?.getTime() ?? Infinity;
 
   function runRAPTOR() {
     RAPTORInstance.run(ps, pt, minSchedule, { walkSpeed: 1.5 });
