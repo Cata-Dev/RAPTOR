@@ -7,7 +7,7 @@ import stopsModelInit, { dbTBM_Stops } from "./models/TBM_stops.model";
 import TBMSchedulesModelInit from "./models/TBM_schedules.model";
 import TBMScheduledRoutesModelInit, { dbTBM_ScheduledRoutes } from "./models/TBMScheduledRoutes.model";
 import NonScheduledRoutesModelInit, { dbFootPaths } from "./models/NonScheduledRoutes.model";
-import { RAPTOR, RAPTORData, Stop } from "../";
+import { bufferTime, McRAPTOR, RAPTORData, Stop } from "../";
 import { HydratedDocument, FilterQuery } from "mongoose";
 import { DocumentType } from "@typegoose/typegoose";
 import { benchmark } from "./utils/benchmark";
@@ -75,7 +75,7 @@ async function init() {
   const { dbScheduledRoutes, dbStops, dbNonScheduledRoutes } = b1.lastReturn;
 
   async function createRAPTOR() {
-    const RAPTORInstance = new RAPTOR(
+    const RAPTORInstance = new McRAPTOR<["bufferTime"], number, number, number>(
       new RAPTORData(
         await mapAsync<(typeof dbStops)[number], Stop<number, number>>(dbStops, async ({ _id, coords }) => ({
           id: _id,
@@ -106,6 +106,7 @@ async function init() {
             ] satisfies [unknown, unknown, unknown],
         ),
       ),
+      [bufferTime],
     );
 
     return { RAPTORInstance };
