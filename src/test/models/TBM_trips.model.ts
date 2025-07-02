@@ -5,7 +5,7 @@
 import { deleteModelWithClass, getModelForClass, prop, type Ref, type ReturnModelType } from "@typegoose/typegoose";
 import { TimeStamps } from "@typegoose/typegoose/lib/defaultClasses";
 import { modelOptions } from "@typegoose/typegoose/lib/modelOptions";
-import { Mongoose } from "mongoose";
+import { Connection } from "mongoose";
 import { TBMEndpoints } from ".";
 import { dbTBM_Lines } from "./TBM_lines.model";
 import { dbTBM_Lines_routes } from "./TBM_lines_routes.model";
@@ -32,10 +32,10 @@ export class dbTBM_Trips extends TimeStamps {
   public rs_sv_chem_l!: Ref<dbTBM_Lines_routes, number>;
 }
 
-export default function init(db: Mongoose): ReturnModelType<typeof dbTBM_Trips> {
-  if (getModelForClass(dbTBM_Trips, { existingMongoose: db })) deleteModelWithClass(dbTBM_Trips);
+export default function init(db: Connection): ReturnModelType<typeof dbTBM_Trips> {
+  if (getModelForClass(dbTBM_Trips, { existingConnection: db })) deleteModelWithClass(dbTBM_Trips);
 
-  return getModelForClass(dbTBM_Trips, { existingMongoose: db });
+  return getModelForClass(dbTBM_Trips, { existingConnection: db });
 }
 
 export type dbTBM_TripsModel = ReturnType<typeof init>;

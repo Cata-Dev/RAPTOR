@@ -1,12 +1,11 @@
-import { connect } from "mongoose";
+import { createConnection } from "mongoose";
 
-export default async function () {
-  const client = await connect(
-    `mongodb://0.0.0.0:27017/bibm`,
-    //{ useNewUrlParser: true }
-  );
+export default async function (dbName: string) {
+  const connection = createConnection(`mongodb://0.0.0.0:27017/${dbName}`);
 
-  console.info("Database connected.");
+  await connection.asPromise();
 
-  return client;
+  console.info(`Database ${dbName} connected.`);
+
+  return connection;
 }

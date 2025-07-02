@@ -16,7 +16,7 @@ export enum SectionDomanial {
 import { deleteModelWithClass, getModelForClass, prop, type ReturnModelType } from "@typegoose/typegoose";
 import { TimeStamps } from "@typegoose/typegoose/lib/defaultClasses";
 import { modelOptions } from "@typegoose/typegoose/lib/modelOptions";
-import { Mongoose } from "mongoose";
+import { Connection } from "mongoose";
 import { TBMEndpoints } from ".";
 
 @modelOptions({ options: { customName: TBMEndpoints.Sections } })
@@ -52,10 +52,10 @@ export class dbSections extends TimeStamps {
   public rg_fv_graph_na!: number;
 }
 
-export default function init(db: Mongoose): ReturnModelType<typeof dbSections> {
-  if (getModelForClass(dbSections, { existingMongoose: db })) deleteModelWithClass(dbSections);
+export default function init(db: Connection): ReturnModelType<typeof dbSections> {
+  if (getModelForClass(dbSections, { existingConnection: db })) deleteModelWithClass(dbSections);
 
-  return getModelForClass(dbSections, { existingMongoose: db });
+  return getModelForClass(dbSections, { existingConnection: db });
 }
 
 export type dbSectionsModel = ReturnType<typeof init>;

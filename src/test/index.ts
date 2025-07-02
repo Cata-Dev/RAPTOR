@@ -3,23 +3,32 @@ import initDB from "./utils/mongoose";
 // Needed to solve "Reflect.getMetadata is not a function" error of typegoose
 import "core-js/features/reflect";
 
-import stopsModelInit, { dbTBM_Stops } from "./models/TBM_stops.model";
-import TBMSchedulesModelInit from "./models/TBM_schedules.model";
-import TBMScheduledRoutesModelInit, { dbTBM_ScheduledRoutes } from "./models/TBMScheduledRoutes.model";
 import NonScheduledRoutesModelInit, { dbFootPaths } from "./models/NonScheduledRoutes.model";
-import { bufferTime, McRAPTOR, RAPTORData, Stop } from "../";
-import { HydratedDocument, FilterQuery } from "mongoose";
+import ResultModelInit from "./models/result.model";
+import TBMSchedulesModelInit from "./models/TBM_schedules.model";
+import stopsModelInit, { dbTBM_Stops } from "./models/TBM_stops.model";
+import TBMScheduledRoutesModelInit, { dbTBM_ScheduledRoutes } from "./models/TBMScheduledRoutes.model";
 import { DocumentType } from "@typegoose/typegoose";
-import { benchmark } from "./utils/benchmark";
-import { mapAsync, unpackRefType, wait } from "./utils";
+import { FilterQuery, HydratedDocument } from "mongoose";
 import { inspect } from "util";
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+import { bufferTime, McRAPTOR, McSharedRAPTOR, RAPTORData, RAPTORRunSettings, SharedRAPTORData, Stop } from "../";
+import { Journey, JourneyStepBase, JourneyStepFoot, JourneyStepType, JourneyStepVehicle, LocationType } from "./models/result.model";
+import { mapAsync, unpackRefType, wait } from "./utils";
+import { benchmark } from "./utils/benchmark";
+
+// In meters
+const FP_MAX_LEN = 1_000;
 
 async function init() {
-  const db = await initDB();
-  const stopsModel = stopsModelInit(db);
-  const TBMSchedulesModel = TBMSchedulesModelInit(db)[1];
-  const TBMScheduledRoutesModel = TBMScheduledRoutesModelInit(db);
-  const NonScheduledRoutesModel = NonScheduledRoutesModelInit(db);
+  const sourceDB = await initDB("bibm");
+  const computeDB = await initDB("bibm-compute");
+  const stopsModel = stopsModelInit(sourceDB);
+  const TBMSchedulesModel = TBMSchedulesModelInit(sourceDB)[1];
+  const TBMScheduledRoutesModel = TBMScheduledRoutesModelInit(sourceDB);
+  const NonScheduledRoutesModel = NonScheduledRoutesModelInit(sourceDB);
+
+  const resultModel = ResultModelInit(computeDB);
 
   async function queryData() {
     const dbScheduledRoutesProjection: Partial<Record<keyof dbTBM_ScheduledRoutes, 1>> = { _id: 1, stops: 1, trips: 1 };
@@ -75,39 +84,38 @@ async function init() {
   const { dbScheduledRoutes, dbStops, dbNonScheduledRoutes } = b1.lastReturn;
 
   async function createRAPTOR() {
-    const RAPTORInstance = new McRAPTOR<["bufferTime"], number, number, number>(
-      new RAPTORData(
-        await mapAsync<(typeof dbStops)[number], Stop<number, number>>(dbStops, async ({ _id, coords }) => ({
-          id: _id,
-          lat: coords[0],
-          long: coords[1],
-          connectedRoutes: dbScheduledRoutes.filter((ScheduledRoute) => ScheduledRoute.stops.find((stopId) => stopId === _id)).map(({ _id }) => _id),
-          transfers: (await dbNonScheduledRoutes(_id, { distance: { $lte: 1_000 } })).map(({ to, distance }) => ({
-            to,
-            length: distance,
-          })),
+    const RAPTORDataInst = new RAPTORData(
+      await mapAsync<(typeof dbStops)[number], Stop<number, number>>(dbStops, async ({ _id, coords }) => ({
+        id: _id,
+        lat: coords[0],
+        long: coords[1],
+        connectedRoutes: dbScheduledRoutes.filter((ScheduledRoute) => ScheduledRoute.stops.find((stopId) => stopId === _id)).map(({ _id }) => _id),
+        transfers: (await dbNonScheduledRoutes(_id, { distance: { $lte: FP_MAX_LEN } })).map(({ to, distance }) => ({
+          to,
+          length: distance,
         })),
-        dbScheduledRoutes.map(
-          ({ _id, stops, trips }) =>
-            [
-              _id,
-              stops,
-              trips.map(({ tripId, schedules }) => ({
-                id: tripId,
-                times: schedules.map((schedule) =>
-                  typeof schedule === "object" && "hor_estime" in schedule
-                    ? ([
-                        schedule.hor_estime.getTime() || RAPTORData.MAX_SAFE_TIMESTAMP,
-                        schedule.hor_estime.getTime() || RAPTORData.MAX_SAFE_TIMESTAMP,
-                      ] satisfies [unknown, unknown])
-                    : ([Infinity, Infinity] satisfies [unknown, unknown]),
-                ),
-              })),
-            ] satisfies [unknown, unknown, unknown],
-        ),
+      })),
+      dbScheduledRoutes.map(
+        ({ _id, stops, trips }) =>
+          [
+            _id,
+            stops,
+            trips.map(({ tripId, schedules }) => ({
+              id: tripId,
+              times: schedules.map((schedule) =>
+                typeof schedule === "object" && "hor_estime" in schedule
+                  ? ([
+                      schedule.hor_estime.getTime() || RAPTORData.MAX_SAFE_TIMESTAMP,
+                      schedule.hor_estime.getTime() || RAPTORData.MAX_SAFE_TIMESTAMP,
+                    ] satisfies [unknown, unknown])
+                  : ([Infinity, Infinity] satisfies [unknown, unknown]),
+              ),
+            })),
+          ] satisfies [unknown, unknown, unknown],
       ),
-      [bufferTime],
     );
+    // RAPTORDataInst.secure = true;
+    const RAPTORInstance = new McRAPTOR<["bufferTime"], number, number, number>(RAPTORDataInst, [bufferTime]);
 
     return { RAPTORInstance };
   }
@@ -116,10 +124,10 @@ async function init() {
   if (!b2.lastReturn) throw new Error(`b2 return null`);
   const { RAPTORInstance } = b2.lastReturn;
 
-  return { RAPTORInstance, TBMSchedulesModel };
+  return { RAPTORInstance, TBMSchedulesModel, resultModel };
 }
 
-async function run({ RAPTORInstance, TBMSchedulesModel }: Awaited<ReturnType<typeof init>>) {
+async function run({ RAPTORInstance, TBMSchedulesModel, resultModel }: Awaited<ReturnType<typeof init>>) {
   const args = process.argv.slice(2);
   let ps: number;
   try {
@@ -135,10 +143,20 @@ async function run({ RAPTORInstance, TBMSchedulesModel }: Awaited<ReturnType<typ
   }
 
   // https://www.mongodb.com/docs/manual/core/aggregation-pipeline-optimization/#-sort----limit-coalescence
-  const minSchedule = (await TBMSchedulesModel.find({}, { hor_estime: 1 }).sort({ hor_estime: 1 }).limit(1))[0]?.hor_estime?.getTime() ?? Infinity;
+  const minSchedule =
+    (
+      await TBMSchedulesModel.find({ hor_estime: { $gt: new Date(0) } }, { hor_estime: 1 })
+        .sort({ hor_estime: 1 })
+        .limit(1)
+    )[0]?.hor_estime?.getTime() ?? Infinity;
+  const maxSchedule = (await TBMSchedulesModel.find({}, { hor_estime: 1 }).sort({ hor_estime: -1 }).limit(1))[0]?.hor_estime?.getTime() ?? Infinity;
+
+  const departureTime = (minSchedule + maxSchedule) / 2;
+
+  const settings: RAPTORRunSettings = { walkSpeed: 1.5 };
 
   function runRAPTOR() {
-    RAPTORInstance.run(ps, pt, minSchedule, { walkSpeed: 1.5 });
+    RAPTORInstance.run(ps, pt, departureTime, settings);
 
     return true as const;
   }
@@ -153,6 +171,68 @@ async function run({ RAPTORInstance, TBMSchedulesModel }: Awaited<ReturnType<typ
   console.log("b4 ended");
 
   if (!b4.lastReturn) throw new Error(`b4 return null`);
+
+  async function insertResults(results: ReturnType<typeof resultRAPTOR>) {
+    type DBJourney = Omit<Journey, "steps"> & {
+      steps: (JourneyStepBase | JourneyStepFoot | JourneyStepVehicle)[];
+    };
+    function journeyDBFormatter(
+      journey: NonNullable<ReturnType<Awaited<ReturnType<typeof init>>["RAPTORInstance"]["getBestJourneys"]>[number]>[number],
+    ): DBJourney {
+      return {
+        steps: journey.map((js) => {
+          if ("transfer" in js) {
+            return {
+              ...js,
+              time: js.label.time,
+              type: JourneyStepType.Foot,
+            } satisfies JourneyStepFoot;
+          }
+
+          if ("route" in js) {
+            if (typeof js.route.id === "string") throw new Error("Invalid route to retrieve.");
+
+            return {
+              ...js,
+              time: js.label.time,
+              route: js.route.id,
+              type: JourneyStepType.Vehicle,
+            } satisfies JourneyStepVehicle;
+          }
+
+          return {
+            ...js,
+            time: js.label.time,
+            type: JourneyStepType.Base,
+          } satisfies JourneyStepBase;
+        }),
+        criteria: journey[0].label.criteria.map(({ name }) => ({
+          name,
+          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+          value: journey.at(-1)!.label.value(name),
+        })),
+      };
+    }
+
+    if (!results.length) throw new Error("No journey found");
+
+    const { _id } = await resultModel.create({
+      from: { type: LocationType.TBM, id: ps },
+      to: { type: LocationType.TBM, id: pt },
+      departureTime: new Date(departureTime),
+      journeys: results
+        .flat()
+        .filter((journey) => !!journey)
+        .map((journey) => journeyDBFormatter(journey)),
+      settings,
+    });
+
+    return _id;
+  }
+
+  const b5 = await benchmark(insertResults, [b4.lastReturn]);
+  console.log("inserted", b5.lastReturn);
+
   return b4.lastReturn;
 }
 
@@ -164,7 +244,6 @@ async function run({ RAPTORInstance, TBMSchedulesModel }: Awaited<ReturnType<typ
   while (true) {
     const r = await run(initr);
     console.log(inspect(r, false, 3));
-    //Let time to debug
     await wait(10_000);
   }
 })()

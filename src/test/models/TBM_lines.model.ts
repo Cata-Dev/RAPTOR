@@ -5,7 +5,7 @@
 import { type ReturnModelType, deleteModelWithClass, getModelForClass, prop } from "@typegoose/typegoose";
 import { TimeStamps } from "@typegoose/typegoose/lib/defaultClasses";
 import { modelOptions } from "@typegoose/typegoose/lib/modelOptions";
-import { Mongoose } from "mongoose";
+import { Connection } from "mongoose";
 import { TBMEndpoints } from ".";
 import { type Active, VehicleType } from "./TBM_stops.model";
 
@@ -24,10 +24,10 @@ export class dbTBM_Lines extends TimeStamps {
   public active!: Active;
 }
 
-export default function init(db: Mongoose): ReturnModelType<typeof dbTBM_Lines> {
-  if (getModelForClass(dbTBM_Lines, { existingMongoose: db })) deleteModelWithClass(dbTBM_Lines);
+export default function init(db: Connection): ReturnModelType<typeof dbTBM_Lines> {
+  if (getModelForClass(dbTBM_Lines, { existingConnection: db })) deleteModelWithClass(dbTBM_Lines);
 
-  return getModelForClass(dbTBM_Lines, { existingMongoose: db });
+  return getModelForClass(dbTBM_Lines, { existingConnection: db });
 }
 
 export type dbTBM_LinesModel = ReturnType<typeof init>;

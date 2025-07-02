@@ -25,7 +25,7 @@ import {
 } from "@typegoose/typegoose";
 import { TimeStamps } from "@typegoose/typegoose/lib/defaultClasses";
 import { modelOptions } from "@typegoose/typegoose/lib/modelOptions";
-import { Mongoose } from "mongoose";
+import { Connection } from "mongoose";
 import { TBMEndpoints } from ".";
 import { dbTBM_Stops } from "./TBM_stops.model";
 import { dbTBM_Trips } from "./TBM_trips.model";
@@ -64,9 +64,9 @@ export class dbTBM_Schedules_rt extends dbTBM_Schedules {
   public type!: RtScheduleType;
 }
 
-export default function init(db: Mongoose): readonly [ReturnModelType<typeof dbTBM_Schedules>, ReturnModelType<typeof dbTBM_Schedules_rt>] {
-  if (getModelForClass(dbTBM_Schedules, { existingMongoose: db })) deleteModelWithClass(dbTBM_Schedules);
-  const dbTBM_SchedulesModel = getModelForClass(dbTBM_Schedules, { existingMongoose: db });
+export default function init(db: Connection): readonly [ReturnModelType<typeof dbTBM_Schedules>, ReturnModelType<typeof dbTBM_Schedules_rt>] {
+  if (getModelForClass(dbTBM_Schedules, { existingConnection: db })) deleteModelWithClass(dbTBM_Schedules);
+  const dbTBM_SchedulesModel = getModelForClass(dbTBM_Schedules, { existingConnection: db });
 
   return [dbTBM_SchedulesModel, getDiscriminatorModelForClass(dbTBM_SchedulesModel, dbTBM_Schedules_rt)] as const;
 }

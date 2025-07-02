@@ -5,7 +5,7 @@
 import { deleteModelWithClass, getModelForClass, prop, type ReturnModelType } from "@typegoose/typegoose";
 import { TimeStamps } from "@typegoose/typegoose/lib/defaultClasses";
 import { modelOptions } from "@typegoose/typegoose/lib/modelOptions";
-import { Mongoose } from "mongoose";
+import { Connection } from "mongoose";
 import { TBMEndpoints } from ".";
 
 @modelOptions({ options: { customName: TBMEndpoints.Intersections } })
@@ -28,10 +28,10 @@ export class dbIntersections extends TimeStamps {
   */
 }
 
-export default function init(db: Mongoose): ReturnModelType<typeof dbIntersections> {
-  if (getModelForClass(dbIntersections, { existingMongoose: db })) deleteModelWithClass(dbIntersections);
+export default function init(db: Connection): ReturnModelType<typeof dbIntersections> {
+  if (getModelForClass(dbIntersections, { existingConnection: db })) deleteModelWithClass(dbIntersections);
 
-  return getModelForClass(dbIntersections, { existingMongoose: db });
+  return getModelForClass(dbIntersections, { existingConnection: db });
 }
 
 export type dbIntersectionsModel = ReturnType<typeof init>;

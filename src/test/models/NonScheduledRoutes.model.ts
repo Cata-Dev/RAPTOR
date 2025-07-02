@@ -8,7 +8,7 @@ export function approachedStopName(_id: number) {
 
 import { deleteModelWithClass, getModelForClass, prop, type Ref, type ReturnModelType } from "@typegoose/typegoose";
 import { modelOptions } from "@typegoose/typegoose/lib/modelOptions";
-import { Mongoose } from "mongoose";
+import { Connection } from "mongoose";
 import { dbTBM_Stops } from "./TBM_stops.model";
 import { dbSections } from "./sections.model";
 
@@ -27,10 +27,10 @@ export class dbFootPaths {
   public path?: (dbSections["_id"] | ReturnType<typeof approachedStopName>)[]; // Ref[] to intersections | stops
 }
 
-export default function init(db: Mongoose): ReturnModelType<typeof dbFootPaths> {
-  if (getModelForClass(dbFootPaths, { existingMongoose: db })) deleteModelWithClass(dbFootPaths);
+export default function init(db: Connection): ReturnModelType<typeof dbFootPaths> {
+  if (getModelForClass(dbFootPaths, { existingConnection: db })) deleteModelWithClass(dbFootPaths);
 
-  return getModelForClass(dbFootPaths, { existingMongoose: db });
+  return getModelForClass(dbFootPaths, { existingConnection: db });
 }
 
 export type dbFootPathsModel = ReturnType<typeof init>;
