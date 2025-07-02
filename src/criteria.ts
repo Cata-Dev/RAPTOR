@@ -27,6 +27,7 @@ const bufferTime: Criterion<Id, Id, ["bufferTime"]> = {
         newJourneyStep.route.departureTime(newJourneyStep.tripIndex, newJourneyStep.route.stops.indexOf(newJourneyStep.boardedAt[0])) -
         lastJourneyStep.label.time
       ),
+      -(30 * 60 * 1000),
     );
   },
 };
