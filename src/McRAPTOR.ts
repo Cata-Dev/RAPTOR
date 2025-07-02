@@ -49,6 +49,9 @@ export default class McRAPTOR<C extends string[], SI extends Id = Id, RI extends
         if (transfer.to === p) continue;
 
         for (const pJourneyStep of this.bags[this.k].get(p)!) {
+          // Prevent chaining transfers
+          if ("transfer" in pJourneyStep) continue;
+
           const arrivalTime: timestamp = pJourneyStep.label.time + this.walkDuration(transfer.length, walkSpeed);
 
           const Bpto = this.bags[this.k].get(transfer.to)!;
