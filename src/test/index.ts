@@ -139,7 +139,7 @@ async function run({ RAPTORInstance, TBMSchedulesModel, resultModel }: Awaited<R
   try {
     pt = JSON.parse(args[1]) as number;
   } catch (_) {
-    pt = 2082;
+    pt = 169;
   }
 
   // https://www.mongodb.com/docs/manual/core/aggregation-pipeline-optimization/#-sort----limit-coalescence
