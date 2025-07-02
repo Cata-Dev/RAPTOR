@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import BaseRAPTOR, { RAPTORRunSettings } from "./base";
-import { Id, Journey, JourneyStep, Label, makeJSComparable, Route, timestamp } from "./structures";
+import { Id, Journey, JourneyStep, Label, makeJSComparable, MAX_SAFE_TIMESTAMP, Route, timestamp } from "./structures";
 
 /**
  * @description A RAPTOR instance
@@ -23,8 +23,7 @@ export default class RAPTOR<SI extends Id = Id, RI extends Id = Id, TI extends I
     for (let t = 0; t < route.trips.length; t++) {
       // Catchable
       const tDep = route.departureTime(t, route.stops.indexOf(p));
-      if (tDep < this.MAX_SAFE_TIMESTAMP && tDep >= (this.multiLabel[this.k - 1].get(p)?.label.time ?? Infinity))
-        return { tripIndex: t, boardedAt: p };
+      if (tDep < MAX_SAFE_TIMESTAMP && tDep >= (this.multiLabel[this.k - 1].get(p)?.label.time ?? Infinity)) return { tripIndex: t, boardedAt: p };
     }
     return null;
   }
