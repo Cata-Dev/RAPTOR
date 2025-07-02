@@ -33,7 +33,7 @@ export default class BaseRAPTOR<C extends string[] = [], SI extends Id = Id, RI 
    * @returns Duration in ms
    */
   protected walkDuration(length: number, walkSpeed: RAPTORRunSettings["walkSpeed"]): number {
-    return length / walkSpeed;
+    return (length / walkSpeed) * 1_000;
   }
 
   protected traceBackFromStep(from: JourneyStep<SI, RI, C>, initRound: number): Journey<SI, RI, C> {
