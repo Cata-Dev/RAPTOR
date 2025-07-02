@@ -9,6 +9,8 @@ export default class McRAPTOR<C extends string[], SI extends Id = Id, RI extends
   /** Set<{@link SI} in {@link stops}> */
   protected marked = new Set<SI>();
 
+  protected pt: SI | null = null;
+
   /**
    * @description Creates a new McRAPTOR instance for a defined network and a set of {@link criteria}.
    */
@@ -37,6 +39,8 @@ export default class McRAPTOR<C extends string[], SI extends Id = Id, RI extends
   }
 
   protected footPathsLookup(walkSpeed: RAPTORRunSettings["walkSpeed"]) {
+    const Bpt = this.bags[this.k].get(this.pt!)!;
+
     // Copy current state of marked stops
     for (const p of new Set(this.marked)) {
       const stop = this.stops.get(p)!;
@@ -47,7 +51,8 @@ export default class McRAPTOR<C extends string[], SI extends Id = Id, RI extends
         for (const pJourneyStep of this.bags[this.k].get(p)!) {
           const arrivalTime: timestamp = pJourneyStep.label.time + this.walkDuration(transfer.length, walkSpeed);
 
-          const { added } = this.bags[this.k].get(transfer.to)!.add(
+          const Bpto = this.bags[this.k].get(transfer.to)!;
+          const { added } = Bpto.add(
             makeJSComparable<SI, RI, C, "FOOT">({
               boardedAt: [p, pJourneyStep],
               transfer,
@@ -59,7 +64,12 @@ export default class McRAPTOR<C extends string[], SI extends Id = Id, RI extends
               ]),
             }),
           );
-          if (added) this.marked.add(transfer.to);
+          if (
+            added &&
+            // Target pruning
+            (Bpt.size == 0 || Bpt.values().some((jsPt) => Bpto.values().some((jsPto) => (jsPto.compare(jsPt) ?? 1) > 0)))
+          )
+            this.marked.add(transfer.to);
         }
       }
     }
@@ -113,6 +123,7 @@ export default class McRAPTOR<C extends string[], SI extends Id = Id, RI extends
     this.bags = Array.from({ length: rounds }, () => new Map<SI, Bag<JourneyStep<SI, RI, C>>>());
     this.marked = new Set<SI>();
     this.k = 0;
+    this.pt = pt;
 
     // Initialization
     for (const [stopId] of this.stops) {
@@ -159,6 +170,7 @@ export default class McRAPTOR<C extends string[], SI extends Id = Id, RI extends
       if (this.k === 1)
         // Be sure to not take into account the early, direct foot transfer
         this.bags[this.k].set(pt, new Bag<JourneyStep<SI, RI, C>>());
+      const Bpt = this.bags[this.k].get(pt)!;
 
       // Mark improvement
       Q.clear();
@@ -197,8 +209,15 @@ export default class McRAPTOR<C extends string[], SI extends Id = Id, RI extends
           RouteBag = RouteBagPi;
 
           // Step 2: non-dominated merge of route bag to current round stop bag
-          const { added } = this.bags[this.k].get(pi)!.merge(RouteBag as Bag<JourneyStep<SI, RI, C>>);
-          if (added > 0) this.marked.add(pi);
+          const Bpi = this.bags[this.k].get(pi)!;
+          const { added } = Bpi.merge(RouteBag as Bag<JourneyStep<SI, RI, C>>);
+          if (
+            added > 0 &&
+            // Target pruning, don't mark if all labels are worse than any of the target
+            // Otherwise, it might contribute to a new better (or incomparable) label (= journey)
+            (Bpt.size == 0 || Bpt.values().some((jsPt) => Bpi.values().some((jsPi) => (jsPi.compare(jsPt) ?? 1) > 0)))
+          )
+            this.marked.add(pi);
 
           // Step 3: populating route bag with previous round & update
           // Update current route bag with possible new earliest catchable trips thanks to this round
