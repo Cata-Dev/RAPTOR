@@ -329,9 +329,6 @@ class RouteRetriever
  * Shared-memory enabled RAPTOR data
  */
 class SharedRAPTORData implements IRAPTORData<SharedID, SharedID, number> {
-  // Max float64
-  static readonly MAX_SAFE_TIMESTAMP: number = 3.4e38;
-  readonly MAX_SAFE_TIMESTAMP: number = SharedRAPTORData.MAX_SAFE_TIMESTAMP;
   /**
    * Internal data (shared) buffer
    */

@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import BaseRAPTOR, { RAPTORRunSettings } from "./base";
 import RAPTOR from "./RAPTOR";
-import { Bag, Criterion, Id, IRAPTORData, Journey, JourneyStep, Label, makeJSComparable, Route, timestamp } from "./structures";
+import { Bag, Criterion, Id, IRAPTORData, Journey, JourneyStep, Label, makeJSComparable, MAX_SAFE_TIMESTAMP, Route, timestamp } from "./structures";
 
 export default class McRAPTOR<C extends string[], SI extends Id = Id, RI extends Id = Id, TI extends Id = Id> extends BaseRAPTOR<C, SI, RI, TI> {
   /** @description A {@link Label} Bags_i(SI) stores earliest known arrival times and best values for criteria at stop `SI` with up to `i` trips. */
@@ -32,7 +32,7 @@ export default class McRAPTOR<C extends string[], SI extends Id = Id, RI extends
     for (let t = 0; t < route.trips.length; t++) {
       // Catchable?
       const tDep = route.departureTime(t, route.stops.indexOf(p));
-      if (tDep < this.MAX_SAFE_TIMESTAMP && tDep >= after) return { tripIndex: t, boardedAt: p };
+      if (tDep < MAX_SAFE_TIMESTAMP && tDep >= after) return { tripIndex: t, boardedAt: p };
     }
 
     return null;

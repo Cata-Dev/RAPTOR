@@ -1,4 +1,4 @@
-import { Id, MapRead, Stop, Route, IRAPTORData, JourneyStep, Journey } from "./structures";
+import { Id, IRAPTORData, Journey, JourneyStep, MapRead, MAX_SAFE_TIMESTAMP, Route, Stop } from "./structures";
 
 interface RAPTORRunSettings {
   walkSpeed: number;
@@ -13,8 +13,6 @@ export default class BaseRAPTOR<C extends string[] = [], SI extends Id = Id, RI 
   readonly stops: MapRead<SI, Stop<SI, RI>>;
   readonly routes: MapRead<RI, Route<SI, RI, TI>>;
 
-  protected readonly MAX_SAFE_TIMESTAMP: number;
-
   /** Round k <=> at most k transfers */
   protected k = 0;
 
@@ -24,7 +22,6 @@ export default class BaseRAPTOR<C extends string[] = [], SI extends Id = Id, RI 
   constructor(data: IRAPTORData<SI, RI, TI>) {
     this.stops = data.stops;
     this.routes = data.routes;
-    this.MAX_SAFE_TIMESTAMP = data.MAX_SAFE_TIMESTAMP;
   }
 
   /**
@@ -49,7 +46,7 @@ export default class BaseRAPTOR<C extends string[] = [], SI extends Id = Id, RI 
       if (k < 0) throw new Error(`No journey in initRound ${initRound}.`); // Unable to get back to source
 
       if (!("boardedAt" in previousStep)) {
-        if (previousStep.label.time >= this.MAX_SAFE_TIMESTAMP) {
+        if (previousStep.label.time >= MAX_SAFE_TIMESTAMP) {
           k--;
           continue;
         }

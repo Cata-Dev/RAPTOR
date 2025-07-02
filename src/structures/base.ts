@@ -320,15 +320,14 @@ class Bag<T extends Comparable<T>> {
 }
 
 interface IRAPTORData<SI extends Id = Id, RI extends Id = Id, TI extends Id = Id> {
-  readonly MAX_SAFE_TIMESTAMP: number;
   readonly stops: MapRead<SI, Stop<SI, RI>>;
   readonly routes: MapRead<RI, Route<SI, RI, TI>>;
   attachData: (...args: never[]) => void;
 }
 
+const MAX_SAFE_TIMESTAMP = 8_640_000_000_000_000;
+
 class RAPTORData<SI extends Id = Id, RI extends Id = Id, TI extends Id = Id> implements IRAPTORData<SI, RI, TI> {
-  static readonly MAX_SAFE_TIMESTAMP: number = 8_640_000_000_000_000;
-  readonly MAX_SAFE_TIMESTAMP: number = RAPTORData.MAX_SAFE_TIMESTAMP;
   readonly _stops: MapRead<SI, Stop<SI, RI>>;
   readonly _routes: MapRead<RI, Route<SI, RI, TI>>;
   protected attachedStops: MapRead<SI, Stop<SI, RI>> = new Map();
@@ -429,21 +428,22 @@ class RAPTORData<SI extends Id = Id, RI extends Id = Id, TI extends Id = Id> imp
 }
 
 export {
-  timestamp,
-  Id,
-  LabelType,
-  Label,
-  JourneyStep,
-  makeJSComparable,
-  Journey,
-  Criterion,
-  Bag,
-  Trip,
-  FootPath,
-  Stop,
-  Route,
   ArrayRead,
-  MapRead,
-  RAPTORData,
+  Bag,
+  Criterion,
+  FootPath,
+  Id,
   IRAPTORData,
+  Journey,
+  JourneyStep,
+  Label,
+  LabelType,
+  makeJSComparable,
+  MapRead,
+  MAX_SAFE_TIMESTAMP,
+  RAPTORData,
+  Route,
+  Stop,
+  timestamp,
+  Trip,
 };
