@@ -57,14 +57,15 @@ export default class BaseRAPTOR<C extends string[] = [], SI extends Id = Id, RI 
 
         if (
           trace.find(
-            (j) =>
+            (js) =>
               previousStep &&
               "boardedAt" in previousStep &&
-              "boardedAt" in j &&
-              j.label.time === previousStep.label.time &&
-              j.boardedAt === previousStep.boardedAt[0],
+              "boardedAt" in js &&
+              js.label.time === previousStep.label.time &&
+              js.boardedAt === previousStep.boardedAt[0],
           )
         )
+          // This should not happen in production, and would be due to failing data
           throw new Error(`Impossible journey (cyclic).`);
       }
     }
