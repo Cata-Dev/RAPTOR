@@ -12,7 +12,7 @@ import { DocumentType } from "@typegoose/typegoose";
 import { FilterQuery, HydratedDocument } from "mongoose";
 import { inspect } from "util";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-import { bufferTime, McRAPTOR, McSharedRAPTOR, RAPTORData, RAPTORRunSettings, SharedRAPTORData, Stop } from "../";
+import { bufferTime, MAX_SAFE_TIMESTAMP, McRAPTOR, McSharedRAPTOR, RAPTORData, RAPTORRunSettings, SharedRAPTORData, Stop } from "../";
 import { Journey, JourneyStepBase, JourneyStepFoot, JourneyStepType, JourneyStepVehicle, LocationType } from "./models/result.model";
 import { mapAsync, unpackRefType, wait } from "./utils";
 import { benchmark } from "./utils/benchmark";
