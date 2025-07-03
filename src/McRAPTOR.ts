@@ -142,37 +142,12 @@ export default class McRAPTOR<C extends string[], SI extends Id = Id, RI extends
     /** Map<{@link RI} in {@link routes}, {@link SI} in {@link stops}> */
     const Q = new Map<RI, SI>();
 
-    // k=0: check for direct foot path to pt
-    const transferToPt = this.stops
-      .get(ps)!
-      .transfers[Symbol.iterator]()
-      .find((transfer) => transfer.to === pt);
-    if (transferToPt) {
-      const psJS = this.bags[0].get(ps)!.values().next().value!;
-      const tArr = departureTime + this.walkDuration(transferToPt.length, settings.walkSpeed);
-      const newJS = { boardedAt: [ps, psJS] satisfies [SI, unknown], transfer: transferToPt };
-      this.bags[this.k].get(pt)!.add(
-        makeJSComparable<SI, RI, C, "FOOT">({
-          ...newJS,
-          label: psJS.label.update(tArr, [[psJS], newJS, tArr, pt]),
-        }),
-      );
-    }
-
     for (this.k = 1; this.k < rounds; this.k++) {
       // Copying
       for (const [stopId] of this.stops) {
         const journeySteps = this.bags[this.k - 1].get(stopId)!;
-        // Prevent changing k-1 journey steps
-        for (const journeyStep of journeySteps) {
-          Object.freeze(journeyStep.label);
-          Object.freeze(journeyStep);
-        }
         this.bags[this.k].set(stopId, Bag.from(journeySteps));
       }
-      if (this.k === 1)
-        // Be sure to not take into account the early, direct foot transfer
-        this.bags[this.k].set(pt, new Bag<JourneyStep<SI, RI, C>>());
       const Bpt = this.bags[this.k].get(pt)!;
 
       // Mark improvement
@@ -238,6 +213,9 @@ export default class McRAPTOR<C extends string[], SI extends Id = Id, RI extends
       }
 
       // Look at foot-paths
+      if (this.k === 1)
+        // Mark source so foot paths from it are considered in first round
+        this.marked.add(ps);
       this.footPathsLookup(settings.walkSpeed);
 
       // Stopping criterion
@@ -245,24 +223,33 @@ export default class McRAPTOR<C extends string[], SI extends Id = Id, RI extends
     }
   }
 
-  getBestJourneys(pt: SI): (null | Journey<SI, RI, C>[])[] {
-    return Array.from({ length: this.bags.length }, (_, k): null | Journey<SI, RI, C>[] => {
-      const ptJourneySteps = this.bags[k].get(pt);
-      if (!ptJourneySteps) return null;
+  getBestJourneys(pt: SI): Journey<SI, RI, C>[][] {
+    return Array.from({ length: this.bags.length }, (_, k) => k).reduce<Journey<SI, RI, C>[][]>(
+      (acc, k) => {
+        const ptJourneySteps = this.bags[k].get(pt);
+        if (!ptJourneySteps) return acc;
 
-      const journeys = ptJourneySteps
-        .values()
-        .map((js) => {
-          try {
-            const journey = this.traceBackFromStep(js, k);
-            return journey.reduce((acc, js) => acc + ("route" in js ? 1 : 0), 0) === k ? journey : null;
-          } catch (_) {
-            return null;
-          }
-        })
-        .filter((j) => !!j)
-        .toArray();
-      return journeys.length ? journeys : null;
-    });
+        for (const js of ptJourneySteps) {
+          const journey = this.traceBackFromStep(js, k);
+          const tripsCount = journey.reduce((acc, js) => acc + ("route" in js ? 1 : 0), 0);
+          if (
+            !acc[tripsCount].some(
+              (alrJourney) =>
+                alrJourney.length === journey.length &&
+                alrJourney.every((js, i) =>
+                  // Deep compare object as it doesn't have the same address
+                  Object.keys(journey[i]).every(
+                    (key) => journey[i][key as keyof Journey<SI, RI, C>[number]] === js[key as keyof Journey<SI, RI, C>[number]],
+                  ),
+                ),
+            )
+          )
+            acc[tripsCount].push(journey);
+        }
+
+        return acc;
+      },
+      Array.from<never, Journey<SI, RI, C>[]>({ length: this.bags.length }, () => []),
+    );
   }
 }
