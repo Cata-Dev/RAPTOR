@@ -220,10 +220,7 @@ async function run({ RAPTORInstance, TBMSchedulesModel, resultModel }: Awaited<R
       from: { type: LocationType.TBM, id: ps },
       to: { type: LocationType.TBM, id: pt },
       departureTime: new Date(departureTime),
-      journeys: results
-        .flat()
-        .filter((journey) => !!journey)
-        .map((journey) => journeyDBFormatter(journey)),
+      journeys: results.flat().map((journey) => journeyDBFormatter(journey)),
       settings,
     });
 
