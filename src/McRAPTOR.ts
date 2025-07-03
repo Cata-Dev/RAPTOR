@@ -226,11 +226,11 @@ export default class McRAPTOR<C extends string[], SI extends Id = Id, RI extends
   getBestJourneys(pt: SI): Journey<SI, RI, C>[][] {
     return Array.from({ length: this.bags.length }, (_, k) => k).reduce<Journey<SI, RI, C>[][]>(
       (acc, k) => {
-      const ptJourneySteps = this.bags[k].get(pt);
+        const ptJourneySteps = this.bags[k].get(pt);
         if (!ptJourneySteps) return acc;
 
         for (const js of ptJourneySteps) {
-            const journey = this.traceBackFromStep(js, k);
+          const journey = this.traceBackFromStep(js, k);
           const tripsCount = journey.reduce((acc, js) => acc + ("route" in js ? 1 : 0), 0);
           if (
             !acc[tripsCount].some(
