@@ -73,30 +73,12 @@ export default class RAPTOR<SI extends Id = Id, RI extends Id = Id, TI extends I
     /** Map<{@link RI} in {@link routes}, {@link SI} in {@link stops}> */
     const Q = new Map<RI, SI>();
 
-    // k=0: check for direct foot path to pt
-    const transferToPt = this.stops
-      .get(ps)!
-      .transfers[Symbol.iterator]()
-      .find((transfer) => transfer.to === pt);
-    if (transferToPt)
-      this.multiLabel[this.k].set(
-        pt,
-        makeJSComparable<SI, RI, [], "FOOT">({
-          boardedAt: [ps, this.multiLabel[this.k].get(ps)!],
-          transfer: transferToPt,
-          label: new Label([], departureTime + this.walkDuration(transferToPt.length, settings.walkSpeed)),
-        }),
-      );
-
     for (this.k = 1; this.k < rounds; this.k++) {
       // Copying
       for (const [stopId] of this.stops) {
         const value = this.multiLabel[this.k - 1].get(stopId)!;
         this.multiLabel[this.k].set(stopId, value);
       }
-      if (this.k === 1)
-        // Be sure to not take into account the early, direct foot transfer
-        this.multiLabel[this.k].set(pt, makeJSComparable({ label: new Label([], Infinity) }));
 
       // Mark improvement
       Q.clear();

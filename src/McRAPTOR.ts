@@ -142,32 +142,12 @@ export default class McRAPTOR<C extends string[], SI extends Id = Id, RI extends
     /** Map<{@link RI} in {@link routes}, {@link SI} in {@link stops}> */
     const Q = new Map<RI, SI>();
 
-    // k=0: check for direct foot path to pt
-    const transferToPt = this.stops
-      .get(ps)!
-      .transfers[Symbol.iterator]()
-      .find((transfer) => transfer.to === pt);
-    if (transferToPt) {
-      const psJS = this.bags[0].get(ps)!.values().next().value!;
-      const tArr = departureTime + this.walkDuration(transferToPt.length, settings.walkSpeed);
-      const newJS = { boardedAt: [ps, psJS] satisfies [SI, unknown], transfer: transferToPt };
-      this.bags[this.k].get(pt)!.add(
-        makeJSComparable<SI, RI, C, "FOOT">({
-          ...newJS,
-          label: psJS.label.update(tArr, [[psJS], newJS, tArr, pt]),
-        }),
-      );
-    }
-
     for (this.k = 1; this.k < rounds; this.k++) {
       // Copying
       for (const [stopId] of this.stops) {
         const journeySteps = this.bags[this.k - 1].get(stopId)!;
         this.bags[this.k].set(stopId, Bag.from(journeySteps));
       }
-      if (this.k === 1)
-        // Be sure to not take into account the early, direct foot transfer
-        this.bags[this.k].set(pt, new Bag<JourneyStep<SI, RI, C>>());
       const Bpt = this.bags[this.k].get(pt)!;
 
       // Mark improvement
