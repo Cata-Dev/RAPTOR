@@ -73,30 +73,12 @@ export default class RAPTOR<SI extends Id = Id, RI extends Id = Id, TI extends I
     /** Map<{@link RI} in {@link routes}, {@link SI} in {@link stops}> */
     const Q = new Map<RI, SI>();
 
-    // k=0: check for direct foot path to pt
-    const transferToPt = this.stops
-      .get(ps)!
-      .transfers[Symbol.iterator]()
-      .find((transfer) => transfer.to === pt);
-    if (transferToPt)
-      this.multiLabel[this.k].set(
-        pt,
-        makeJSComparable<SI, RI, [], "FOOT">({
-          boardedAt: [ps, this.multiLabel[this.k].get(ps)!],
-          transfer: transferToPt,
-          label: new Label([], departureTime + this.walkDuration(transferToPt.length, settings.walkSpeed)),
-        }),
-      );
-
     for (this.k = 1; this.k < rounds; this.k++) {
       // Copying
       for (const [stopId] of this.stops) {
         const value = this.multiLabel[this.k - 1].get(stopId)!;
         this.multiLabel[this.k].set(stopId, value);
       }
-      if (this.k === 1)
-        // Be sure to not take into account the early, direct foot transfer
-        this.multiLabel[this.k].set(pt, makeJSComparable({ label: new Label([], Infinity) }));
 
       // Mark improvement
       Q.clear();
@@ -152,6 +134,9 @@ export default class RAPTOR<SI extends Id = Id, RI extends Id = Id, TI extends I
       }
 
       // Look at foot-paths
+      if (this.k === 1)
+        // Mark source so foot paths from it are considered in first round
+        this.marked.add(ps);
       this.footPathsLookup(settings.walkSpeed);
 
       // Stopping criterion
@@ -160,16 +145,21 @@ export default class RAPTOR<SI extends Id = Id, RI extends Id = Id, TI extends I
   }
 
   getBestJourneys(pt: SI): (null | Journey<SI, RI, []>)[] {
-    return Array.from({ length: this.multiLabel.length }, (_, k) => {
-      try {
+    return Array.from({ length: this.multiLabel.length }, (_, k) => k).reduce<(Journey<SI, RI, []> | null)[]>(
+      (acc, k) => {
         const ptJourneyStep = this.multiLabel[k].get(pt);
-        if (!ptJourneyStep) return null;
+        if (!ptJourneyStep) return acc;
 
+        try {
         const journey = this.traceBackFromStep(ptJourneyStep, k);
-        return journey.reduce((acc, js) => acc + ("route" in js ? 1 : 0), 0) === k ? journey : null;
-      } catch {
-        return null;
-      }
-    });
+          const tripsCount = journey.reduce((acc, js) => acc + ("route" in js ? 1 : 0), 0);
+          if ((acc[tripsCount]?.at(-1)?.label.time ?? Infinity) > journey.at(-1)!.label.time) acc[tripsCount] = journey;
+          // eslint-disable-next-line no-empty
+        } catch (_) {}
+
+        return acc;
+      },
+      Array.from<never, Journey<SI, RI, []> | null>({ length: this.multiLabel.length }, () => null),
+    );
   }
 }

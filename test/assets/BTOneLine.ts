@@ -24,8 +24,8 @@ export default [
             test("Label buffer times are exact (new results due to criterion)", () => {
               for (let k = 0; k < 1; ++k) expect(journeysFromCriteria[k]?.length ?? 0).toBe(0);
               expect(journeysFromCriteria[1]?.length).toBe(1);
-              expect(journeysFromCriteria[1]![0][0].label.value("bufferTime")).toBe(-Infinity);
-              expect(journeysFromCriteria[1]![0].at(-1)!.label.value("bufferTime")).toBe(-3);
+              expect(journeysFromCriteria[1][0][0].label.value("bufferTime")).toBe(-Infinity);
+              expect(journeysFromCriteria[1][0].at(-1)!.label.value("bufferTime")).toBe(-3);
               for (let k = 2; k < journeysFromCriteria.length; ++k) expect(journeysFromCriteria[k]?.length ?? 0).toBe(0);
             });
           },
@@ -41,7 +41,7 @@ export default [
             const [_, journeysFromCriteria] = validateWithoutCriteria<["bufferTime"]>(oneLine[1].withSlowTransfers.tests[0].validate)(res);
             test("Label buffer times are exact (same results as RAPTOR)", () => {
               for (const journeys of res)
-                if (journeys?.[0]) {
+                if (journeys[0]) {
                   expect(journeys[0][0].label.value("bufferTime")).toBe(-Infinity);
                   expect(journeys[0].at(-1)!.label.value("bufferTime")).toBe(-0);
                 }
@@ -50,8 +50,8 @@ export default [
             test("Label buffer times are exact (new results due to criterion)", () => {
               for (let k = 0; k < 1; ++k) expect(journeysFromCriteria[k]?.length ?? 0).toBe(0);
               expect(journeysFromCriteria[1]?.length).toBe(1);
-              expect(journeysFromCriteria[1]![0][0].label.value("bufferTime")).toBe(-Infinity);
-              expect(journeysFromCriteria[1]![0].at(-1)!.label.value("bufferTime")).toBe(-3);
+              expect(journeysFromCriteria[1][0][0].label.value("bufferTime")).toBe(-Infinity);
+              expect(journeysFromCriteria[1][0].at(-1)!.label.value("bufferTime")).toBe(-3);
               for (let k = 2; k < journeysFromCriteria.length; ++k) expect(journeysFromCriteria[k]?.length ?? 0).toBe(0);
             });
           },
@@ -60,10 +60,10 @@ export default [
           params: oneLine[1].withSlowTransfers.tests[1].params,
           validate: (res) => {
             validateWithoutCriteria<["bufferTime"]>(oneLine[1].withSlowTransfers.tests[1].validate);
-            for (const journeys of res) expect(journeys?.length ?? 1).toBe(1);
+            for (const journeys of res) expect(journeys.length || 1).toBe(1);
             test("Label buffer times are exact", () => {
               for (const journeys of res)
-                if (journeys?.[0]) {
+                if (journeys[0]) {
                   expect(journeys[0][0].label.value("bufferTime")).toBe(-Infinity);
                   expect(journeys[0].at(-1)!.label.value("bufferTime")).toBe(-0);
                 }
@@ -80,10 +80,10 @@ export default [
           ],
           validate: (res) => {
             test("Run result is exact (mid departure, buffer time > 0)", () => {
-              expect(res[0]).toBe(null);
-              for (let i = 2; i < MAX_ROUNDS; ++i) expect(res[i]).toBe(null);
+              expect(res[0].length).toBe(0);
+              for (let i = 2; i < MAX_ROUNDS; ++i) expect(res[i].length).toBe(0);
               expect(res[1]?.length).toBe(1);
-              const journey = res[1]![0];
+              const journey = res[1][0];
               expect(journey.length).toBe(2);
               const js0 = journey[0];
               expect(Object.keys(js0).length).toBe(2);
@@ -120,9 +120,13 @@ export default [
             });
             test("Label buffer times are exact (new results due to criterion)", () => {
               for (let k = 0; k < 1; ++k) expect(journeysFromCriteria[k]?.length ?? 0).toBe(0);
-              expect(journeysFromCriteria[1]?.length).toBe(1);
-              expect(journeysFromCriteria[1]![0][0].label.value("bufferTime")).toBe(-Infinity);
-              expect(journeysFromCriteria[1]![0].at(-1)!.label.value("bufferTime")).toBe(-3);
+              expect(journeysFromCriteria[1]?.length).toBe(3);
+              expect(journeysFromCriteria[1][0][0].label.value("bufferTime")).toBe(-Infinity);
+              expect(journeysFromCriteria[1][0].at(-1)!.label.value("bufferTime")).toBe(-3);
+
+              expect(journeysFromCriteria[1][1].at(-1)!.label.value("bufferTime")).toBe(-1);
+
+              expect(journeysFromCriteria[1][2].at(-1)!.label.value("bufferTime")).toBe(-4);
               for (let k = 2; k < journeysFromCriteria.length; ++k) expect(journeysFromCriteria[k]?.length ?? 0).toBe(0);
             });
           },
