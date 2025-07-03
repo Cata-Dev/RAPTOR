@@ -104,10 +104,10 @@ async function init() {
               id: tripId,
               times: schedules.map((schedule) =>
                 typeof schedule === "object" && "hor_estime" in schedule
-                  ? ([
-                      schedule.hor_estime.getTime() || RAPTORData.MAX_SAFE_TIMESTAMP,
-                      schedule.hor_estime.getTime() || RAPTORData.MAX_SAFE_TIMESTAMP,
-                    ] satisfies [unknown, unknown])
+                  ? ([schedule.hor_estime.getTime() || MAX_SAFE_TIMESTAMP, schedule.hor_estime.getTime() || MAX_SAFE_TIMESTAMP] satisfies [
+                      unknown,
+                      unknown,
+                    ])
                   : ([Infinity, Infinity] satisfies [unknown, unknown]),
               ),
             })),
