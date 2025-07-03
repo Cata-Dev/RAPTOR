@@ -24,6 +24,13 @@
   },
   "author": "Catatomik",
   "license": "MIT",
+  "dependencies": {
+    "@catatomik/dijkstra": "github:catatomik/dijkstra",
+    "@typegoose/typegoose": "^12.10.1",
+    "core-js": "^3.36.0",
+    "mongodb": "^6.4.0",
+    "mongoose": "^8.16.1"
+  },
   "devDependencies": {
     "@jest/globals": "^30.0.3",
     "@tsconfig/node22": "^22.0.2",
