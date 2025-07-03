@@ -151,7 +151,7 @@ export default class RAPTOR<SI extends Id = Id, RI extends Id = Id, TI extends I
         if (!ptJourneyStep) return acc;
 
         try {
-        const journey = this.traceBackFromStep(ptJourneyStep, k);
+          const journey = this.traceBackFromStep(ptJourneyStep, k);
           const tripsCount = journey.reduce((acc, js) => acc + ("route" in js ? 1 : 0), 0);
           if ((acc[tripsCount]?.at(-1)?.label.time ?? Infinity) > journey.at(-1)!.label.time) acc[tripsCount] = journey;
           // eslint-disable-next-line no-empty
