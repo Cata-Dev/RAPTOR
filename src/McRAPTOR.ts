@@ -213,6 +213,9 @@ export default class McRAPTOR<C extends string[], SI extends Id = Id, RI extends
       }
 
       // Look at foot-paths
+      if (this.k === 1)
+        // Mark source so foot paths from it are considered in first round
+        this.marked.add(ps);
       this.footPathsLookup(settings.walkSpeed);
 
       // Stopping criterion
@@ -220,24 +223,33 @@ export default class McRAPTOR<C extends string[], SI extends Id = Id, RI extends
     }
   }
 
-  getBestJourneys(pt: SI): (null | Journey<SI, RI, C>[])[] {
-    return Array.from({ length: this.bags.length }, (_, k): null | Journey<SI, RI, C>[] => {
+  getBestJourneys(pt: SI): Journey<SI, RI, C>[][] {
+    return Array.from({ length: this.bags.length }, (_, k) => k).reduce<Journey<SI, RI, C>[][]>(
+      (acc, k) => {
       const ptJourneySteps = this.bags[k].get(pt);
-      if (!ptJourneySteps) return null;
+        if (!ptJourneySteps) return acc;
 
-      const journeys = ptJourneySteps
-        .values()
-        .map((js) => {
-          try {
+        for (const js of ptJourneySteps) {
             const journey = this.traceBackFromStep(js, k);
-            return journey.reduce((acc, js) => acc + ("route" in js ? 1 : 0), 0) === k ? journey : null;
-          } catch (_) {
-            return null;
-          }
-        })
-        .filter((j) => !!j)
-        .toArray();
-      return journeys.length ? journeys : null;
-    });
+          const tripsCount = journey.reduce((acc, js) => acc + ("route" in js ? 1 : 0), 0);
+          if (
+            !acc[tripsCount].some(
+              (alrJourney) =>
+                alrJourney.length === journey.length &&
+                alrJourney.every((js, i) =>
+                  // Deep compare object as it doesn't have the same address
+                  Object.keys(journey[i]).every(
+                    (key) => journey[i][key as keyof Journey<SI, RI, C>[number]] === js[key as keyof Journey<SI, RI, C>[number]],
+                  ),
+                ),
+            )
+          )
+            acc[tripsCount].push(journey);
+        }
+
+        return acc;
+      },
+      Array.from<never, Journey<SI, RI, C>[]>({ length: this.bags.length }, () => []),
+    );
   }
 }

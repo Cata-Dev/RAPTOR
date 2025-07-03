@@ -70,8 +70,6 @@ export class McSharedRAPTOR<C extends string[]> extends McRAPTOR<C, SharedID, Sh
     const convertedPt = typeof pt === "string" ? pt : this.data.stopPointerFromId(pt);
     if (convertedPt === undefined) throw new Error(`Unable to retrieve target stop ${pt}`);
 
-    return super
-      .getBestJourneys(convertedPt)
-      .map((journeys) => (journeys ? journeys.map((journey) => journey.map(convertBackJourneyStep(this.data.stops))) : null));
+    return super.getBestJourneys(convertedPt).map((journeys) => journeys.map((journey) => journey.map(convertBackJourneyStep(this.data.stops))));
   }
 }
