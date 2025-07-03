@@ -163,11 +163,6 @@ export default class McRAPTOR<C extends string[], SI extends Id = Id, RI extends
       // Copying
       for (const [stopId] of this.stops) {
         const journeySteps = this.bags[this.k - 1].get(stopId)!;
-        // Prevent changing k-1 journey steps
-        for (const journeyStep of journeySteps) {
-          Object.freeze(journeyStep.label);
-          Object.freeze(journeyStep);
-        }
         this.bags[this.k].set(stopId, Bag.from(journeySteps));
       }
       if (this.k === 1)
