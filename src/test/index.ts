@@ -220,7 +220,12 @@ async function run({ RAPTORInstance, TBMSchedulesModel, resultModel }: Awaited<R
       from: { type: LocationType.TBM, id: ps },
       to: { type: LocationType.TBM, id: pt },
       departureTime: new Date(departureTime),
-      journeys: results.flat().map((journey) => journeyDBFormatter(journey)),
+      journeys: results
+        .flat()
+        // Sort by arrival time
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        .sort((a, b) => a.at(-1)!.label.time - b.at(-1)!.label.time)
+        .map((journey) => journeyDBFormatter(journey)),
       settings,
     });
 
