@@ -3,16 +3,16 @@ import initDB from "./utils/mongoose";
 // Needed to solve "Reflect.getMetadata is not a function" error of typegoose
 import "core-js/features/reflect";
 
+import { DocumentType } from "@typegoose/typegoose";
+import { FilterQuery, HydratedDocument } from "mongoose";
+import { inspect } from "util";
 import NonScheduledRoutesModelInit, { dbFootPaths } from "./models/NonScheduledRoutes.model";
 import ResultModelInit from "./models/result.model";
 import TBMSchedulesModelInit from "./models/TBM_schedules.model";
 import stopsModelInit, { dbTBM_Stops } from "./models/TBM_stops.model";
 import TBMScheduledRoutesModelInit, { dbTBM_ScheduledRoutes } from "./models/TBMScheduledRoutes.model";
-import { DocumentType } from "@typegoose/typegoose";
-import { FilterQuery, HydratedDocument } from "mongoose";
-import { inspect } from "util";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-import { bufferTime, MAX_SAFE_TIMESTAMP, McRAPTOR, McSharedRAPTOR, RAPTORData, RAPTORRunSettings, SharedRAPTORData, Stop } from "../";
+import { bufferTime, MAX_SAFE_TIMESTAMP, McRAPTOR, RAPTORData, RAPTORRunSettings, Stop } from "../";
 import { Journey, JourneyStepBase, JourneyStepFoot, JourneyStepType, JourneyStepVehicle, LocationType } from "./models/result.model";
 import { binarySearch, mapAsync, unpackRefType, wait } from "./utils";
 import { benchmark } from "./utils/benchmark";
