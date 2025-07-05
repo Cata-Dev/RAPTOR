@@ -14,7 +14,7 @@ import { inspect } from "util";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { bufferTime, MAX_SAFE_TIMESTAMP, McRAPTOR, McSharedRAPTOR, RAPTORData, RAPTORRunSettings, SharedRAPTORData, Stop } from "../";
 import { Journey, JourneyStepBase, JourneyStepFoot, JourneyStepType, JourneyStepVehicle, LocationType } from "./models/result.model";
-import { mapAsync, unpackRefType, wait } from "./utils";
+import { binarySearch, mapAsync, unpackRefType, wait } from "./utils";
 import { benchmark } from "./utils/benchmark";
 
 // In meters
@@ -43,19 +43,35 @@ async function init() {
       .lean()
       .exec()) as ScheduledRoute[];
 
-    const dbStopProjection = { _id: 1, coords: 1 } as const;
+    const dbStopProjection = { _id: 1 } as const;
     type Stop = Pick<dbTBM_Stops, keyof typeof dbStopProjection>;
 
-    const dbStops = (await stopsModel
-      .find<HydratedDocument<DocumentType<Stop>>>(
-        {
-          $and: [{ coords: { $not: { $elemMatch: { $eq: Infinity } } } }],
-        },
-        dbStopProjection,
-      )
-      .lean()
-      // Coords field type lost...
-      .exec()) as unknown as Stop[];
+    const stops = dbScheduledRoutes.reduce<{ id: ScheduledRoute["stops"][number]; connectedRoutes: ScheduledRoute["_id"][] }[]>(
+      (acc, { _id, stops }) => {
+        for (const stop of stops) {
+          let pos = binarySearch(acc, stop, (a, b) => a - b.id);
+          if (pos < 0) {
+            pos = -pos - 1;
+            acc.splice(pos, 0, { id: stop, connectedRoutes: [] });
+          }
+          acc[pos].connectedRoutes.push(_id);
+        }
+
+        return acc;
+      },
+      (
+        (await stopsModel
+          .find<HydratedDocument<DocumentType<Stop>>>(
+            {
+              $and: [{ coords: { $not: { $elemMatch: { $eq: Infinity } } } }],
+            },
+            dbStopProjection,
+          )
+          .sort({ _id: 1 })
+          .lean()
+          .exec()) as Stop[]
+      ).map(({ _id: id }) => ({ id, connectedRoutes: [] })),
+    );
 
     const dbNonScheduledRoutesProjection: Partial<Record<keyof dbFootPaths, 1>> = { from: 1, to: 1, distance: 1 };
     type dbNonScheduledRoute = Pick<dbFootPaths, keyof typeof dbNonScheduledRoutesProjection>;
@@ -76,21 +92,19 @@ async function init() {
           .exec()) as NonScheduledRoute[]
       ).map(({ from, to, distance }) => ({ distance, ...(to === stopId ? { to: from } : { to }) }));
 
-    return { dbScheduledRoutes, dbStops, dbNonScheduledRoutes };
+    return { dbScheduledRoutes, stops, dbNonScheduledRoutes };
   }
   const b1 = await benchmark(queryData, []);
   console.log("b1 ended");
   if (!b1.lastReturn) throw new Error(`b1 return null`);
-  const { dbScheduledRoutes, dbStops, dbNonScheduledRoutes } = b1.lastReturn;
+  const { dbScheduledRoutes, stops, dbNonScheduledRoutes } = b1.lastReturn;
 
   async function createRAPTOR() {
     const RAPTORDataInst = new RAPTORData(
-      await mapAsync<(typeof dbStops)[number], Stop<number, number>>(dbStops, async ({ _id, coords }) => ({
-        id: _id,
-        lat: coords[0],
-        long: coords[1],
-        connectedRoutes: dbScheduledRoutes.filter((ScheduledRoute) => ScheduledRoute.stops.find((stopId) => stopId === _id)).map(({ _id }) => _id),
-        transfers: (await dbNonScheduledRoutes(_id, { distance: { $lte: FP_MAX_LEN } })).map(({ to, distance }) => ({
+      await mapAsync<(typeof stops)[number], Stop<number, number>>(stops, async ({ id, connectedRoutes }) => ({
+        id,
+        connectedRoutes,
+        transfers: (await dbNonScheduledRoutes(id, { distance: { $lte: FP_MAX_LEN } })).map(({ to, distance }) => ({
           to,
           length: distance,
         })),
