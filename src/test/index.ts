@@ -18,7 +18,7 @@ import { binarySearch, mapAsync, unpackRefType, wait } from "./utils";
 import { benchmark } from "./utils/benchmark";
 
 // In meters
-const FP_MAX_LEN = 1_000;
+const FP_MAX_LEN = 2_000;
 
 async function init() {
   const sourceDB = await initDB("bibm");
