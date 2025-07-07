@@ -18,7 +18,8 @@ import { binarySearch, mapAsync, unpackRefType, wait } from "./utils";
 import { benchmark } from "./utils/benchmark";
 
 // In meters
-const FP_MAX_LEN = 2_000;
+const FP_REQ_MAX_LEN = 2_000;
+const FP_RUN_MAX_LEN = 1_000;
 
 async function init() {
   const sourceDB = await initDB("bibm");
@@ -104,7 +105,7 @@ async function init() {
       await mapAsync<(typeof stops)[number], Stop<number, number>>(stops, async ({ id, connectedRoutes }) => ({
         id,
         connectedRoutes,
-        transfers: (await dbNonScheduledRoutes(id, { distance: { $lte: FP_MAX_LEN } })).map(({ to, distance }) => ({
+        transfers: (await dbNonScheduledRoutes(id, { distance: { $lte: FP_REQ_MAX_LEN } })).map(({ to, distance }) => ({
           to,
           length: distance,
         })),
@@ -203,7 +204,7 @@ async function run({ RAPTORInstance, RAPTORDataInst, TBMSchedulesModel, resultMo
 
   const departureTime = (minSchedule + maxSchedule) / 2;
 
-  const settings: RAPTORRunSettings = { walkSpeed: 1.5 };
+  const settings: RAPTORRunSettings = { walkSpeed: 1.5, maxTransferLength: FP_RUN_MAX_LEN };
 
   function runRAPTOR() {
     RAPTORInstance.run(ps, pt, departureTime, settings);

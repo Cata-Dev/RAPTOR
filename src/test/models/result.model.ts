@@ -33,6 +33,9 @@ export type routeId = dbTBM_ScheduledRoutes["_id"];
 class RunSettings implements RAPTORRunSettings {
   @prop({ required: true })
   public walkSpeed!: number;
+
+  @prop({ required: true })
+  public maxTransferLength!: number;
 }
 
 @modelOptions({
