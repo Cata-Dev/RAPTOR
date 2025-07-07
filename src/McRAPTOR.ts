@@ -175,7 +175,7 @@ export default class McRAPTOR<C extends string[], SI extends Id = Id, RI extends
 
       const pBackTrace = this.traceBackFromStep(pJourneyStep, this.k);
 
-      for (const transfer of stop.transfers) {
+      for (const transfer of this.validFootPaths(stop.transfers)) {
         if (transfer.to === stopId) continue;
 
         const arrivalTime: timestamp = pJourneyStep.label.time + this.walkDuration(transfer.length);

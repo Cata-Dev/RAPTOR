@@ -68,6 +68,14 @@ export default class BaseRAPTOR<C extends string[] = [], SI extends Id = Id, RI 
     throw new Error("Not implemented");
   }
 
+  protected *validFootPaths(transfers: Stop<SI, RI>["transfers"]) {
+    for (const transfer of transfers) {
+      if (transfer.length > this.runParams!.settings.maxTransferLength) return;
+
+      yield transfer;
+    }
+  }
+
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   protected traverseFootPaths(stopId: SI, stop: Stop<SI, RI>) {
     throw new Error("Not implemented");

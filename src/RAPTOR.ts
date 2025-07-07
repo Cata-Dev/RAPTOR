@@ -84,7 +84,7 @@ export default class RAPTOR<SI extends Id = Id, RI extends Id = Id, TI extends I
   }
 
   protected traverseFootPaths(stopId: SI, stop: Stop<SI, RI>): void {
-    for (const transfer of stop.transfers) {
+    for (const transfer of this.validFootPaths(stop.transfers)) {
       if (transfer.to === stopId) continue;
 
       const pJourneyStep = this.multiLabel[this.k].get(stopId)!;
