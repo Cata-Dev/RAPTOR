@@ -12,7 +12,7 @@ import TBMSchedulesModelInit from "./models/TBM_schedules.model";
 import stopsModelInit, { dbTBM_Stops } from "./models/TBM_stops.model";
 import TBMScheduledRoutesModelInit, { dbTBM_ScheduledRoutes } from "./models/TBMScheduledRoutes.model";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-import { bufferTime, MAX_SAFE_TIMESTAMP, McRAPTOR, RAPTORData, RAPTORRunSettings, Stop } from "../";
+import { bufferTime, MAX_SAFE_TIMESTAMP, McRAPTOR, McSharedRAPTOR, RAPTORData, RAPTORRunSettings, SharedID, SharedRAPTORData, Stop } from "../";
 import { Journey, JourneyStepBase, JourneyStepFoot, JourneyStepType, JourneyStepVehicle, LocationType } from "./models/result.model";
 import { binarySearch, mapAsync, unpackRefType, wait } from "./utils";
 import { benchmark } from "./utils/benchmark";
@@ -100,7 +100,7 @@ async function init() {
   const { dbScheduledRoutes, stops, dbNonScheduledRoutes } = b1.lastReturn;
 
   async function createRAPTOR() {
-    const RAPTORDataInst = new RAPTORData(
+    const RAPTORDataInst = SharedRAPTORData.makeFromRawData(
       await mapAsync<(typeof stops)[number], Stop<number, number>>(stops, async ({ id, connectedRoutes }) => ({
         id,
         connectedRoutes,
@@ -128,32 +128,68 @@ async function init() {
           ] satisfies [unknown, unknown, unknown],
       ),
     );
-    // RAPTORDataInst.secure = true;
-    const RAPTORInstance = new McRAPTOR<["bufferTime"], number, number, number>(RAPTORDataInst, [bufferTime]);
+    RAPTORDataInst.secure = true;
+    const RAPTORInstance = new McSharedRAPTOR<["bufferTime"]>(RAPTORDataInst, [bufferTime]);
 
-    return { RAPTORInstance };
+    return { RAPTORInstance, RAPTORDataInst };
   }
   const b2 = await benchmark(createRAPTOR, []);
   console.log("b2 ended");
   if (!b2.lastReturn) throw new Error(`b2 return null`);
-  const { RAPTORInstance } = b2.lastReturn;
+  const { RAPTORInstance, RAPTORDataInst } = b2.lastReturn;
 
-  return { RAPTORInstance, TBMSchedulesModel, resultModel };
+  return { RAPTORInstance, RAPTORDataInst, TBMSchedulesModel, resultModel, stops };
 }
 
-async function run({ RAPTORInstance, TBMSchedulesModel, resultModel }: Awaited<ReturnType<typeof init>>) {
+async function run({ RAPTORInstance, RAPTORDataInst, TBMSchedulesModel, resultModel, stops }: Awaited<ReturnType<typeof init>>) {
+  const attachStops = new Map<number, Stop<number, number>>();
+
+  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+  const psIdNumber = stops.at(-1)!.id + 1;
+
+  const distances: Record<number, number> = {
+    // Barrière d'Ornano
+    974: 100,
+  };
+
+  attachStops.set(psIdNumber, {
+    id: psIdNumber,
+    connectedRoutes: [],
+    transfers: Object.keys(distances).map((k) => {
+      const sId = parseInt(k);
+
+      return { to: sId, length: distances[sId] };
+    }),
+  });
+
+  Object.keys(distances).forEach((k) => {
+    const sId = parseInt(k);
+
+    attachStops.set(sId, {
+      id: sId,
+      connectedRoutes: [],
+      transfers: [{ to: psIdNumber, length: distances[sId] }],
+    });
+  });
+
+  const psId = SharedRAPTORData.serializeId(psIdNumber);
+
+  RAPTORDataInst.attachData(Array.from(attachStops.values()), []);
+
   const args = process.argv.slice(2);
-  let ps: number;
+  let ps: number | SharedID;
   try {
     ps = JSON.parse(args[0]) as number;
   } catch (_) {
-    ps = 2832;
+    ps = psId;
   }
   let pt: number;
   try {
     pt = JSON.parse(args[1]) as number;
   } catch (_) {
-    pt = 169;
+    pt =
+      // Béthanie
+      3846;
   }
 
   // https://www.mongodb.com/docs/manual/core/aggregation-pipeline-optimization/#-sort----limit-coalescence
@@ -231,7 +267,7 @@ async function run({ RAPTORInstance, TBMSchedulesModel, resultModel }: Awaited<R
     if (!results.length) throw new Error("No journey found");
 
     const { _id } = await resultModel.create({
-      from: { type: LocationType.TBM, id: ps },
+      from: { type: LocationType.Address, id: 174287 },
       to: { type: LocationType.TBM, id: pt },
       departureTime: new Date(departureTime),
       journeys: results
