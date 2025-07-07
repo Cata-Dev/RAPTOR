@@ -26,10 +26,11 @@ export default class McRAPTOR<C extends string[], SI extends Id = Id, RI extends
    * @param r Route Id.
    * @param p Stop Id.
    * @param after Time after which trips should be considered
+   * @param startTripIndex Trip index to start iterating from
    * @returns The earliest {@link Trip} on the route (and its index) `r` at the stop `p`, or `null` if no one is catchable.
    */
-  protected et(route: Route<SI, RI>, p: SI, after: timestamp): { tripIndex: number; boardedAt: SI } | null {
-    for (let t = 0; t < route.trips.length; t++) {
+  protected et(route: Route<SI, RI>, p: SI, after: timestamp, startTripIndex = 0): { tripIndex: number; boardedAt: SI } | null {
+    for (let t = startTripIndex; t < route.trips.length; t++) {
       // Catchable?
       const tDep = route.departureTime(t, route.stops.indexOf(p));
       if (tDep < MAX_SAFE_TIMESTAMP && tDep >= after) return { tripIndex: t, boardedAt: p };
@@ -45,12 +46,16 @@ export default class McRAPTOR<C extends string[], SI extends Id = Id, RI extends
     for (const p of new Set(this.marked)) {
       const stop = this.stops.get(p)!;
 
-      for (const transfer of stop.transfers) {
-        if (transfer.to === p) continue;
+      if (!stop.transfers.length) continue;
 
-        for (const pJourneyStep of this.bags[this.k].get(p)!) {
-          // Prevent chaining transfers
-          if ("transfer" in pJourneyStep) continue;
+      for (const pJourneyStep of this.bags[this.k].get(p)!) {
+        // Prevent chaining transfers
+        if ("transfer" in pJourneyStep) continue;
+
+        const pBackTrace = this.traceBackFromStep(pJourneyStep, this.k);
+
+        for (const transfer of stop.transfers) {
+          if (transfer.to === p) continue;
 
           const arrivalTime: timestamp = pJourneyStep.label.time + this.walkDuration(transfer.length, walkSpeed);
 
@@ -59,12 +64,7 @@ export default class McRAPTOR<C extends string[], SI extends Id = Id, RI extends
             makeJSComparable<SI, RI, C, "FOOT">({
               boardedAt: [p, pJourneyStep],
               transfer,
-              label: pJourneyStep.label.update(arrivalTime, [
-                this.traceBackFromStep(pJourneyStep, this.k),
-                { boardedAt: [p, pJourneyStep], transfer },
-                arrivalTime,
-                transfer.to,
-              ]),
+              label: pJourneyStep.label.update(arrivalTime, [pBackTrace, { boardedAt: [p, pJourneyStep], transfer }, arrivalTime, transfer.to]),
             }),
           );
           if (
@@ -93,6 +93,7 @@ export default class McRAPTOR<C extends string[], SI extends Id = Id, RI extends
     fromJourneyStep: JourneyStep<SI, RI, C>,
     cb: (newJourneyStep: JourneyStep<SI, RI, C, "VEHICLE">) => void,
   ) {
+    const backTrace = this.traceBackFromStep(fromJourneyStep, this.k);
     let t = this.et(route, stop, fromJourneyStep.label.time);
     const previousLabels: Label<SI, RI, C>[] = [];
     while (t) {
@@ -102,7 +103,7 @@ export default class McRAPTOR<C extends string[], SI extends Id = Id, RI extends
         route,
         tripIndex: t.tripIndex,
       };
-      const label = fromJourneyStep.label.update(tArr, [this.traceBackFromStep(fromJourneyStep, this.k), partialJourneyStep, tArr, stop]);
+      const label = fromJourneyStep.label.update(tArr, [backTrace, partialJourneyStep, tArr, stop]);
       if (previousLabels.some((previousLabel) => (label.compare(previousLabel) ?? 2) <= 0))
         // New label is dominated, stop looking for earliest catchable trips
         break;
@@ -113,10 +114,9 @@ export default class McRAPTOR<C extends string[], SI extends Id = Id, RI extends
       t = this.et(
         route,
         stop,
-        route.departureTime(t.tripIndex, stopIndex) +
-          // Force taking a future trip
-          // Implies the time step between 2 trips is at least 1
-          1,
+        fromJourneyStep.label.time,
+        // Force taking a future trip
+        t.tripIndex + 1,
       );
     }
   }
