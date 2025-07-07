@@ -4,7 +4,7 @@ import { FootPath, Journey } from "../../src";
 import { TestAsset, TestDataset } from "./asset";
 
 const MAX_ROUNDS = 6;
-const PARAMS: TestAsset["tests"][number]["params"] = [1, 7, 0, { walkSpeed: 1 * 1_000 }, MAX_ROUNDS];
+const PARAMS: TestAsset["tests"][number]["params"] = [1, 7, 0, { walkSpeed: 1 * 1_000, maxTransferLength: 100 }, MAX_ROUNDS];
 
 const baseValidateN = (journey: Journey<number, number, []> | null) => {
   test("Run result is exact (generic null)", () => {
