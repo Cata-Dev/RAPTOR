@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
-import { Id, IRAPTORData, Journey, JourneyStep, MapRead, MAX_SAFE_TIMESTAMP, Route, Stop, timestamp } from "./structures";
+import { Id, IRAPTORData, Journey, JourneyStep, MapRead, MAX_SAFE_TIMESTAMP, Route, Stop, Timestamp } from "./structures";
 
 interface RAPTORRunSettings {
   walkSpeed: number;
@@ -15,7 +15,7 @@ export default class BaseRAPTOR<C extends string[] = [], SI extends Id = Id, RI 
   readonly stops: MapRead<SI, Stop<SI, RI>>;
   readonly routes: MapRead<RI, Route<SI, RI, TI>>;
 
-  protected runParams: { settings: RAPTORRunSettings; ps: SI; pt: SI; departureTime: timestamp; rounds: number } | null = null;
+  protected runParams: { settings: RAPTORRunSettings; ps: SI; pt: SI; departureTime: Timestamp; rounds: number } | null = null;
 
   /** Round k <=> at most k transfers */
   protected k = 0;
@@ -81,7 +81,7 @@ export default class BaseRAPTOR<C extends string[] = [], SI extends Id = Id, RI 
     throw new Error("Not implemented");
   }
 
-  run(ps: SI, pt: SI, departureTime: timestamp, settings: RAPTORRunSettings, rounds: number = BaseRAPTOR.defaultRounds) {
+  run(ps: SI, pt: SI, departureTime: Timestamp, settings: RAPTORRunSettings, rounds: number = BaseRAPTOR.defaultRounds) {
     this.runParams = { ps, pt, departureTime, settings, rounds };
 
     this.init();

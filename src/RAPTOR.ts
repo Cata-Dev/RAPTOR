@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import BaseRAPTOR from "./base";
-import { Id, Journey, JourneyStep, Label, makeJSComparable, MAX_SAFE_TIMESTAMP, Route, Stop, timestamp } from "./structures";
+import { Id, Journey, JourneyStep, Label, makeJSComparable, MAX_SAFE_TIMESTAMP, Route, Stop, Timestamp } from "./structures";
 
 /**
  * @description A RAPTOR instance
@@ -53,7 +53,7 @@ export default class RAPTOR<SI extends Id = Id, RI extends Id = Id, TI extends I
 
       // Improve periods, local & target pruning
       if (t !== null) {
-        const arrivalTime: timestamp = route.trips.at(t.tripIndex)!.times.at(i)![0];
+        const arrivalTime: Timestamp = route.trips.at(t.tripIndex)!.times.at(i)![0];
         if (
           arrivalTime <
           Math.min(this.multiLabel[this.k].get(pi)?.label.time ?? Infinity, this.multiLabel[this.k].get(this.runParams!.pt)?.label.time ?? Infinity)
@@ -88,7 +88,7 @@ export default class RAPTOR<SI extends Id = Id, RI extends Id = Id, TI extends I
       if (transfer.to === stopId) continue;
 
       const pJourneyStep = this.multiLabel[this.k].get(stopId)!;
-      const arrivalTime: timestamp = pJourneyStep.label.time + this.walkDuration(transfer.length);
+      const arrivalTime: Timestamp = pJourneyStep.label.time + this.walkDuration(transfer.length);
       if (arrivalTime < this.multiLabel[this.k].get(transfer.to)!.label.time) {
         this.multiLabel[this.k].set(
           transfer.to,

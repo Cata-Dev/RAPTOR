@@ -12,7 +12,7 @@ import {
   MAX_SAFE_TIMESTAMP,
   Route,
   Stop,
-  timestamp,
+  Timestamp,
 } from "./structures";
 
 export default class McRAPTOR<C extends string[], SI extends Id = Id, RI extends Id = Id, TI extends Id = Id> extends BaseRAPTOR<C, SI, RI, TI> {
@@ -40,7 +40,7 @@ export default class McRAPTOR<C extends string[], SI extends Id = Id, RI extends
    * @param startTripIndex Trip index to start iterating from
    * @returns The earliest {@link Trip} on the route (and its index) `r` at the stop `p`, or `null` if no one is catchable.
    */
-  protected et(route: Route<SI, RI>, p: SI, after: timestamp, startTripIndex = 0): { tripIndex: number; boardedAt: SI } | null {
+  protected et(route: Route<SI, RI>, p: SI, after: Timestamp, startTripIndex = 0): { tripIndex: number; boardedAt: SI } | null {
     for (let t = startTripIndex; t < route.trips.length; t++) {
       // Catchable?
       const tDep = route.departureTime(t, route.stops.indexOf(p));
@@ -178,7 +178,7 @@ export default class McRAPTOR<C extends string[], SI extends Id = Id, RI extends
       for (const transfer of this.validFootPaths(stop.transfers)) {
         if (transfer.to === stopId) continue;
 
-        const arrivalTime: timestamp = pJourneyStep.label.time + this.walkDuration(transfer.length);
+        const arrivalTime: Timestamp = pJourneyStep.label.time + this.walkDuration(transfer.length);
 
         const Bpto = this.bags[this.k].get(transfer.to)!;
         const { added } = Bpto.add(

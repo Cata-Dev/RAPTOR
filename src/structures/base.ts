@@ -1,7 +1,7 @@
 /**
  * A timestamp representation of a Date ; in milliseconds.
  */
-type timestamp = number;
+type Timestamp = number;
 type Id = number | string;
 type LabelType = "DEFAULT" | "DEPARTURE" | "FOOT" | "VEHICLE";
 
@@ -34,7 +34,7 @@ interface Trip<TI extends Id = Id> {
   /**
    * @param times Time of arrival & departure at each stop.
    */
-  times: ArrayRead<[timestamp, timestamp]>;
+  times: ArrayRead<[Timestamp, Timestamp]>;
 }
 
 interface FootPath<SI extends Id> {
@@ -69,7 +69,7 @@ class Route<SI extends Id, RI extends Id, TI extends Id = Id> {
    * @param t Trip index in route.
    * @param p Stop index in route (trip).
    */
-  departureTime(t: number, p: number): timestamp {
+  departureTime(t: number, p: number): Timestamp {
     const time = this.trips.at(t)?.times.at(p)?.[1];
     if (time === undefined) throw new Error(`No departure time for stop at index ${p} in trip at index ${t} (indexes out of bounds?).`);
 
@@ -91,7 +91,7 @@ interface Criterion<SI extends Id, RI extends Id, C extends string[], N extends 
   update: (
     prefixJourney: Journey<SI, RI, C>,
     newJourneyStep: Omit<JourneyStep<SI, RI, C>, "label" | keyof Comparable<never>>,
-    time: timestamp,
+    time: Timestamp,
     stop: SI,
   ) => number;
 }
@@ -104,12 +104,12 @@ class Label<SI extends Id, RI extends Id, C extends string[]> implements Compara
     readonly criteria: { [K in keyof C]: Criterion<SI, RI, C> }, //, K
     time: number,
   ) {
-    this.values = criteria.reduce<Partial<{ time: timestamp } & Record<C[number], number>>>(
+    this.values = criteria.reduce<Partial<{ time: Timestamp } & Record<C[number], number>>>(
       (acc, v) => ({ ...acc, [(v as Criterion<SI, RI, C>).name]: v.initialValue }),
       {
         time,
-      } as Partial<{ time: timestamp } & Record<C[number], number>>,
-    ) as { time: timestamp } & Record<C[number], number>;
+      } as Partial<{ time: Timestamp } & Record<C[number], number>>,
+    ) as { time: Timestamp } & Record<C[number], number>;
   }
 
   get time() {
@@ -449,6 +449,6 @@ export {
   RAPTORData,
   Route,
   Stop,
-  timestamp,
+  Timestamp,
   Trip,
 };
