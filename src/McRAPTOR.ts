@@ -1,15 +1,26 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
-import BaseRAPTOR, { RAPTORRunSettings } from "./base";
-import RAPTOR from "./RAPTOR";
-import { Bag, Criterion, Id, IRAPTORData, Journey, JourneyStep, Label, makeJSComparable, MAX_SAFE_TIMESTAMP, Route, timestamp } from "./structures";
+import BaseRAPTOR from "./base";
+import {
+  Bag,
+  Criterion,
+  Id,
+  IRAPTORData,
+  Journey,
+  JourneyStep,
+  Label,
+  makeJSComparable,
+  MAX_SAFE_TIMESTAMP,
+  Route,
+  Stop,
+  timestamp,
+} from "./structures";
 
 export default class McRAPTOR<C extends string[], SI extends Id = Id, RI extends Id = Id, TI extends Id = Id> extends BaseRAPTOR<C, SI, RI, TI> {
   /** @description A {@link Label} Bags_i(SI) stores earliest known arrival times and best values for criteria at stop `SI` with up to `i` trips. */
   protected bags: Map<SI, Bag<JourneyStep<SI, RI, C>>>[] = [];
-  /** Set<{@link SI} in {@link stops}> */
-  protected marked = new Set<SI>();
 
-  protected pt: SI | null = null;
+  // For target pruning
+  protected Bpt: Bag<JourneyStep<SI, RI, C>> | null = null;
 
   /**
    * @description Creates a new McRAPTOR instance for a defined network and a set of {@link criteria}.
@@ -37,45 +48,6 @@ export default class McRAPTOR<C extends string[], SI extends Id = Id, RI extends
     }
 
     return null;
-  }
-
-  protected footPathsLookup(walkSpeed: RAPTORRunSettings["walkSpeed"]) {
-    const Bpt = this.bags[this.k].get(this.pt!)!;
-
-    // Copy current state of marked stops
-    for (const p of new Set(this.marked)) {
-      const stop = this.stops.get(p)!;
-
-      if (!stop.transfers.length) continue;
-
-      for (const pJourneyStep of this.bags[this.k].get(p)!) {
-        // Prevent chaining transfers
-        if ("transfer" in pJourneyStep) continue;
-
-        const pBackTrace = this.traceBackFromStep(pJourneyStep, this.k);
-
-        for (const transfer of stop.transfers) {
-          if (transfer.to === p) continue;
-
-          const arrivalTime: timestamp = pJourneyStep.label.time + this.walkDuration(transfer.length, walkSpeed);
-
-          const Bpto = this.bags[this.k].get(transfer.to)!;
-          const { added } = Bpto.add(
-            makeJSComparable<SI, RI, C, "FOOT">({
-              boardedAt: [p, pJourneyStep],
-              transfer,
-              label: pJourneyStep.label.update(arrivalTime, [pBackTrace, { boardedAt: [p, pJourneyStep], transfer }, arrivalTime, transfer.to]),
-            }),
-          );
-          if (
-            added &&
-            // Target pruning
-            (Bpt.size == 0 || Bpt.values().some((jsPt) => Bpto.values().some((jsPto) => (jsPto.compare(jsPt) ?? 1) > 0)))
-          )
-            this.marked.add(transfer.to);
-        }
-      }
-    }
   }
 
   /**
@@ -121,105 +93,108 @@ export default class McRAPTOR<C extends string[], SI extends Id = Id, RI extends
     }
   }
 
-  run(ps: SI, pt: SI, departureTime: timestamp, settings: RAPTORRunSettings, rounds: number = RAPTOR.defaultRounds) {
-    //Re-initialization
-    this.bags = Array.from({ length: rounds }, () => new Map<SI, Bag<JourneyStep<SI, RI, C>>>());
-    this.marked = new Set<SI>();
-    this.k = 0;
-    this.pt = pt;
+  protected init() {
+    super.init();
+
+    // Re-initialization
+    this.bags = Array.from({ length: this.runParams!.rounds }, () => new Map<SI, Bag<JourneyStep<SI, RI, C>>>());
 
     // Initialization
     for (const [stopId] of this.stops) {
       this.bags[0].set(stopId, new Bag<JourneyStep<SI, RI, C>>());
     }
-    this.bags[0].get(ps)!.add(
+    this.bags[0].get(this.runParams!.ps)!.add(
       makeJSComparable({
-        label: new Label(this.criteria, departureTime),
+        label: new Label(this.criteria, this.runParams!.departureTime),
       }),
     );
-    this.marked.add(ps);
+  }
 
-    /** Map<{@link RI} in {@link routes}, {@link SI} in {@link stops}> */
-    const Q = new Map<RI, SI>();
+  protected beginRound() {
+    // Copying
+    for (const [stopId] of this.stops) {
+      const journeySteps = this.bags[this.k - 1].get(stopId)!;
+      const newBag = Bag.from(journeySteps);
+      this.bags[this.k].set(stopId, newBag);
 
-    for (this.k = 1; this.k < rounds; this.k++) {
-      // Copying
-      for (const [stopId] of this.stops) {
-        const journeySteps = this.bags[this.k - 1].get(stopId)!;
-        this.bags[this.k].set(stopId, Bag.from(journeySteps));
+      if (stopId === this.runParams!.pt) this.Bpt = newBag;
+    }
+  }
+
+  protected traverseRoute(route: Route<SI, RI, TI>, stop: SI): void {
+    let RouteBag = new Bag<JourneyStep<SI, RI, C, "VEHICLE">>();
+
+    for (let i = route.stops.indexOf(stop); i < route.stops.length; i++) {
+      const pi = route.stops.at(i)!;
+
+      // Step 1: update route labels w.r.t. current stop pi
+      // Need to use a temporary bag, otherwise updating makes the bag incoherent and comparison occurs on incomparable journey steps (they are not at the same stop)
+      const RouteBagPi = new Bag<JourneyStep<SI, RI, C, "VEHICLE">>();
+      for (const journeyStep of RouteBag) {
+        const tArr = route.trips.at(journeyStep.tripIndex)!.times.at(i)![0];
+        RouteBagPi.addOnly(
+          makeJSComparable({
+            ...journeyStep,
+            label: journeyStep.label.update(tArr, [this.traceBackFromStep(journeyStep.boardedAt[1], this.k), { ...journeyStep }, tArr, pi]),
+          }),
+        );
       }
-      const Bpt = this.bags[this.k].get(pt)!;
+      RouteBagPi.prune();
+      RouteBag = RouteBagPi;
 
-      // Mark improvement
-      Q.clear();
-      for (const p of this.marked) {
-        const connectedRoutes = this.stops.get(p)!.connectedRoutes;
+      // Step 2: non-dominated merge of route bag to current round stop bag
+      const Bpi = this.bags[this.k].get(pi)!;
+      const { added } = Bpi.merge(RouteBag as Bag<JourneyStep<SI, RI, C>>);
+      if (
+        added > 0 &&
+        // Target pruning, don't mark if all labels are worse than any of the target
+        // Otherwise, it might contribute to a new better (or incomparable) label (= journey)
+        (this.Bpt!.size == 0 || this.Bpt!.values().some((jsPt) => Bpi.values().some((jsPi) => (jsPi.compare(jsPt) ?? 1) > 0)))
+      )
+        this.marked.add(pi);
 
-        for (const r of connectedRoutes) {
-          const p2 = Q.get(r);
-          if (!p2 || this.routes.get(r)!.stops.indexOf(p) < this.routes.get(r)!.stops.indexOf(p2)) Q.set(r, p);
-        }
+      // Step 3: populating route bag with previous round & update
+      // Update current route bag with possible new earliest catchable trips thanks to this round
+      for (const journeyStep of RouteBag)
+        this.forEachNDEt(route, pi, i, journeyStep, (newJourneyStep) => {
+          if (newJourneyStep.tripIndex != journeyStep.tripIndex) RouteBag.addOnly(newJourneyStep);
+        });
+      for (const journeyStep of this.bags[this.k - 1].get(pi)!)
+        this.forEachNDEt(route, pi, i, journeyStep, (newJourneyStep) => {
+          if (!("route" in journeyStep) || journeyStep.route.id != route.id || newJourneyStep.tripIndex != journeyStep.tripIndex)
+            RouteBag.addOnly(newJourneyStep);
+        });
+      RouteBag.prune();
+    }
+  }
 
-        this.marked.delete(p);
+  protected traverseFootPaths(stopId: SI, stop: Stop<SI, RI>): void {
+    for (const pJourneyStep of this.bags[this.k].get(stopId)!) {
+      // Prevent chaining transfers
+      if ("transfer" in pJourneyStep) continue;
+
+      const pBackTrace = this.traceBackFromStep(pJourneyStep, this.k);
+
+      for (const transfer of this.validFootPaths(stop.transfers)) {
+        if (transfer.to === stopId) continue;
+
+        const arrivalTime: timestamp = pJourneyStep.label.time + this.walkDuration(transfer.length);
+
+        const Bpto = this.bags[this.k].get(transfer.to)!;
+        const { added } = Bpto.add(
+          makeJSComparable<SI, RI, C, "FOOT">({
+            boardedAt: [stopId, pJourneyStep],
+            transfer,
+            label: pJourneyStep.label.update(arrivalTime, [pBackTrace, { boardedAt: [stopId, pJourneyStep], transfer }, arrivalTime, transfer.to]),
+          }),
+        );
+        if (
+          added &&
+          // Target pruning
+          (this.Bpt!.size == 0 || this.Bpt!.values().some((jsPt) => Bpto.values().some((jsPto) => (jsPto.compare(jsPt) ?? 1) > 0)))
+        )
+          this.marked.add(transfer.to);
       }
-
-      // Traverse each route
-      for (const [r, p] of Q) {
-        let RouteBag = new Bag<JourneyStep<SI, RI, C, "VEHICLE">>();
-
-        const route = this.routes.get(r)!;
-        for (let i = route.stops.indexOf(p); i < route.stops.length; i++) {
-          const pi = route.stops.at(i)!;
-
-          // Step 1: update route labels w.r.t. current stop pi
-          // Need to use a temporary bag, otherwise updating makes the bag incoherent and comparison occurs on incomparable journey steps (they are not at the same stop)
-          const RouteBagPi = new Bag<JourneyStep<SI, RI, C, "VEHICLE">>();
-          for (const journeyStep of RouteBag) {
-            const tArr = route.trips.at(journeyStep.tripIndex)!.times.at(i)![0];
-            RouteBagPi.addOnly(
-              makeJSComparable({
-                ...journeyStep,
-                label: journeyStep.label.update(tArr, [this.traceBackFromStep(journeyStep.boardedAt[1], this.k), { ...journeyStep }, tArr, pi]),
-              }),
-            );
-          }
-          RouteBagPi.prune();
-          RouteBag = RouteBagPi;
-
-          // Step 2: non-dominated merge of route bag to current round stop bag
-          const Bpi = this.bags[this.k].get(pi)!;
-          const { added } = Bpi.merge(RouteBag as Bag<JourneyStep<SI, RI, C>>);
-          if (
-            added > 0 &&
-            // Target pruning, don't mark if all labels are worse than any of the target
-            // Otherwise, it might contribute to a new better (or incomparable) label (= journey)
-            (Bpt.size == 0 || Bpt.values().some((jsPt) => Bpi.values().some((jsPi) => (jsPi.compare(jsPt) ?? 1) > 0)))
-          )
-            this.marked.add(pi);
-
-          // Step 3: populating route bag with previous round & update
-          // Update current route bag with possible new earliest catchable trips thanks to this round
-          for (const journeyStep of RouteBag)
-            this.forEachNDEt(route, pi, i, journeyStep, (newJourneyStep) => {
-              if (newJourneyStep.tripIndex != journeyStep.tripIndex) RouteBag.addOnly(newJourneyStep);
-            });
-          for (const journeyStep of this.bags[this.k - 1].get(pi)!)
-            this.forEachNDEt(route, pi, i, journeyStep, (newJourneyStep) => {
-              if (!("route" in journeyStep) || journeyStep.route.id != r || newJourneyStep.tripIndex != journeyStep.tripIndex)
-                RouteBag.addOnly(newJourneyStep);
-            });
-          RouteBag.prune();
-        }
-      }
-
-      // Look at foot-paths
-      if (this.k === 1)
-        // Mark source so foot paths from it are considered in first round
-        this.marked.add(ps);
-      this.footPathsLookup(settings.walkSpeed);
-
-      // Stopping criterion
-      if (this.marked.size === 0) break;
     }
   }
 

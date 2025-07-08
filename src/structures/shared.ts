@@ -452,7 +452,9 @@ class SharedRAPTORData implements IRAPTORData<SharedID, SharedID, number> {
 
         // Total length of transfers chunk
         this.sDataView[idx++] = stop.transfers.length * 2;
-        for (const transfer of stop.transfers) {
+        for (const transfer of Array.from(stop.transfers)
+          // Sort in order to iterate in transfer length ascending order
+          .sort((a, b) => a.length - b.length)) {
           // Store ID first, then convert to ptr
           this.sDataView[idx++] = transfer.to;
           this.sDataView[idx++] = transfer.length;

@@ -337,7 +337,12 @@ class RAPTORData<SI extends Id = Id, RI extends Id = Id, TI extends Id = Id> imp
    * @description Creates a new RAPTORData instance for a defined network.
    */
   constructor(stops: ArrayRead<Stop<SI, RI>>, routes: ArrayRead<ConstructorParameters<typeof Route<SI, RI, TI>>>) {
-    this._stops = new Map(stops.map((s) => [s.id, s]));
+    this._stops = new Map(
+      stops.map(({ id, connectedRoutes, transfers }) => [
+        id,
+        { id, connectedRoutes, transfers: Array.from(transfers).sort((a, b) => a.length - b.length) },
+      ]),
+    );
     this._routes = new Map(routes.map(([rId, stopsIds, trips]) => [rId, new Route(rId, stopsIds, trips)] as const));
   }
 

@@ -1,7 +1,9 @@
-import { Id, IRAPTORData, Journey, JourneyStep, MapRead, MAX_SAFE_TIMESTAMP, Route, Stop } from "./structures";
+/* eslint-disable @typescript-eslint/no-non-null-assertion */
+import { Id, IRAPTORData, Journey, JourneyStep, MapRead, MAX_SAFE_TIMESTAMP, Route, Stop, timestamp } from "./structures";
 
 interface RAPTORRunSettings {
   walkSpeed: number;
+  maxTransferLength: number;
 }
 
 /**
@@ -13,8 +15,11 @@ export default class BaseRAPTOR<C extends string[] = [], SI extends Id = Id, RI 
   readonly stops: MapRead<SI, Stop<SI, RI>>;
   readonly routes: MapRead<RI, Route<SI, RI, TI>>;
 
+  protected runParams: { settings: RAPTORRunSettings; ps: SI; pt: SI; departureTime: timestamp; rounds: number } | null = null;
+
   /** Round k <=> at most k transfers */
   protected k = 0;
+  protected marked = new Set<SI>();
 
   /**
    * @description Creates a new RAPTOR instance for a defined network.
@@ -29,8 +34,84 @@ export default class BaseRAPTOR<C extends string[] = [], SI extends Id = Id, RI 
    * @param walkSpeed Walk speed, in m/s
    * @returns Duration in ms
    */
-  protected walkDuration(length: number, walkSpeed: RAPTORRunSettings["walkSpeed"]): number {
-    return (length / walkSpeed) * 1_000;
+  protected walkDuration(length: number): number {
+    return (length / this.runParams!.settings.walkSpeed) * 1_000;
+  }
+
+  protected init() {
+    this.marked = new Set<SI>();
+    this.k = 0;
+    this.marked.add(this.runParams!.ps);
+  }
+
+  protected beginRound() {
+    throw new Error("Not implemented");
+  }
+
+  protected mark(Q: Map<RI, SI>) {
+    // Mark improvement
+    Q.clear();
+    for (const p of this.marked) {
+      const connectedRoutes = this.stops.get(p)!.connectedRoutes;
+
+      for (const r of connectedRoutes) {
+        const p2 = Q.get(r);
+        if (!p2 || this.routes.get(r)!.stops.indexOf(p) < this.routes.get(r)!.stops.indexOf(p2)) Q.set(r, p);
+      }
+
+      this.marked.delete(p);
+    }
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  protected traverseRoute(route: Route<SI, RI, TI>, stop: SI) {
+    throw new Error("Not implemented");
+  }
+
+  protected *validFootPaths(transfers: Stop<SI, RI>["transfers"]) {
+    for (const transfer of transfers) {
+      if (transfer.length > this.runParams!.settings.maxTransferLength) return;
+
+      yield transfer;
+    }
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  protected traverseFootPaths(stopId: SI, stop: Stop<SI, RI>) {
+    throw new Error("Not implemented");
+  }
+
+  run(ps: SI, pt: SI, departureTime: timestamp, settings: RAPTORRunSettings, rounds: number = BaseRAPTOR.defaultRounds) {
+    this.runParams = { ps, pt, departureTime, settings, rounds };
+
+    this.init();
+    /** Map<{@link RI} in {@link routes}, {@link SI} in {@link stops}> */
+    const Q = new Map<RI, SI>();
+
+    for (this.k = 1; this.k < rounds; this.k++) {
+      this.beginRound();
+
+      this.mark(Q);
+
+      // Traverse each route
+      for (const [r, p] of Q) this.traverseRoute(this.routes.get(r)!, p);
+
+      // Look at foot-paths
+      if (this.k === 1)
+        // Mark source so foot paths from it are considered in first round
+        this.marked.add(ps);
+      // Copy current state of marked stops
+      for (const p of new Set(this.marked)) {
+        const stop = this.stops.get(p)!;
+
+        if (!stop.transfers.length) continue;
+
+        this.traverseFootPaths(p, stop);
+      }
+
+      // Stopping criterion
+      if (this.marked.size === 0) break;
+    }
   }
 
   protected traceBackFromStep(from: JourneyStep<SI, RI, C>, initRound: number): Journey<SI, RI, C> {
