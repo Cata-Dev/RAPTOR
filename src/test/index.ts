@@ -4,7 +4,7 @@ import initDB from "./utils/mongoose";
 import "core-js/features/reflect";
 
 import { DocumentType } from "@typegoose/typegoose";
-import { FilterQuery, HydratedDocument } from "mongoose";
+import { FilterQuery } from "mongoose";
 import { inspect } from "util";
 import NonScheduledRoutesModelInit, { dbFootPaths } from "./models/NonScheduledRoutes.model";
 import ResultModelInit from "./models/result.model";
@@ -39,7 +39,7 @@ async function init() {
     }
     type ScheduledRoute = Omit<dbScheduledRoute, keyof ScheduledRoutesOverwritten> & ScheduledRoutesOverwritten;
 
-    const dbScheduledRoutes = (await TBMScheduledRoutesModel.find<HydratedDocument<DocumentType<ScheduledRoute>>>({}, dbScheduledRoutesProjection)
+    const dbScheduledRoutes = (await TBMScheduledRoutesModel.find<DocumentType<DocumentType<ScheduledRoute>>>({}, dbScheduledRoutesProjection)
       .populate("trips.schedules")
       .lean()
       .exec()) as ScheduledRoute[];
@@ -62,7 +62,7 @@ async function init() {
       },
       (
         (await stopsModel
-          .find<HydratedDocument<DocumentType<Stop>>>(
+          .find<DocumentType<DocumentType<Stop>>>(
             {
               $and: [{ coords: { $not: { $elemMatch: { $eq: Infinity } } } }],
             },
@@ -85,7 +85,7 @@ async function init() {
     //Query must associate (s, from) AND (from, s) forall s in stops !
     const dbNonScheduledRoutes = async (stopId: NonScheduledRoutesOverwritten["from"], additionalQuery: FilterQuery<dbNonScheduledRoute> = {}) =>
       (
-        (await NonScheduledRoutesModel.find<HydratedDocument<DocumentType<NonScheduledRoute>>>(
+        (await NonScheduledRoutesModel.find<DocumentType<DocumentType<NonScheduledRoute>>>(
           { $and: [{ $or: [{ from: stopId }, { to: stopId }] }, additionalQuery] },
           dbNonScheduledRoutesProjection,
         )
