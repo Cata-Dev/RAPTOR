@@ -13,9 +13,7 @@ export default [
         {
           params: oneLine[1].withoutTransfers.tests[0].params,
           validate: (res) => {
-            const [journeysWithoutCriteria, journeysFromCriteria] = validateWithoutCriteria<["bufferTime"]>(
-              oneLine[1].withoutTransfers.tests[0].validate,
-            )(res);
+            const [journeysWithoutCriteria, journeysFromCriteria] = validateWithoutCriteria(oneLine[1].withoutTransfers.tests[0].validate)(res);
             test("Label buffer times are exact (same results as RAPTOR)", () => {
               expect(journeysWithoutCriteria[1]![0].label.value("bufferTime")).toBe(-Infinity);
               expect(journeysWithoutCriteria[1]!.at(-1)!.label.value("bufferTime")).toBe(-0);
@@ -38,7 +36,7 @@ export default [
         {
           params: oneLine[1].withSlowTransfers.tests[0].params,
           validate: (res) => {
-            const [_, journeysFromCriteria] = validateWithoutCriteria<["bufferTime"]>(oneLine[1].withSlowTransfers.tests[0].validate)(res);
+            const [_, journeysFromCriteria] = validateWithoutCriteria(oneLine[1].withSlowTransfers.tests[0].validate)(res);
             test("Label buffer times are exact (same results as RAPTOR)", () => {
               for (const journeys of res)
                 if (journeys[0]) {
@@ -59,7 +57,7 @@ export default [
         {
           params: oneLine[1].withSlowTransfers.tests[1].params,
           validate: (res) => {
-            validateWithoutCriteria<["bufferTime"]>(oneLine[1].withSlowTransfers.tests[1].validate);
+            validateWithoutCriteria(oneLine[1].withSlowTransfers.tests[1].validate);
             for (const journeys of res) expect(journeys.length || 1).toBe(1);
             test("Label buffer times are exact", () => {
               for (const journeys of res)
@@ -110,9 +108,7 @@ export default [
         {
           params: oneLine[1].withFastTransfers.tests[0].params,
           validate: (res) => {
-            const [journeysWithoutCriteria, journeysFromCriteria] = validateWithoutCriteria<["bufferTime"]>(
-              oneLine[1].withFastTransfers.tests[0].validate,
-            )(res);
+            const [journeysWithoutCriteria, journeysFromCriteria] = validateWithoutCriteria(oneLine[1].withFastTransfers.tests[0].validate)(res);
 
             test("Label buffer times are exact (same results as RAPTOR)", () => {
               expect(journeysWithoutCriteria[1]?.[1].label.value("bufferTime")).toBe(-0);
@@ -134,4 +130,4 @@ export default [
       ],
     },
   },
-] satisfies McTestDataset<["bufferTime"]>;
+] satisfies McTestDataset<number, [[number, "bufferTime"]]>;

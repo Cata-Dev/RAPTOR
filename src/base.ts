@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
-import { Id, IRAPTORData, Journey, JourneyStep, MapRead, MAX_SAFE_TIMESTAMP, Route, Stop, Timestamp } from "./structures";
+import { Id, IRAPTORData, Journey, JourneyStep, MapRead, MAX_SAFE_TIMESTAMP, Ordered, Route, Stop, Timestamp } from "./structures";
 
 interface RAPTORRunSettings {
   walkSpeed: number;
@@ -9,7 +9,13 @@ interface RAPTORRunSettings {
 /**
  * @description A RAPTOR instance
  */
-export default class BaseRAPTOR<C extends string[] = [], SI extends Id = Id, RI extends Id = Id, TI extends Id = Id> {
+export default class BaseRAPTOR<
+  SI extends Id = Id,
+  RI extends Id = Id,
+  TI extends Id = Id,
+  V extends Ordered<V> = never,
+  CA extends [V, string][] = [],
+> {
   static defaultRounds = 6;
 
   readonly stops: MapRead<SI, Stop<SI, RI>>;
@@ -114,13 +120,13 @@ export default class BaseRAPTOR<C extends string[] = [], SI extends Id = Id, RI 
     }
   }
 
-  protected traceBackFromStep(from: JourneyStep<SI, RI, C>, initRound: number): Journey<SI, RI, C> {
+  protected traceBackFromStep(from: JourneyStep<SI, RI, V, CA>, initRound: number): Journey<SI, RI, V, CA> {
     if (initRound < 0 || initRound > this.k) throw new Error(`Invalid initRound (${initRound}) provided.`);
 
     let k = initRound;
-    let trace: Journey<SI, RI, C> = [];
+    let trace: Journey<SI, RI, V, CA> = [];
 
-    let previousStep: JourneyStep<SI, RI, C> | null = from;
+    let previousStep: JourneyStep<SI, RI, V, CA> | null = from;
     while (previousStep !== null) {
       trace = ["boardedAt" in previousStep ? { ...previousStep, boardedAt: previousStep.boardedAt[0] } : previousStep, ...trace];
 

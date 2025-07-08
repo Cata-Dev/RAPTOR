@@ -48,14 +48,14 @@ describe("Route class", () => {
   });
 });
 
-const c1Update = jest.fn<Criterion<number, number, ["c1", "c2"]>["update"]>((prefixJourney, newJourneyStep, time, stop) => stop);
-const c1: Criterion<number, number, ["c1", "c2"]> = {
+const c1Update = jest.fn<Criterion<number, number, number, "c1">["update"]>((prefixJourney, newJourneyStep, time, stop) => stop);
+const c1: Criterion<number, number, number, "c1"> = {
   name: "c1",
   initialValue: Infinity,
   update: c1Update,
 };
-const c2Update = jest.fn<Criterion<number, number, ["c1", "c2"]>["update"]>((prefixJourney, newJourneyStep, time, stop) => time + stop);
-const c2: Criterion<number, number, ["c1", "c2"]> = {
+const c2Update = jest.fn<Criterion<number, number, number, "c2">["update"]>((prefixJourney, newJourneyStep, time, stop) => time + stop);
+const c2: Criterion<number, number, number, "c2"> = {
   name: "c2",
   initialValue: -Infinity,
   update: c2Update,
@@ -84,8 +84,8 @@ describe("Label class", () => {
   });
 
   describe("With criterion", () => {
-    const l = new Label<number, number, ["c1", "c2"]>([c1, c2], 0);
-    const l1 = setLabelValues(new Label<number, number, ["c1", "c2"]>([c1, c2], 3), [4, 5]);
+    const l = new Label<number, number, number, [[number, "c1"], [number, "c2"]]>([c1, c2], 0);
+    const l1 = setLabelValues(new Label<number, number, number, [[number, "c1"], [number, "c2"]]>([c1, c2], 3), [4, 5]);
 
     test("Basic getters", () => {
       expect(l.time).toBe(0);
@@ -101,8 +101,8 @@ describe("Label class", () => {
     test("Comparison", () => {
       expect(l.compare(l1)).toBe(null);
       expect(l1.compare(l)).toBe(null);
-      expect(l1.compare(setLabelValues(new Label<number, number, ["c1", "c2"]>([c1, c2], 3), [4, 5]))).toBe(0);
-      expect(l1.compare(setLabelValues(new Label<number, number, ["c1", "c2"]>([c1, c2], 4), [5, 6]))).toBe(1);
+      expect(l1.compare(setLabelValues(new Label<number, number, number, [[number, "c1"], [number, "c2"]]>([c1, c2], 3), [4, 5]))).toBe(0);
+      expect(l1.compare(setLabelValues(new Label<number, number, number, [[number, "c1"], [number, "c2"]]>([c1, c2], 4), [5, 6]))).toBe(1);
     });
 
     expect(c1Update).not.toHaveBeenCalled();
@@ -116,7 +116,7 @@ describe("Label class", () => {
             {
               boardedAt: 4,
               transfer: { to: 5, length: 6 },
-              label: l,
+              label: l as unknown as Label<number, number, number, [[number, "c1" | "c2"]]>,
               compare: () => 0,
             },
           ],
@@ -127,9 +127,9 @@ describe("Label class", () => {
       ];
       const lUpdated = l.update(...lUpdateArgs);
       expect(c1Update).toHaveBeenCalledTimes(1);
-      expect(c1Update).toHaveBeenLastCalledWith(...lUpdateArgs[1]);
+      expect(c1Update).toHaveBeenLastCalledWith(...(lUpdateArgs[1] as Parameters<typeof c1Update>));
       expect(c2Update).toHaveBeenCalledTimes(1);
-      expect(c2Update).toHaveBeenLastCalledWith(...lUpdateArgs[1]);
+      expect(c2Update).toHaveBeenLastCalledWith(...(lUpdateArgs[1] as Parameters<typeof c2Update>));
       expect(lUpdated).not.toBe(l);
       expect(lUpdated.time).toBe(5);
       expect(lUpdated.value("c1")).toBe(3);
@@ -142,7 +142,7 @@ describe("Label class", () => {
             {
               boardedAt: 4,
               transfer: { to: 5, length: 6 },
-              label: l,
+              label: l as unknown as Label<number, number, number, [[number, "c1" | "c2"]]>,
               compare: () => 0,
             },
           ],
@@ -153,9 +153,9 @@ describe("Label class", () => {
       ];
       const l1Updated = l1.update(...l1UpdateArgs);
       expect(c1Update).toHaveBeenCalledTimes(2);
-      expect(c1Update).toHaveBeenLastCalledWith(...l1UpdateArgs[1]);
+      expect(c1Update).toHaveBeenLastCalledWith(...(l1UpdateArgs[1] as Parameters<typeof c1Update>));
       expect(c2Update).toHaveBeenCalledTimes(2);
-      expect(c2Update).toHaveBeenLastCalledWith(...l1UpdateArgs[1]);
+      expect(c2Update).toHaveBeenLastCalledWith(...(l1UpdateArgs[1] as Parameters<typeof c2Update>));
       expect(l1Updated).not.toBe(l1);
       expect(l1Updated.time).toBe(10);
       expect(l1Updated.value("c1")).toBe(1);
@@ -168,13 +168,13 @@ c1Update.mockClear();
 c2Update.mockClear();
 describe("Bag class", () => {
   test("Scenario", () => {
-    const l = new Label<number, number, ["c1", "c2"]>([c1, c2], 0);
-    const l1 = setLabelValues(new Label<number, number, ["c1", "c2"]>([c1, c2], 3), [4, 5]);
-    const l2 = setLabelValues(new Label<number, number, ["c1", "c2"]>([c1, c2], 3), [4, 3]);
-    const l3 = setLabelValues(new Label<number, number, ["c1", "c2"]>([c1, c2], 3), [4, 2]);
-    const l4 = setLabelValues(new Label<number, number, ["c1", "c2"]>([c1, c2], 2), [4, 6]);
+    const l = new Label<number, number, number, [[number, "c1"], [number, "c2"]]>([c1, c2], 0);
+    const l1 = setLabelValues(new Label<number, number, number, [[number, "c1"], [number, "c2"]]>([c1, c2], 3), [4, 5]);
+    const l2 = setLabelValues(new Label<number, number, number, [[number, "c1"], [number, "c2"]]>([c1, c2], 3), [4, 3]);
+    const l3 = setLabelValues(new Label<number, number, number, [[number, "c1"], [number, "c2"]]>([c1, c2], 3), [4, 2]);
+    const l4 = setLabelValues(new Label<number, number, number, [[number, "c1"], [number, "c2"]]>([c1, c2], 2), [4, 6]);
 
-    const b = new Bag<Label<number, number, ["c1", "c2"]>>();
+    const b = new Bag<Label<number, number, number, [[number, "c1"], [number, "c2"]]>>();
     let { added, pruned } = b.add(l);
     expect(added).toBe(true);
     expect(pruned).toBe(0);
@@ -207,7 +207,7 @@ describe("Bag class", () => {
     expect(b.values()).toContain(l);
     expect(b.values()).toContain(l2);
 
-    const b1 = new Bag<Label<number, number, ["c1", "c2"]>>();
+    const b1 = new Bag<Label<number, number, number, [[number, "c1"], [number, "c2"]]>>();
     b1.add(l);
     b1.add(l1);
     b1.add(l2);
