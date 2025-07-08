@@ -26,10 +26,10 @@
   "license": "MIT",
   "dependencies": {
     "@catatomik/dijkstra": "github:catatomik/dijkstra",
-    "@typegoose/typegoose": "^12.10.1",
-    "core-js": "^3.36.0",
-    "mongodb": "^6.4.0",
-    "mongoose": "^8.16.1"
+    "@typegoose/typegoose": "^12.17.0",
+    "core-js": "^3.44.0",
+    "mongodb": "^6.17.0",
+    "mongoose": "^8.16.2"
   },
   "devDependencies": {
     "@jest/globals": "^30.0.4",

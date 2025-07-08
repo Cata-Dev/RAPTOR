@@ -12,17 +12,17 @@ importers:
         specifier: github:catatomik/dijkstra
         version: https://codeload.github.com/catatomik/dijkstra/tar.gz/e3304b71e4bda9aefb04d2d18b32e7aa369a4aed
       '@typegoose/typegoose':
-        specifier: ^12.10.1
-        version: 12.17.0(mongoose@8.16.1)
+        specifier: ^12.17.0
+        version: 12.17.0(mongoose@8.16.2)
       core-js:
-        specifier: ^3.36.0
-        version: 3.43.0
+        specifier: ^3.44.0
+        version: 3.44.0
       mongodb:
-        specifier: ^6.4.0
+        specifier: ^6.17.0
         version: 6.17.0
       mongoose:
-        specifier: ^8.16.1
-        version: 8.16.1
+        specifier: ^8.16.2
+        version: 8.16.2
     devDependencies:
       '@jest/globals':
         specifier: ^30.0.4
@@ -821,8 +821,8 @@ packages:
   convert-source-map@2.0.0:
     resolution: {integrity: sha512-Kvp459HrV2FEJ1CAsi1Ku+MY3kasH19TFykTz2xWmMeq6bk2NU3XXvfJ+Q61m0xktWwt+1HSYf3JZsTms3aRJg==}
 
-  core-js@3.43.0:
-    resolution: {integrity: sha512-N6wEbTTZSYOY2rYAn85CuvWWkCK6QweMn7/4Nr3w+gDBeBhk/x4EJeY6FPo4QzDoJZxVTv8U7CMvgWk6pOHHqA==}
+  core-js@3.44.0:
+    resolution: {integrity: sha512-aFCtd4l6GvAXwVEh3XbbVqJGHDJt0OZRa+5ePGx3LLwi12WfexqQxcsohb2wgsa/92xtl19Hd66G/L+TaAxDMw==}
 
   cross-spawn@7.0.6:
     resolution: {integrity: sha512-uV2QOWP2nWzsy2aMp8aRibhi9dlzF5Hgh5SHaB9OiTGEyDTiJJyx0uy51QXdyWbtAHNua4XJzUKca3OzKUd3vA==}
@@ -1430,8 +1430,8 @@ packages:
       socks:
         optional: true
 
-  mongoose@8.16.1:
-    resolution: {integrity: sha512-Q+0TC+KLdY4SYE+u9gk9pdW1tWu/pl0jusyEkMGTgBoAbvwQdfy4f9IM8dmvCwb/blSfp7IfLkob7v76x6ZGpQ==}
+  mongoose@8.16.2:
+    resolution: {integrity: sha512-52T4XPhDgJL4cqooBsOORzYBH3ddMwABMEF/LV7TgvD2DEKZlnYTc2HF9ch1U2lcKjhE4pQ+WuInfLFJbguGcQ==}
     engines: {node: '>=16.20.1'}
 
   mpath@0.9.0:
@@ -2374,11 +2374,11 @@ snapshots:
       tslib: 2.8.1
     optional: true
 
-  '@typegoose/typegoose@12.17.0(mongoose@8.16.1)':
+  '@typegoose/typegoose@12.17.0(mongoose@8.16.2)':
     dependencies:
       lodash: 4.17.21
       loglevel: 1.9.2
-      mongoose: 8.16.1
+      mongoose: 8.16.2
       reflect-metadata: 0.2.2
       semver: 7.7.2
       tslib: 2.8.1
@@ -2760,7 +2760,7 @@ snapshots:
 
   convert-source-map@2.0.0: {}
 
-  core-js@3.43.0: {}
+  core-js@3.44.0: {}
 
   cross-spawn@7.0.6:
     dependencies:
@@ -3509,7 +3509,7 @@ snapshots:
       bson: 6.10.4
       mongodb-connection-string-url: 3.0.2
 
-  mongoose@8.16.1:
+  mongoose@8.16.2:
     dependencies:
       bson: 6.10.4
       kareem: 2.6.3
