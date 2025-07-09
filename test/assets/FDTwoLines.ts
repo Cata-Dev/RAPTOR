@@ -85,4 +85,4 @@ export default [
       ],
     },
   },
-] satisfies McTestDataset<["footDistance"]>;
+] satisfies McTestDataset<number, [[number, "footDistance"]]>;

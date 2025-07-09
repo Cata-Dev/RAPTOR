@@ -6,13 +6,13 @@ import { TestAsset, TestDataset } from "./asset";
 const MAX_ROUNDS = 6;
 const PARAMS: TestAsset["tests"][number]["params"] = [1, 7, 0, { walkSpeed: 1 * 1_000, maxTransferLength: 100 }, MAX_ROUNDS];
 
-const baseValidateN = (journey: Journey<number, number, []> | null) => {
+const baseValidateN = (journey: Journey<number, number, never, []> | null) => {
   test("Run result is exact (generic null)", () => {
     expect(journey).toBe(null);
   });
 };
 
-const baseValidateVV = (journey: Journey<number, number, []>) => {
+const baseValidateVV = (journey: Journey<number, number, never, []>) => {
   test("Run result is exact (generic VEHICLE+VEHICLE)", () => {
     expect(journey.length).toBe(3);
 
@@ -44,7 +44,7 @@ const baseValidateVV = (journey: Journey<number, number, []>) => {
   });
 };
 
-const baseValidateVF = (journey: Journey<number, number, []>) => {
+const baseValidateVF = (journey: Journey<number, number, never, []>) => {
   test("Run result is exact (generic VEHICLE+FOOT)", () => {
     expect(journey.length).toBe(3);
 

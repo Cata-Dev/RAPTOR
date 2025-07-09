@@ -108,4 +108,4 @@ export default [
       ],
     },
   },
-] satisfies McTestDataset<["bufferTime"]>;
+] satisfies McTestDataset<number, [[number, "bufferTime"]]>;
