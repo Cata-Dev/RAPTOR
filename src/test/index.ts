@@ -130,7 +130,7 @@ async function init() {
       ),
     );
     RAPTORDataInst.secure = true;
-    const RAPTORInstance = new McSharedRAPTOR<["bufferTime"]>(RAPTORDataInst, [bufferTime]);
+    const RAPTORInstance = new McSharedRAPTOR<number, [[number, "bufferTime"]]>(RAPTORDataInst, [bufferTime]);
 
     return { RAPTORInstance, RAPTORDataInst };
   }
