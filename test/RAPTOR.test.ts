@@ -8,7 +8,7 @@ for (const [datasetName, dataset] of [oneLine, twoLines] as const) {
   describe(datasetName, () => {
     for (const [assetName, asset] of Object.entries(dataset)) {
       describe(assetName, () => {
-        const raptorData = new RAPTORData(...(asset.data as TestAsset["data"]));
+        const raptorData = new RAPTORData(...(asset.data as TestAsset<number>["data"]));
         const raptorInstance = new RAPTOR(raptorData);
 
         for (const test of asset.tests) {
