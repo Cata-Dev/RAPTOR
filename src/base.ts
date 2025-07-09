@@ -44,6 +44,24 @@ export default class BaseRAPTOR<
     return (length / this.runParams!.settings.walkSpeed) * 1_000;
   }
 
+  /**
+   * @description Finds the earliest {@link Trip} on route `r` at stop `p` departing after `after`.
+   * @param r Route Id.
+   * @param p Stop Id.
+   * @param after Time after which trips should be considered
+   * @param startTripIndex Trip index to start iterating from
+   * @returns The earliest {@link Trip} on the route (and its index) `r` at the stop `p`, or `null` if no one is catchable.
+   */
+  protected et(route: Route<SI, RI>, p: SI, after: Timestamp, startTripIndex = 0): { tripIndex: number; boardedAt: SI } | null {
+    for (let t = startTripIndex; t < route.trips.length; t++) {
+      // Catchable?
+      const tDep = route.departureTime(t, route.stops.indexOf(p));
+      if (tDep < MAX_SAFE_TIMESTAMP && tDep >= after) return { tripIndex: t, boardedAt: p };
+    }
+
+    return null;
+  }
+
   protected init() {
     this.marked = new Set<SI>();
     this.k = 0;

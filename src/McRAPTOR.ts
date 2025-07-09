@@ -1,20 +1,6 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import BaseRAPTOR from "./base";
-import {
-  Bag,
-  Criterion,
-  Id,
-  IRAPTORData,
-  Journey,
-  JourneyStep,
-  Label,
-  makeJSComparable,
-  MAX_SAFE_TIMESTAMP,
-  Ordered,
-  Route,
-  Stop,
-  Timestamp,
-} from "./structures";
+import { Bag, Criterion, Id, IRAPTORData, Journey, JourneyStep, Label, makeJSComparable, Ordered, Route, Stop, Timestamp } from "./structures";
 
 export default class McRAPTOR<
   V extends Ordered<V>,
@@ -37,24 +23,6 @@ export default class McRAPTOR<
     protected readonly criteria: { [K in keyof CA]: Criterion<SI, RI, CA[K][0], CA[K][1]> },
   ) {
     super(data);
-  }
-
-  /**
-   * @description Finds the earliest {@link Trip} on route `r` at stop `p` departing after `after`.
-   * @param r Route Id.
-   * @param p Stop Id.
-   * @param after Time after which trips should be considered
-   * @param startTripIndex Trip index to start iterating from
-   * @returns The earliest {@link Trip} on the route (and its index) `r` at the stop `p`, or `null` if no one is catchable.
-   */
-  protected et(route: Route<SI, RI>, p: SI, after: Timestamp, startTripIndex = 0): { tripIndex: number; boardedAt: SI } | null {
-    for (let t = startTripIndex; t < route.trips.length; t++) {
-      // Catchable?
-      const tDep = route.departureTime(t, route.stops.indexOf(p));
-      if (tDep < MAX_SAFE_TIMESTAMP && tDep >= after) return { tripIndex: t, boardedAt: p };
-    }
-
-    return null;
   }
 
   /**

@@ -15,14 +15,6 @@ export default class RAPTOR<SI extends Id = Id, RI extends Id = Id, TI extends I
    * @param p Stop Id.
    * @returns The earliest {@link Trip} on the route (and its index) r at the stop p, or null if no one is catchable.
    */
-  protected et(route: Route<SI, RI>, p: SI): { tripIndex: number; boardedAt: SI } | null {
-    for (let t = 0; t < route.trips.length; t++) {
-      // Catchable
-      const tDep = route.departureTime(t, route.stops.indexOf(p));
-      if (tDep < MAX_SAFE_TIMESTAMP && tDep >= (this.multiLabel[this.k - 1].get(p)?.label.time ?? Infinity)) return { tripIndex: t, boardedAt: p };
-    }
-    return null;
-  }
 
   protected init() {
     super.init();
@@ -72,10 +64,12 @@ export default class RAPTOR<SI extends Id = Id, RI extends Id = Id, TI extends I
         }
       }
 
-      if (!t) t = this.et(route, pi);
-      // Catch an earlier trip at pi ?
-      else if ((this.multiLabel[this.k - 1].get(pi)?.label.time ?? Infinity) <= route.departureTime(t.tripIndex, i)) {
-        const newEt = this.et(route, pi);
+      const tpiOld = this.multiLabel[this.k - 1].get(pi)?.label.time ?? Infinity;
+      if (!t) {
+        if (tpiOld < MAX_SAFE_TIMESTAMP) t = this.et(route, pi, tpiOld);
+      } else if (tpiOld <= route.departureTime(t.tripIndex, i)) {
+        // Catch an earlier trip at pi ?
+        const newEt = this.et(route, pi, tpiOld);
         if (t.tripIndex !== newEt?.tripIndex) {
           t = newEt;
         }
