@@ -31,7 +31,7 @@ const baseValidate: TestAsset["tests"][number]["validate"] = (res) => {
   });
 };
 
-const footValidate = (journey: Journey<number, number, []>) => {
+const footValidate = (journey: Journey<number, number, never, []>) => {
   expect(journey.length).toBe(3);
 
   const js0 = journey[0];

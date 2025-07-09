@@ -1,10 +1,10 @@
 import McRAPTOR from "./McRAPTOR";
 import RAPTOR from "./RAPTOR";
-import { Criterion, SharedID, SharedRAPTORData } from "./structures";
+import { Criterion, Ordered, SharedID, SharedRAPTORData } from "./structures";
 
 const convertBackJourneyStep =
-  <C extends string[]>(stops: SharedRAPTORData["stops"]) =>
-  (js: NonNullable<ReturnType<McRAPTOR<C, SharedID, SharedID, number>["getBestJourneys"]>[number]>[number][number]) => {
+  <V extends Ordered<V>, CA extends [V, string][]>(stops: SharedRAPTORData["stops"]) =>
+  (js: NonNullable<ReturnType<McRAPTOR<V, CA, SharedID, SharedID, number>["getBestJourneys"]>[number]>[number][number]) => {
     return {
       ...js,
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
@@ -46,15 +46,15 @@ export class SharedRAPTOR extends RAPTOR<SharedID, SharedID, number> {
   }
 }
 
-export class McSharedRAPTOR<C extends string[]> extends McRAPTOR<C, SharedID, SharedID, number> {
+export class McSharedRAPTOR<V extends Ordered<V>, CA extends [V, string][]> extends McRAPTOR<V, CA, SharedID, SharedID, number> {
   constructor(
     protected readonly data: SharedRAPTORData,
-    criteria: { [K in keyof C]: Criterion<SharedID, SharedID, C> },
+    criteria: { [K in keyof CA]: Criterion<SharedID, SharedID, CA[K][0], CA[K][1]> },
   ) {
     super(data, criteria);
   }
 
-  run(...params: Parameters<McRAPTOR<C, SharedID, SharedID, number>["run"]>) {
+  run(...params: Parameters<McRAPTOR<V, CA, SharedID, SharedID, number>["run"]>) {
     const [ps, pt, ...rem] = params;
 
     const convertedPs = typeof ps === "string" ? ps : this.data.stopPointerFromId(ps);
@@ -66,7 +66,7 @@ export class McSharedRAPTOR<C extends string[]> extends McRAPTOR<C, SharedID, Sh
     super.run(convertedPs, convertedPt, ...rem);
   }
 
-  getBestJourneys(pt: SharedID): ReturnType<McRAPTOR<C, SharedID, SharedID, number>["getBestJourneys"]> {
+  getBestJourneys(pt: SharedID): ReturnType<McRAPTOR<V, CA, SharedID, SharedID, number>["getBestJourneys"]> {
     const convertedPt = typeof pt === "string" ? pt : this.data.stopPointerFromId(pt);
     if (convertedPt === undefined) throw new Error(`Unable to retrieve target stop ${pt}`);
 

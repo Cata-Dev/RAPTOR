@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
-import { Id, IRAPTORData, Journey, JourneyStep, MapRead, MAX_SAFE_TIMESTAMP, Route, Stop, timestamp } from "./structures";
+import { Id, IRAPTORData, Journey, JourneyStep, MapRead, MAX_SAFE_TIMESTAMP, Ordered, Route, Stop, Timestamp } from "./structures";
 
 interface RAPTORRunSettings {
   walkSpeed: number;
@@ -9,13 +9,19 @@ interface RAPTORRunSettings {
 /**
  * @description A RAPTOR instance
  */
-export default class BaseRAPTOR<C extends string[] = [], SI extends Id = Id, RI extends Id = Id, TI extends Id = Id> {
+export default class BaseRAPTOR<
+  SI extends Id = Id,
+  RI extends Id = Id,
+  TI extends Id = Id,
+  V extends Ordered<V> = never,
+  CA extends [V, string][] = [],
+> {
   static defaultRounds = 6;
 
   readonly stops: MapRead<SI, Stop<SI, RI>>;
   readonly routes: MapRead<RI, Route<SI, RI, TI>>;
 
-  protected runParams: { settings: RAPTORRunSettings; ps: SI; pt: SI; departureTime: timestamp; rounds: number } | null = null;
+  protected runParams: { settings: RAPTORRunSettings; ps: SI; pt: SI; departureTime: Timestamp; rounds: number } | null = null;
 
   /** Round k <=> at most k transfers */
   protected k = 0;
@@ -38,6 +44,24 @@ export default class BaseRAPTOR<C extends string[] = [], SI extends Id = Id, RI 
     return (length / this.runParams!.settings.walkSpeed) * 1_000;
   }
 
+  /**
+   * @description Finds the earliest {@link Trip} on route `r` at stop `p` departing after `after`.
+   * @param r Route Id.
+   * @param p Stop Id.
+   * @param after Time after which trips should be considered
+   * @param startTripIndex Trip index to start iterating from
+   * @returns The earliest {@link Trip} on the route (and its index) `r` at the stop `p`, or `null` if no one is catchable.
+   */
+  protected et(route: Route<SI, RI>, p: SI, after: Timestamp, startTripIndex = 0): { tripIndex: number; boardedAt: SI } | null {
+    for (let t = startTripIndex; t < route.trips.length; t++) {
+      // Catchable?
+      const tDep = route.departureTime(t, route.stops.indexOf(p));
+      if (tDep < MAX_SAFE_TIMESTAMP && tDep >= after) return { tripIndex: t, boardedAt: p };
+    }
+
+    return null;
+  }
+
   protected init() {
     this.marked = new Set<SI>();
     this.k = 0;
@@ -48,8 +72,8 @@ export default class BaseRAPTOR<C extends string[] = [], SI extends Id = Id, RI 
     throw new Error("Not implemented");
   }
 
+  // Mark improvement
   protected mark(Q: Map<RI, SI>) {
-    // Mark improvement
     Q.clear();
     for (const p of this.marked) {
       const connectedRoutes = this.stops.get(p)!.connectedRoutes;
@@ -68,6 +92,12 @@ export default class BaseRAPTOR<C extends string[] = [], SI extends Id = Id, RI 
     throw new Error("Not implemented");
   }
 
+  /**
+   * Util method to iterate through transfers and stop when required.
+   * It takes advantage of the **sorting** of transfers by ascending transfer length.
+   * @param transfers Transfers to iterate
+   * @returns An iterator (generator) through transfers
+   */
   protected *validFootPaths(transfers: Stop<SI, RI>["transfers"]) {
     for (const transfer of transfers) {
       if (transfer.length > this.runParams!.settings.maxTransferLength) return;
@@ -81,7 +111,7 @@ export default class BaseRAPTOR<C extends string[] = [], SI extends Id = Id, RI 
     throw new Error("Not implemented");
   }
 
-  run(ps: SI, pt: SI, departureTime: timestamp, settings: RAPTORRunSettings, rounds: number = BaseRAPTOR.defaultRounds) {
+  run(ps: SI, pt: SI, departureTime: Timestamp, settings: RAPTORRunSettings, rounds: number = BaseRAPTOR.defaultRounds) {
     this.runParams = { ps, pt, departureTime, settings, rounds };
 
     this.init();
@@ -114,13 +144,13 @@ export default class BaseRAPTOR<C extends string[] = [], SI extends Id = Id, RI 
     }
   }
 
-  protected traceBackFromStep(from: JourneyStep<SI, RI, C>, initRound: number): Journey<SI, RI, C> {
+  protected traceBackFromStep(from: JourneyStep<SI, RI, V, CA>, initRound: number): Journey<SI, RI, V, CA> {
     if (initRound < 0 || initRound > this.k) throw new Error(`Invalid initRound (${initRound}) provided.`);
 
     let k = initRound;
-    let trace: Journey<SI, RI, C> = [];
+    let trace: Journey<SI, RI, V, CA> = [];
 
-    let previousStep: JourneyStep<SI, RI, C> | null = from;
+    let previousStep: JourneyStep<SI, RI, V, CA> | null = from;
     while (previousStep !== null) {
       trace = ["boardedAt" in previousStep ? { ...previousStep, boardedAt: previousStep.boardedAt[0] } : previousStep, ...trace];
 

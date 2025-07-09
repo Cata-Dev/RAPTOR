@@ -32,13 +32,13 @@ for (const [datasetName, dataset] of [FDOneLine, FDTwoLines] as const) {
   describe(datasetName, () => {
     for (const [assetName, asset] of Object.entries(dataset)) {
       describe(assetName, () => {
-        const sharedRaptorData = SharedRAPTORData.makeFromRawData(...(asset.data as McTestAsset<["footDistance"]>["data"]));
-        const sharedRaptorInstance = new McSharedRAPTOR<["footDistance"]>(sharedRaptorData, [footDistance]);
+        const sharedRaptorData = SharedRAPTORData.makeFromRawData(...(asset.data as McTestAsset<number, [[number, "footDistance"]]>["data"]));
+        const sharedRaptorInstance = new McSharedRAPTOR<number, [[number, "footDistance"]]>(sharedRaptorData, [footDistance]);
 
         for (const test of asset.tests) {
           sharedRaptorInstance.run(...test.params);
           const res = sharedRaptorInstance.getBestJourneys(test.params[1]);
-          test.validate(res as ReturnType<McRAPTOR<["footDistance"], number, number, number>["getBestJourneys"]>);
+          test.validate(res as ReturnType<McRAPTOR<number, [[number, "footDistance"]], number, number, number>["getBestJourneys"]>);
         }
       });
     }
@@ -50,13 +50,13 @@ for (const [datasetName, dataset] of [BTOneLine, BTTwoLines] as const) {
   describe(datasetName, () => {
     for (const [assetName, asset] of Object.entries(dataset)) {
       describe(assetName, () => {
-        const sharedRaptorData = SharedRAPTORData.makeFromRawData(...(asset.data as McTestAsset<["bufferTime"]>["data"]));
-        const sharedRaptorInstance = new McSharedRAPTOR<["bufferTime"]>(sharedRaptorData, [bufferTime]);
+        const sharedRaptorData = SharedRAPTORData.makeFromRawData(...(asset.data as McTestAsset<number, [[number, "bufferTime"]]>["data"]));
+        const sharedRaptorInstance = new McSharedRAPTOR<number, [[number, "bufferTime"]]>(sharedRaptorData, [bufferTime]);
 
         for (const test of asset.tests) {
           sharedRaptorInstance.run(...test.params);
           const res = sharedRaptorInstance.getBestJourneys(test.params[1]);
-          test.validate(res as ReturnType<McRAPTOR<["bufferTime"], number, number, number>["getBestJourneys"]>);
+          test.validate(res as ReturnType<McRAPTOR<number, [[number, "bufferTime"]], number, number, number>["getBestJourneys"]>);
         }
       });
     }

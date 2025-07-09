@@ -1,7 +1,7 @@
 /**
  * A timestamp representation of a Date ; in milliseconds.
  */
-type timestamp = number;
+type Timestamp = number;
 type Id = number | string;
 type LabelType = "DEFAULT" | "DEPARTURE" | "FOOT" | "VEHICLE";
 
@@ -34,7 +34,7 @@ interface Trip<TI extends Id = Id> {
   /**
    * @param times Time of arrival & departure at each stop.
    */
-  times: ArrayRead<[timestamp, timestamp]>;
+  times: ArrayRead<[Timestamp, Timestamp]>;
 }
 
 interface FootPath<SI extends Id> {
@@ -69,13 +69,25 @@ class Route<SI extends Id, RI extends Id, TI extends Id = Id> {
    * @param t Trip index in route.
    * @param p Stop index in route (trip).
    */
-  departureTime(t: number, p: number): timestamp {
+  departureTime(t: number, p: number): Timestamp {
     const time = this.trips.at(t)?.times.at(p)?.[1];
     if (time === undefined) throw new Error(`No departure time for stop at index ${p} in trip at index ${t} (indexes out of bounds?).`);
 
     return time;
   }
 }
+
+/**
+ * Define an order relation
+ */
+type Ordered<T> =
+  | number
+  | {
+      /**
+       * @param compare Compares with another value `other`, returns `< 0` if it's superior to `other`, `0` if equal, `> 0` if inferior
+       */
+      compareOrder(other: T): number;
+    };
 
 interface Comparable<T> {
   /**
@@ -84,45 +96,43 @@ interface Comparable<T> {
   compare(other: T): number | null;
 }
 
-interface Criterion<SI extends Id, RI extends Id, C extends string[], N extends C[number] = C[number]> {
+interface Criterion<SI extends Id, RI extends Id, T extends Ordered<T>, N extends string> {
   name: N;
   /** Usually 0, +/-Infinity or 1 */
-  initialValue: number;
+  initialValue: T;
   update: (
-    prefixJourney: Journey<SI, RI, C>,
-    newJourneyStep: Omit<JourneyStep<SI, RI, C>, "label" | keyof Comparable<never>>,
-    time: timestamp,
+    prefixJourney: Journey<SI, RI, T, [[T, N]]>,
+    newJourneyStep: Omit<JourneyStep<SI, RI, T, [[T, N]]>, "label" | keyof Comparable<never>>,
+    time: Timestamp,
     stop: SI,
-  ) => number;
+  ) => T;
 }
 
 /** A tuple of size N+1 (time + other criteria) */
-class Label<SI extends Id, RI extends Id, C extends string[]> implements Comparable<Label<SI, RI, C>> {
-  protected readonly values: Record<C[number] | "time", number>;
+class Label<SI extends Id, RI extends Id, V extends Ordered<V>, CA extends [V, string][]> implements Comparable<Label<SI, RI, V, CA>> {
+  protected readonly values: Record<CA[number][1], CA[number][0]> & { time: number };
 
   constructor(
-    readonly criteria: { [K in keyof C]: Criterion<SI, RI, C> }, //, K
+    readonly criteria: { [K in keyof CA]: Criterion<SI, RI, CA[K][0], CA[K][1]> }, //, K
     time: number,
   ) {
-    this.values = criteria.reduce<Partial<{ time: timestamp } & Record<C[number], number>>>(
-      (acc, v) => ({ ...acc, [(v as Criterion<SI, RI, C>).name]: v.initialValue }),
-      {
-        time,
-      } as Partial<{ time: timestamp } & Record<C[number], number>>,
-    ) as { time: timestamp } & Record<C[number], number>;
+    this.values = criteria.reduce<Partial<Label<SI, RI, V, CA>["values"]>>((acc, v) => ({ ...acc, [v.name]: v.initialValue }), {
+      time,
+    } as Partial<Label<SI, RI, V, CA>["values"]>) as Label<SI, RI, V, CA>["values"];
   }
 
   get time() {
     return this.values.time;
   }
 
-  value(criterionName: C[number]): number {
-    return this.values[criterionName];
+  value<C extends CA[number]>(criterionName: C[1]): C[0] {
+    return this.values[criterionName] as C[0];
   }
 
-  update(time: number, data: Parameters<Criterion<SI, RI, C>["update"]>) {
-    const updated = new Label<SI, RI, C>(this.criteria, time);
-    for (const c of this.criteria as Criterion<SI, RI, C>[]) updated.values[c.name] = c.update(...data);
+  update(time: number, data: Parameters<Criterion<SI, RI, CA[number][0], CA[number][1]>["update"]>) {
+    const updated = new Label<SI, RI, V, CA>(this.criteria, time);
+    for (const c of this.criteria as Criterion<SI, RI, V, CA[number][1]>[])
+      (updated.values as Record<CA[number][1], CA[number][0]>)[c.name] = c.update(...data);
 
     return updated;
   }
@@ -132,26 +142,41 @@ class Label<SI extends Id, RI extends Id, C extends string[]> implements Compara
    * @param l The label to be compared with
    * @returns `-1` if this label is dominated by {@link l}, `0` if they are equal, `1` otherwise
    */
-  compare(l: Label<SI, RI, C>) {
+  compare(l: Label<SI, RI, V, CA>) {
     let sup: 0 | -1 = 0;
     let inf: 0 | 1 = 0;
     for (const criterionName of Object.keys(this.values) as (keyof typeof this.values)[]) {
-      if (this.values[criterionName] > l.values[criterionName]) sup = -1;
-      if (this.values[criterionName] < l.values[criterionName]) inf = 1;
+      if (
+        typeof this.values[criterionName] === "number"
+          ? this.values[criterionName] > (l.values[criterionName] as number)
+          : this.values[criterionName].compareOrder(l.values[criterionName]) < 0
+      )
+        sup = -1;
+      if (
+        typeof this.values[criterionName] === "number"
+          ? this.values[criterionName] < (l.values[criterionName] as number)
+          : this.values[criterionName].compareOrder(l.values[criterionName]) > 0
+      )
+        inf = 1;
     }
 
     return inf && sup ? null : inf || sup;
   }
 }
 
-type JourneyStep<SI extends Id, RI extends Id, C extends string[], T extends LabelType = LabelType, F extends boolean = false> = Comparable<
-  JourneyStep<SI, RI, C>
-> & {
-  label: Label<SI, RI, C>;
+type JourneyStep<
+  SI extends Id,
+  RI extends Id,
+  V extends Ordered<V>,
+  CA extends [V, string][],
+  T extends LabelType = LabelType,
+  F extends boolean = false,
+> = Comparable<JourneyStep<SI, RI, V, CA>> & {
+  label: Label<SI, RI, V, CA>;
 } & (T extends "VEHICLE"
     ? {
         /** @param boardedAt {@link SI} in {@link RAPTOR.stops} */
-        boardedAt: F extends true ? SI : [SI, JourneyStep<SI, RI, C>];
+        boardedAt: F extends true ? SI : [SI, JourneyStep<SI, RI, V, CA>];
         /** @param route {@link Route} in {@link RAPTOR.routes} */
         route: Route<SI, RI>;
         tripIndex: number;
@@ -159,20 +184,33 @@ type JourneyStep<SI extends Id, RI extends Id, C extends string[], T extends Lab
     : T extends "FOOT"
       ? {
           /** @param boardedAt {@link SI} in {@link RAPTOR.stops} */
-          boardedAt: F extends true ? SI : [SI, JourneyStep<SI, RI, C>];
+          boardedAt: F extends true ? SI : [SI, JourneyStep<SI, RI, V, CA>];
           /** @param transfer {@link FootPath<SI>} in {@link RAPTOR.stops} */
           transfer: FootPath<SI>;
         }
       : // eslint-disable-next-line @typescript-eslint/no-empty-object-type
         {});
 
-function makeJSComparable<SI extends Id, RI extends Id, C extends string[], T extends LabelType = LabelType>(
-  partialJourneyStep: Omit<JourneyStep<SI, RI, C, T>, keyof Comparable<JourneyStep<SI, RI, C>>>,
-): JourneyStep<SI, RI, C, T> {
-  return { ...partialJourneyStep, compare: (js: JourneyStep<SI, RI, C>) => partialJourneyStep.label.compare(js.label) } as JourneyStep<SI, RI, C, T>;
+function makeJSComparable<SI extends Id, RI extends Id, V extends Ordered<V>, CA extends [V, string][], T extends LabelType = LabelType>(
+  partialJourneyStep: Omit<JourneyStep<SI, RI, V, CA, T>, keyof Comparable<JourneyStep<SI, RI, V, CA>>>,
+): JourneyStep<SI, RI, V, CA, T> {
+  return { ...partialJourneyStep, compare: (js: JourneyStep<SI, RI, V, CA>) => partialJourneyStep.label.compare(js.label) } as JourneyStep<
+    SI,
+    RI,
+    V,
+    CA,
+    T
+  >;
 }
 
-type Journey<SI extends Id, RI extends Id, C extends string[]> = JourneyStep<SI, RI, C, "DEPARTURE" | "VEHICLE" | "FOOT", true>[];
+type Journey<SI extends Id, RI extends Id, V extends Ordered<V>, CA extends [V, string][]> = JourneyStep<
+  SI,
+  RI,
+  V,
+  CA,
+  "DEPARTURE" | "VEHICLE" | "FOOT",
+  true
+>[];
 
 /**
  * A bag, i.e. a set using a custom comparison function, keeping only minimal values.
@@ -435,6 +473,7 @@ class RAPTORData<SI extends Id = Id, RI extends Id = Id, TI extends Id = Id> imp
 export {
   ArrayRead,
   Bag,
+  Ordered,
   Criterion,
   FootPath,
   Id,
@@ -449,6 +488,6 @@ export {
   RAPTORData,
   Route,
   Stop,
-  timestamp,
+  Timestamp,
   Trip,
 };

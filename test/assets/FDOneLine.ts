@@ -1,12 +1,12 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { expect, test } from "@jest/globals";
-import { Journey } from "../../src";
+import { Journey, Ordered } from "../../src";
 import { McTestAsset, McTestDataset, TestAsset } from "./asset";
 import oneLine from "./oneLine";
 
 const validateWithoutCriteria =
-  <C extends string[]>(validate: TestAsset["tests"][number]["validate"]) =>
-  (res: Parameters<McTestAsset<C>["tests"][number]["validate"]>[0]): [(Journey<number, number, C> | null)[], typeof res] => {
+  <V extends Ordered<V>, CA extends [V, string][]>(validate: TestAsset["tests"][number]["validate"]) =>
+  (res: Parameters<McTestAsset<V, CA>["tests"][number]["validate"]>[0]): [(Journey<number, number, V, CA> | null)[], typeof res] => {
     let bestTime = Infinity;
     const journeysWithoutCriteria = res.map((journeys) => {
       const bestJourney = journeys.length ? Array.from(journeys).sort((a, b) => a.at(-1)!.label.time - b.at(-1)!.label.time)[0] : null;
@@ -95,6 +95,6 @@ export default [
       ],
     },
   },
-] satisfies McTestDataset<["footDistance"]>;
+] satisfies McTestDataset<number, [[number, "footDistance"]]>;
 
 export { validateWithoutCriteria };
