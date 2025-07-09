@@ -197,7 +197,7 @@ export default class McRAPTOR<
               (alrJourney) =>
                 alrJourney.length === journey.length &&
                 alrJourney.every((js, i) =>
-                  // Deep compare object as it doesn't have the same address
+                  // Deep compare objects as they don't have the same address
                   Object.keys(journey[i]).every(
                     (key) => journey[i][key as keyof Journey<SI, RI, V, CA>[number]] === js[key as keyof Journey<SI, RI, V, CA>[number]],
                   ),
