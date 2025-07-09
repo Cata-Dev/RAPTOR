@@ -22,11 +22,6 @@ const sharedTimeScal: SharedTime<number> = {
 type SharedID = number | SerializedId;
 
 /**
- * Helper type to override type `T` with type `O`
- */
-type Override<T, O> = Omit<T, keyof O> & O;
-
-/**
  * Helper type for viewing-only arrays, with some viewing methods of {@link Array}.
  */
 class ArrayView<T> implements ArrayRead<T> {
@@ -161,15 +156,7 @@ type SerializedId = ReturnType<(typeof SharedRAPTORData)["serializeId"]>;
 // Stop
 //
 
-interface SharedStop {
-  /**
-   * Array of route pointers
-   */
-  connectedRoutes: ArrayView<SharedID>;
-  transfers: ArrayView<FootPathRetriever | FootPath<SharedID>>;
-}
-
-class StopRetriever extends Retriever<PtrType.Stop, Stop<SharedID, SharedID>> implements Override<Stop<SharedID, SharedID>, SharedStop> {
+class StopRetriever extends Retriever<PtrType.Stop, Stop<SharedID, SharedID>> implements Stop<SharedID, SharedID> {
   get id() {
     return this.sDataView[this.ptr];
   }
@@ -230,15 +217,7 @@ class StopRetriever extends Retriever<PtrType.Stop, Stop<SharedID, SharedID>> im
 // Trip
 //
 
-interface SharedTrip<TimeVal> {
-  /**
-   * Length 2 : `[arrival timestamp, departure timestamp]`.
-   * Defined as `[number, number]` to match {@link Trip} interface, but is in fact a `Float64Array`
-   */
-  times: ArrayRead<[TimeVal, TimeVal]>;
-}
-
-class TripRetriever<TimeVal> extends Retriever<PtrType.Route, void> implements Override<Trip<TimeVal>, SharedTrip<TimeVal>> {
+class TripRetriever<TimeVal> extends Retriever<PtrType.Route, void> implements Trip<TimeVal> {
   constructor(
     readonly timeType: SharedTime<TimeVal>,
     ...params: ConstructorParameters<typeof Retriever<PtrType.Route, void>>
@@ -286,17 +265,9 @@ class TripRetriever<TimeVal> extends Retriever<PtrType.Route, void> implements O
 // Route
 //
 
-interface SharedRoute<TimeVal> {
-  /**
-   * Array of stop pointers
-   */
-  stops: ArrayView<SharedID>;
-  trips: ArrayView<Override<Trip<TimeVal, number>, SharedTrip<TimeVal>>>;
-}
-
 class RouteRetriever<TimeVal>
   extends Retriever<PtrType.Route, Route<TimeVal, SharedID, SharedID, number>>
-  implements Override<Route<TimeVal, SharedID, SharedID, number>, SharedRoute<TimeVal>>
+  implements Route<TimeVal, SharedID, SharedID, number>
 {
   constructor(
     readonly timeType: SharedTime<TimeVal>,
@@ -344,7 +315,7 @@ class RouteRetriever<TimeVal>
   }
 
   get trips() {
-    return new ArrayView<Override<Trip<TimeVal, number>, SharedTrip<TimeVal>>>(
+    return new ArrayView<Trip<TimeVal, number>>(
       () => (this._tripsChunkSizes ??= this.tripsChunkSizes).length + (this.attachedData?.trips.length ?? 0),
       (idx) => {
         this._tripsChunkSizes ??= this.tripsChunkSizes;
