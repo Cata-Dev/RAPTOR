@@ -86,7 +86,7 @@ type Ordered<T> =
       /**
        * @param compare Compares with another value `other`, returns `< 0` if it's superior to `other`, `0` if equal, `> 0` if inferior
        */
-      compare(other: T): number;
+      compareOrder(other: T): number;
     };
 
 interface Comparable<T> {
@@ -149,13 +149,13 @@ class Label<SI extends Id, RI extends Id, V extends Ordered<V>, CA extends [V, s
       if (
         typeof this.values[criterionName] === "number"
           ? this.values[criterionName] > (l.values[criterionName] as number)
-          : this.values[criterionName].compare(l.values[criterionName]) < 0
+          : this.values[criterionName].compareOrder(l.values[criterionName]) < 0
       )
         sup = -1;
       if (
         typeof this.values[criterionName] === "number"
           ? this.values[criterionName] < (l.values[criterionName] as number)
-          : this.values[criterionName].compare(l.values[criterionName]) > 0
+          : this.values[criterionName].compareOrder(l.values[criterionName]) > 0
       )
         inf = 1;
     }
