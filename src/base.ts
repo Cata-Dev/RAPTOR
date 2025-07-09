@@ -54,8 +54,8 @@ export default class BaseRAPTOR<
     throw new Error("Not implemented");
   }
 
+  // Mark improvement
   protected mark(Q: Map<RI, SI>) {
-    // Mark improvement
     Q.clear();
     for (const p of this.marked) {
       const connectedRoutes = this.stops.get(p)!.connectedRoutes;
@@ -74,6 +74,12 @@ export default class BaseRAPTOR<
     throw new Error("Not implemented");
   }
 
+  /**
+   * Util method to iterate through transfers and stop when required.
+   * It takes advantage of the **sorting** of transfers by ascending transfer length.
+   * @param transfers Transfers to iterate
+   * @returns An iterator (generator) through transfers
+   */
   protected *validFootPaths(transfers: Stop<SI, RI>["transfers"]) {
     for (const transfer of transfers) {
       if (transfer.length > this.runParams!.settings.maxTransferLength) return;
