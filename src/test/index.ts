@@ -43,10 +43,6 @@ import TBMScheduledRoutesModelInit, { dbTBM_ScheduledRoutes } from "./models/TBM
 import { binarySearch, mapAsync, unpackRefType } from "./utils";
 import { benchmark } from "./utils/benchmark";
 
-// In meters
-const FP_REQ_MAX_LEN = 3_000;
-const FP_RUN_MAX_LEN = 2_000;
-
 async function queryData() {
   console.debug("Querying data...");
   const sourceDB = await initDB("bibm");
@@ -122,13 +118,13 @@ async function queryData() {
   return { dbScheduledRoutes, stops, dbNonScheduledRoutes, TBMSchedulesModel, resultModel };
 }
 
-async function computeRAPTORData({ stops, dbNonScheduledRoutes, dbScheduledRoutes }: Awaited<ReturnType<typeof queryData>>) {
+async function computeRAPTORData({ stops, dbNonScheduledRoutes, dbScheduledRoutes }: Awaited<ReturnType<typeof queryData>>, fpReqLen: number) {
   return [
     TimeScal,
     await mapAsync<(typeof stops)[number], Stop<number, number>>(stops, async ({ id, connectedRoutes }) => ({
       id,
       connectedRoutes,
-      transfers: (await dbNonScheduledRoutes(id, { distance: { $lte: FP_REQ_MAX_LEN } })).map(({ to, distance }) => ({
+      transfers: (await dbNonScheduledRoutes(id, { distance: { $lte: fpReqLen } })).map(({ to, distance }) => ({
         to,
         length: distance,
       })),
@@ -259,6 +255,9 @@ async function insertResults<TimeVal, V extends Ordered<V>, CA extends [V, strin
   // Setup params from command line
   const args = minimist(process.argv);
 
+  const fpReqLen = "fp-req-len" in args ? (args["fp-req-len"] as number) : 3_000;
+  const fpRunLen = "fp-run-len" in args ? (args["fp-run-len"] as number) : 2_000;
+
   let instanceType: "RAPTOR" | "SharedRAPTOR" | "McRAPTOR" | "McSharedRAPTOR";
   if ("t" in args) {
     switch ((args.t as string).toLowerCase()) {
@@ -293,6 +292,8 @@ async function insertResults<TimeVal, V extends Ordered<V>, CA extends [V, strin
   if (criteria.length && instanceType !== "McRAPTOR" && instanceType !== "McSharedRAPTOR")
     console.warn("Got some criteria but instance type is uni-criteria.");
 
+  const saveResults = "save" in args && args.save === true ? true : false;
+
   const b1 = await benchmark(queryData, []);
   const queriedData = b1.lastReturn;
   if (!queriedData) throw new Error("No queried data");
@@ -315,7 +316,7 @@ async function insertResults<TimeVal, V extends Ordered<V>, CA extends [V, strin
       ? (args.pt as number) // Béthanie
       : 3846;
 
-  const b2 = await benchmark(computeRAPTORData, [queriedData]);
+  const b2 = await benchmark(computeRAPTORData, [queriedData, fpReqLen]);
   const rawRAPTORData = b2.lastReturn;
   if (!rawRAPTORData) throw new Error("No raw RAPTOR data");
 
@@ -426,7 +427,7 @@ async function insertResults<TimeVal, V extends Ordered<V>, CA extends [V, strin
 
   const departureTime = (minSchedule + maxSchedule) / 2;
 
-  const settings: RAPTORRunSettings = { walkSpeed: 1.5, maxTransferLength: FP_RUN_MAX_LEN };
+  const settings: RAPTORRunSettings = { walkSpeed: 1.5, maxTransferLength: fpRunLen };
 
   function runRAPTOR() {
     RAPTORInstance.run(ps, pt, departureTime, settings);
@@ -439,10 +440,11 @@ async function insertResults<TimeVal, V extends Ordered<V>, CA extends [V, strin
   const b6 = await benchmark(resultRAPTOR, [], undefined, getResTimes);
   if (!b6.lastReturn) throw new Error(`No best journeys`);
 
-  await benchmark(
-    insertResults<number, number, [] | [[number, "footDistance"]] | [[number, "bufferTime"]] | [[number, "footDistance"], [number, "bufferTime"]]>,
-    [queriedData.resultModel, RAPTORDataInst.timeType, from, { type: LocationType.TBM, id: pt }, departureTime, settings, b6.lastReturn],
-  );
+  if (saveResults)
+    await benchmark(
+      insertResults<number, number, [] | [[number, "footDistance"]] | [[number, "bufferTime"]] | [[number, "footDistance"], [number, "bufferTime"]]>,
+      [queriedData.resultModel, RAPTORDataInst.timeType, from, { type: LocationType.TBM, id: pt }, departureTime, settings, b6.lastReturn],
+    );
 })()
   .then(() => {
     console.log("Main ended");
