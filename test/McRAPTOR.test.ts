@@ -13,7 +13,7 @@ for (const [datasetName, dataset] of [oneLine, twoLines] as const) {
   describe(datasetName, () => {
     for (const [assetName, asset] of Object.entries(dataset)) {
       describe(assetName, () => {
-        const raptorData = new RAPTORData(...(asset.data as TestAsset["data"]));
+        const raptorData = new RAPTORData(...(asset.data as TestAsset<number>["data"]));
         const raptorInstance = new McRAPTOR(raptorData, []);
 
         for (const test of asset.tests) {
@@ -32,8 +32,8 @@ for (const [datasetName, dataset] of [FDOneLine, FDTwoLines] as const) {
   describe(datasetName, () => {
     for (const [assetName, asset] of Object.entries(dataset)) {
       describe(assetName, () => {
-        const raptorData = new RAPTORData(...(asset.data as McTestAsset<number, [[number, "footDistance"]]>["data"]));
-        const raptorInstance = new McRAPTOR<number, [[number, "footDistance"]], number, number, number>(raptorData, [footDistance]);
+        const raptorData = new RAPTORData(...(asset.data as McTestAsset<number, number, [[number, "footDistance"]]>["data"]));
+        const raptorInstance = new McRAPTOR<number, number, [[number, "footDistance"]], number, number, number>(raptorData, [footDistance]);
 
         for (const test of asset.tests) {
           raptorInstance.run(...test.params);
@@ -50,8 +50,8 @@ for (const [datasetName, dataset] of [BTOneLine, BTTwoLines] as const) {
   describe(datasetName, () => {
     for (const [assetName, asset] of Object.entries(dataset)) {
       describe(assetName, () => {
-        const raptorData = new RAPTORData(...(asset.data as McTestAsset<number, [[number, "bufferTime"]]>["data"]));
-        const raptorInstance = new McRAPTOR<number, [[number, "bufferTime"]], number, number, number>(raptorData, [bufferTime]);
+        const raptorData = new RAPTORData(...(asset.data as McTestAsset<number, number, [[number, "bufferTime"]]>["data"]));
+        const raptorInstance = new McRAPTOR<number, number, [[number, "bufferTime"]], number, number, number>(raptorData, [bufferTime]);
 
         for (const test of asset.tests) {
           raptorInstance.run(...test.params);

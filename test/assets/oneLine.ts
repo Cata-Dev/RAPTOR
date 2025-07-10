@@ -1,12 +1,12 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { expect, test } from "@jest/globals";
-import { FootPath, Journey } from "../../src";
+import { FootPath, Journey, TimeScal } from "../../src";
 import { TestAsset, TestDataset } from "./asset";
 
 const MAX_ROUNDS = 6;
-const PARAMS: TestAsset["tests"][number]["params"] = [1, 4, 0, { walkSpeed: 1 * 1_000, maxTransferLength: 100 }, MAX_ROUNDS];
+const PARAMS: TestAsset<number>["tests"][number]["params"] = [1, 4, 0, { walkSpeed: 1 * 1_000, maxTransferLength: 100 }, MAX_ROUNDS];
 
-const baseValidate: TestAsset["tests"][number]["validate"] = (res) => {
+const baseValidate: TestAsset<number>["tests"][number]["validate"] = (res) => {
   test("Run result is exact (generic)", () => {
     expect(res[0]).toBe(null);
     for (let i = 2; i < MAX_ROUNDS; ++i) expect(res[i]).toBe(null);
@@ -31,7 +31,7 @@ const baseValidate: TestAsset["tests"][number]["validate"] = (res) => {
   });
 };
 
-const footValidate = (journey: Journey<number, number, never, []>) => {
+const footValidate = (journey: Journey<number, number, number, never, []>) => {
   expect(journey.length).toBe(3);
 
   const js0 = journey[0];
@@ -61,7 +61,7 @@ const footValidate = (journey: Journey<number, number, never, []>) => {
   expect(js2.transfer.length).toBe(1);
 };
 
-const routes: TestAsset["data"][1] = [
+const routes: TestAsset<number>["data"][2] = [
   [
     1,
     [1, 2, 3, 4],
@@ -96,6 +96,7 @@ export default [
   {
     withoutTransfers: {
       data: [
+        TimeScal,
         [
           { id: 1, connectedRoutes: [1], transfers: [] as FootPath<number>[] },
           { id: 2, connectedRoutes: [1], transfers: [] as FootPath<number>[] },
@@ -113,6 +114,7 @@ export default [
     },
     withSlowTransfers: {
       data: [
+        TimeScal,
         [
           {
             id: 1,
@@ -163,6 +165,7 @@ export default [
     },
     withFastTransfers: {
       data: [
+        TimeScal,
         [
           {
             id: 1,
@@ -213,6 +216,6 @@ export default [
       ],
     },
   },
-] satisfies TestDataset;
+] satisfies TestDataset<number>;
 
 export { MAX_ROUNDS };
