@@ -111,5 +111,4 @@ git_push.sh
 
 # Others
 lib/
-# Outputs
-*.geojson
+docs/
