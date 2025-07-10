@@ -1,42 +1,126 @@
 import { describe, expect, test } from "@jest/globals";
-import { SharedRAPTORData, sharedTimeScal } from "../../src";
+import { SharedRAPTORData, sharedTimeScal, Time } from "../../src";
+import { TestAsset } from "../assets/asset";
 import twoLines from "../assets/twoLines";
 
-const [_, stops, routes] = twoLines[1].withFastTransfers.data;
+const [timeType, stops, routes] = twoLines[1].withFastTransfers.data;
+
+function testStops<TimeVal>(stops: TestAsset<TimeVal>["data"][1], SharedRAPTORDataInst: SharedRAPTORData<TimeVal>) {
+  SharedRAPTORDataInst.secure = true;
+  const sharedStops = Array.from(SharedRAPTORDataInst.stops).sort(([_, a], [__, b]) => (a.id as number) - (b.id as number));
+
+  for (const stop of Array.from(stops).sort((a, b) => a.id - b.id)) {
+    const sharedStopFound = sharedStops.find(([_, sharedStop]) => sharedStop.id === stop.id);
+    expect(sharedStopFound).not.toBe(undefined);
+
+    const stopPtr = SharedRAPTORDataInst.stopPointerFromId(stop.id);
+    if (stopPtr === undefined) throw new Error("Unexpected result");
+    const sharedStopGot = SharedRAPTORDataInst.stops.get(stopPtr);
+    if (sharedStopGot === undefined) throw new Error("Unexpected result");
+    expect(sharedStopGot.id).toBe(stop.id);
+
+    // Connected routes
+    expect(sharedStopGot.connectedRoutes.length).toBe(stop.connectedRoutes.length);
+    for (const connectedRoute of stop.connectedRoutes) {
+      const sharedConnectedRoute = Array.from(sharedStopGot.connectedRoutes).find(
+        (sharedConnectedRoute) => SharedRAPTORDataInst.routes.get(sharedConnectedRoute)?.id === connectedRoute,
+      );
+      expect(sharedConnectedRoute).not.toBe(undefined);
+    }
+
+    // Transfers
+    expect(sharedStopGot.connectedRoutes.length).toBe(stop.connectedRoutes.length);
+    for (const transfer of stop.transfers) {
+      const sharedTransfer = Array.from(sharedStopGot.transfers).find(
+        (sharedTransfer) => SharedRAPTORDataInst.stops.get(sharedTransfer.to)?.id === transfer.to && sharedTransfer.length === transfer.length,
+      );
+      expect(sharedTransfer).not.toBe(undefined);
+    }
+  }
+}
+
+function testRoutes<TimeVal>(timeType: Time<TimeVal>, routes: TestAsset<TimeVal>["data"][2], SharedRAPTORDataInst: SharedRAPTORData<TimeVal>) {
+  SharedRAPTORDataInst.secure = true;
+  const sharedRoutes = Array.from(SharedRAPTORDataInst.routes).sort(([_, a], [__, b]) => (a.id as number) - (b.id as number));
+
+  for (const [id, stops, trips] of Array.from(routes).sort(([idA], [idB]) => idA - idB)) {
+    expect(sharedRoutes.find(([_, sharedRoute]) => sharedRoute.id === id)).not.toBe(undefined);
+
+    const routePtr = SharedRAPTORDataInst.routePointerFromId(id);
+    if (routePtr === undefined) throw new Error("Unexpected result");
+    const sharedRoute = SharedRAPTORDataInst.routes.get(routePtr);
+    if (sharedRoute === undefined) throw new Error("Unexpected result");
+    expect(sharedRoute.id).toBe(id);
+
+    // Stops
+    expect(sharedRoute.stops.length).toBe(stops.length);
+    for (const stop of stops) {
+      const sharedStop = Array.from(sharedRoute.stops).find((sharedStop) => SharedRAPTORDataInst.stops.get(sharedStop)?.id === stop);
+      expect(sharedStop).not.toBe(undefined);
+    }
+
+    // Trips
+    expect(sharedRoute.trips.length).toBe(trips.length);
+    for (const [i, trip] of Array.from(trips).entries()) {
+      // Order is important here
+      const sharedTrip = sharedRoute.trips.at(i);
+      expect(sharedTrip).not.toBe(undefined);
+      expect(sharedTrip?.id).toBe(trip.id);
+
+      for (const [i, time] of Array.from(trip.times).entries()) {
+        // Order is important here
+        const sharedTime = sharedTrip?.times.at(i);
+        if (sharedTime === undefined) throw new Error("Unexpected result");
+        expect(timeType.order(sharedTime[0], time[0])).toBe(0);
+        expect(timeType.order(sharedTime[1], time[1])).toBe(0);
+      }
+    }
+  }
+}
 
 describe("SharedRAPTORData class", () => {
+  const SharedRAPTORDataInst = SharedRAPTORData.makeFromRawData(sharedTimeScal, stops, routes);
   describe("Default instantiation", () => {
-    const SharedRAPTORDataInst = SharedRAPTORData.makeFromRawData(sharedTimeScal, stops, routes);
-
-    const sharedStops = Array.from(SharedRAPTORDataInst.stops).sort(([_, a], [__, b]) => (a.id as number) - (b.id as number));
-    const sharedRoutes = Array.from(SharedRAPTORDataInst.routes).sort(([_, a], [__, b]) => (a.id as number) - (b.id as number));
-
-    test("All stops are present", () => {
-      for (const stop of stops.sort((a, b) => a.id - b.id)) {
-        expect(sharedStops.find(([_, sharedStop]) => sharedStop.id === stop.id)).not.toBe(undefined);
-
-        const stopPtr = SharedRAPTORDataInst.stopPointerFromId(stop.id);
-        if (stopPtr === undefined) throw new Error("Unexpected result");
-        const sharedStop = SharedRAPTORDataInst.stops.get(stopPtr);
-        if (sharedStop === undefined) throw new Error("Unexpected result");
-        expect(sharedStop.id).toBe(stop.id);
-      }
+    test("All stops are present and complete", () => {
+      testStops(stops, SharedRAPTORDataInst);
     });
 
     test("All routes are present", () => {
-      for (const [id] of Array.from(routes).sort(([idA], [idB]) => idA - idB)) {
-        expect(sharedRoutes.find(([_, sharedRoute]) => sharedRoute.id === id)).not.toBe(undefined);
-
-        const routePtr = SharedRAPTORDataInst.routePointerFromId(id);
-        if (routePtr === undefined) throw new Error("Unexpected result");
-        const sharedRoute = SharedRAPTORDataInst.routes.get(routePtr);
-        if (sharedRoute === undefined) throw new Error("Unexpected result");
-        expect(sharedRoute.id).toBe(id);
-      }
+      testRoutes(timeType, routes, SharedRAPTORDataInst);
     });
   });
 
   describe("From internal data instantiation", () => {
-    //
+    const SharedRAPTORDataInstFromInt = SharedRAPTORData.makeFromInternalData(SharedRAPTORDataInst.timeType, SharedRAPTORDataInst.internalData);
+    test("All stops are present and complete", () => {
+      testStops(stops, SharedRAPTORDataInstFromInt);
+    });
+
+    test("All routes are present", () => {
+      testRoutes(timeType, routes, SharedRAPTORDataInstFromInt);
+    });
+  });
+
+  test("ArrayView functional", () => {
+    SharedRAPTORDataInst.secure = true;
+
+    for (const [_, { stops: sharedStops, id: sharedId }] of SharedRAPTORDataInst.routes) {
+      const atZero = sharedStops.at(0);
+      if (atZero === undefined) throw new Error("Unexpected result");
+      expect(() => sharedStops.at(sharedStops.length)).toThrow("Invalid access");
+
+      expect(sharedStops.indexOf(atZero)).toBe(0);
+      expect(sharedStops.indexOf(Infinity)).toBe(-1);
+
+      expect(sharedStops.map((sharedStop) => SharedRAPTORDataInst.stops.get(sharedStop)?.id)).toEqual(
+        Array.from(routes).find(([id]) => id === sharedId)?.[1],
+      );
+
+      expect(sharedStops.reduce((acc, v) => `${acc}-${SharedRAPTORDataInst.stops.get(v)?.id}`, "")).toBe(
+        Array.from(routes)
+          .find(([id]) => id === sharedId)?.[1]
+          ?.reduce((acc, v) => `${acc}-${v}`, ""),
+      );
+    }
   });
 });
