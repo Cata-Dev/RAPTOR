@@ -81,8 +81,9 @@ class ArrayView<T> implements ArrayRead<T> {
   }
 
   reduce<U>(callbackfn: (previousValue: U, currentValue: T, currentIndex: number, array: ArrayRead<T>) => U, initialValue: U): U {
-    for (let idx = 0; idx < this.length; idx++) callbackfn(initialValue, this._at(idx), idx, this);
-    return initialValue;
+    let acc = initialValue;
+    for (let idx = 0; idx < this.length; idx++) acc = callbackfn(acc, this._at(idx), idx, this);
+    return acc;
   }
 }
 
