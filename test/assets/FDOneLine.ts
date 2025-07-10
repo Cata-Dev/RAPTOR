@@ -1,25 +1,27 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { expect, test } from "@jest/globals";
-import { Journey } from "../../src";
+import { Journey, Ordered, Time } from "../../src";
 import { McTestAsset, McTestDataset, TestAsset } from "./asset";
 import oneLine from "./oneLine";
 
 const validateWithoutCriteria =
-  <C extends string[]>(validate: TestAsset["tests"][number]["validate"]) =>
-  (res: Parameters<McTestAsset<C>["tests"][number]["validate"]>[0]): [(Journey<number, number, C> | null)[], typeof res] => {
-    let bestTime = Infinity;
+  <TimeVal, V extends Ordered<V>, CA extends [V, string][]>(timeType: Time<TimeVal>, validate: TestAsset<TimeVal>["tests"][number]["validate"]) =>
+  (
+    res: Parameters<McTestAsset<TimeVal, V, CA>["tests"][number]["validate"]>[0],
+  ): [(Journey<TimeVal, number, number, V, CA> | null)[], typeof res] => {
+    let bestTime: TimeVal = timeType.MAX;
     const journeysWithoutCriteria = res.map((journeys) => {
-      const bestJourney = journeys.length ? Array.from(journeys).sort((a, b) => a.at(-1)!.label.time - b.at(-1)!.label.time)[0] : null;
+      const bestJourney = journeys.length ? Array.from(journeys).sort((a, b) => timeType.order(a.at(-1)!.label.time, b.at(-1)!.label.time))[0] : null;
 
       const jTime = bestJourney?.at(-1)?.label.time;
       if (jTime !== undefined)
-        if (jTime < bestTime) {
+        if (timeType.order(jTime, bestTime) < 0) {
           bestTime = jTime;
         } else return null;
 
       return bestJourney;
     });
-    validate(journeysWithoutCriteria as Parameters<TestAsset["tests"][number]["validate"]>[0]);
+    validate(journeysWithoutCriteria as Parameters<TestAsset<TimeVal>["tests"][number]["validate"]>[0]);
 
     return [journeysWithoutCriteria, res.map((journeys, k) => journeys.filter((j) => j !== journeysWithoutCriteria[k]))];
   };
@@ -33,7 +35,7 @@ export default [
         {
           params: oneLine[1].withoutTransfers.tests[0].params,
           validate: (res) => {
-            validateWithoutCriteria(oneLine[1].withoutTransfers.tests[0].validate)(res);
+            validateWithoutCriteria(oneLine[1].withoutTransfers.data[0], oneLine[1].withoutTransfers.tests[0].validate)(res);
             for (const journeys of res) expect(journeys.length || 1).toBe(1);
             test("Label foot distances are exact", () => {
               for (const journeys of res) if (journeys[0]) expect(journeys[0].at(-1)?.label.value("footDistance")).toBe(0);
@@ -48,7 +50,7 @@ export default [
         {
           params: oneLine[1].withSlowTransfers.tests[0].params,
           validate: (res) => {
-            validateWithoutCriteria(oneLine[1].withSlowTransfers.tests[0].validate);
+            validateWithoutCriteria(oneLine[1].withSlowTransfers.data[0], oneLine[1].withSlowTransfers.tests[0].validate);
             for (const journeys of res) expect(journeys.length || 1).toBe(1);
             test("Label foot distances are exact", () => {
               for (const journeys of res) if (journeys[0]) expect(journeys[0].at(-1)?.label.value("footDistance")).toBe(0);
@@ -58,7 +60,7 @@ export default [
         {
           params: oneLine[1].withSlowTransfers.tests[1].params,
           validate: (res) => {
-            validateWithoutCriteria(oneLine[1].withSlowTransfers.tests[1].validate);
+            validateWithoutCriteria(oneLine[1].withSlowTransfers.data[0], oneLine[1].withSlowTransfers.tests[1].validate);
             for (const journeys of res) expect(journeys.length || 1).toBe(1);
             test("Label foot distances are exact", () => {
               for (const journeys of res) if (journeys[0]) expect(journeys[0].at(-1)?.label.value("footDistance")).toBe(0);
@@ -73,7 +75,10 @@ export default [
         {
           params: oneLine[1].withFastTransfers.tests[0].params,
           validate: (res) => {
-            const [journeysWithoutCriteria, journeysFromCriteria] = validateWithoutCriteria(oneLine[1].withFastTransfers.tests[0].validate)(res);
+            const [journeysWithoutCriteria, journeysFromCriteria] = validateWithoutCriteria(
+              oneLine[1].withFastTransfers.data[0],
+              oneLine[1].withFastTransfers.tests[0].validate,
+            )(res);
 
             test("Label foot distances are exact (same results as RAPTOR)", () => {
               for (const [k, journey] of journeysWithoutCriteria.entries())
@@ -95,6 +100,6 @@ export default [
       ],
     },
   },
-] satisfies McTestDataset<["footDistance"]>;
+] satisfies McTestDataset<number, number, [[number, "footDistance"]]>;
 
 export { validateWithoutCriteria };

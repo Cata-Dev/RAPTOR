@@ -1,35 +1,41 @@
 import { describe, expect, test } from "@jest/globals";
-import { Criterion, JourneyStep, Label, makeJSComparable, Route, footDistance, bufferTime } from "../src";
+import { Criterion, JourneyStep, Label, makeJSComparable, Route, footDistance, bufferTime, TimeScal } from "../src";
 import { setLabelValues } from "./structures/utils";
 
 describe("Foot distance", () => {
-  const footDistanceTyped: Criterion<number, number, ["footDistance"], "footDistance"> = footDistance;
+  const footDistanceTyped: Criterion<number, number, number, number, "footDistance"> = footDistance as Criterion<
+    number,
+    number,
+    number,
+    number,
+    "footDistance"
+  >;
 
   test("Naming", () => {
     expect(footDistanceTyped.name).toBe("footDistance");
   });
 
-  const originJS: JourneyStep<number, number, ["footDistance"], "DEPARTURE"> = makeJSComparable({
-    label: new Label<number, number, ["footDistance"]>([footDistanceTyped], 0),
+  const originJS: JourneyStep<number, number, number, number, [[number, "footDistance"]], "DEPARTURE"> = makeJSComparable({
+    label: new Label<number, number, number, number, [[number, "footDistance"]]>(TimeScal, [footDistanceTyped], 0),
   });
 
-  const vehicleJourneyStep = makeJSComparable<number, number, ["footDistance"], "VEHICLE">({
+  const vehicleJourneyStep = makeJSComparable<number, number, number, number, [[number, "footDistance"]], "VEHICLE">({
     boardedAt: [0, originJS],
     route: new Route(0, [0], [{ id: 0, times: [[1, 1]] }]),
     tripIndex: 0,
-    label: new Label<number, number, ["footDistance"]>([footDistanceTyped], 0),
+    label: new Label<number, number, number, number, [[number, "footDistance"]]>(TimeScal, [footDistanceTyped], 0),
   });
 
-  const footJourneyStep1 = makeJSComparable<number, number, ["footDistance"], "FOOT">({
+  const footJourneyStep1 = makeJSComparable<number, number, number, number, [[number, "footDistance"]], "FOOT">({
     boardedAt: [0, originJS],
     transfer: { to: 1, length: 3 },
-    label: setLabelValues(new Label<number, number, ["footDistance"]>([footDistanceTyped], 0), [4]),
+    label: setLabelValues(new Label<number, number, number, number, [[number, "footDistance"]]>(TimeScal, [footDistanceTyped], 0), [4]),
   });
 
-  const footJourneyStep2 = makeJSComparable<number, number, ["footDistance"], "FOOT">({
+  const footJourneyStep2 = makeJSComparable<number, number, number, number, [[number, "footDistance"]], "FOOT">({
     boardedAt: [0, footJourneyStep1],
     transfer: { to: 0, length: 5 },
-    label: setLabelValues(new Label<number, number, ["footDistance"]>([footDistanceTyped], 0), [6]),
+    label: setLabelValues(new Label<number, number, number, number, [[number, "footDistance"]]>(TimeScal, [footDistanceTyped], 0), [6]),
   });
 
   test("Update with vehicle", () => {
@@ -48,34 +54,34 @@ describe("Foot distance", () => {
 });
 
 describe("Buffer time", () => {
-  const bufferTimeTyped: Criterion<number, number, ["bufferTime"], "bufferTime"> = bufferTime;
+  const bufferTimeTyped: Criterion<number, number, number, number, "bufferTime"> = bufferTime;
 
   test("Naming", () => {
     expect(bufferTimeTyped.name).toBe("bufferTime");
   });
 
-  const originJS: JourneyStep<number, number, ["bufferTime"], "DEPARTURE"> = makeJSComparable({
-    label: new Label<number, number, ["bufferTime"]>([bufferTimeTyped], 0),
+  const originJS: JourneyStep<number, number, number, number, [[number, "bufferTime"]], "DEPARTURE"> = makeJSComparable({
+    label: new Label<number, number, number, number, [[number, "bufferTime"]]>(TimeScal, [bufferTimeTyped], 0),
   });
 
-  const footJourneyStep = makeJSComparable<number, number, ["bufferTime"], "FOOT">({
+  const footJourneyStep = makeJSComparable<number, number, number, number, [[number, "bufferTime"]], "FOOT">({
     boardedAt: [0, originJS],
     transfer: { to: 0, length: 3 },
-    label: new Label<number, number, ["bufferTime"]>([bufferTimeTyped], 0),
+    label: new Label<number, number, number, number, [[number, "bufferTime"]]>(TimeScal, [bufferTimeTyped], 0),
   });
 
-  const vehicleJourneyStep1 = makeJSComparable<number, number, ["bufferTime"], "VEHICLE">({
+  const vehicleJourneyStep1 = makeJSComparable<number, number, number, number, [[number, "bufferTime"]], "VEHICLE">({
     boardedAt: [0, originJS],
     route: new Route(0, [0], [{ id: 0, times: [[4, 5]] }]),
     tripIndex: 0,
-    label: setLabelValues(new Label<number, number, ["bufferTime"]>([bufferTimeTyped], 4), [-5]),
+    label: setLabelValues(new Label<number, number, number, number, [[number, "bufferTime"]]>(TimeScal, [bufferTimeTyped], 4), [-5]),
   });
 
-  const vehicleJourneyStep2 = makeJSComparable<number, number, ["bufferTime"], "VEHICLE">({
+  const vehicleJourneyStep2 = makeJSComparable<number, number, number, number, [[number, "bufferTime"]], "VEHICLE">({
     boardedAt: [0, vehicleJourneyStep1],
     route: new Route(1, [0], [{ id: 0, times: [[7, 8]] }]),
     tripIndex: 0,
-    label: setLabelValues(new Label<number, number, ["bufferTime"]>([bufferTimeTyped], 8), [-4]),
+    label: setLabelValues(new Label<number, number, number, number, [[number, "bufferTime"]]>(TimeScal, [bufferTimeTyped], 8), [-4]),
   });
 
   test("Update with foot transfer", () => {

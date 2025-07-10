@@ -1,18 +1,18 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { describe, expect, test } from "@jest/globals";
-import { FootPath, Journey } from "../../src";
+import { FootPath, Journey, TimeScal } from "../../src";
 import { TestAsset, TestDataset } from "./asset";
 
 const MAX_ROUNDS = 6;
-const PARAMS: TestAsset["tests"][number]["params"] = [1, 7, 0, { walkSpeed: 1 * 1_000, maxTransferLength: 100 }, MAX_ROUNDS];
+const PARAMS: TestAsset<number>["tests"][number]["params"] = [1, 7, 0, { walkSpeed: 1 * 1_000, maxTransferLength: 100 }, MAX_ROUNDS];
 
-const baseValidateN = (journey: Journey<number, number, []> | null) => {
+const baseValidateN = (journey: Journey<number, number, number, never, []> | null) => {
   test("Run result is exact (generic null)", () => {
     expect(journey).toBe(null);
   });
 };
 
-const baseValidateVV = (journey: Journey<number, number, []>) => {
+const baseValidateVV = (journey: Journey<number, number, number, never, []>) => {
   test("Run result is exact (generic VEHICLE+VEHICLE)", () => {
     expect(journey.length).toBe(3);
 
@@ -44,7 +44,7 @@ const baseValidateVV = (journey: Journey<number, number, []>) => {
   });
 };
 
-const baseValidateVF = (journey: Journey<number, number, []>) => {
+const baseValidateVF = (journey: Journey<number, number, number, never, []>) => {
   test("Run result is exact (generic VEHICLE+FOOT)", () => {
     expect(journey.length).toBe(3);
 
@@ -76,7 +76,7 @@ const baseValidateVF = (journey: Journey<number, number, []>) => {
   });
 };
 
-const routes: TestAsset["data"][1] = [
+const routes: TestAsset<number>["data"][2] = [
   [
     1,
     [1, 2, 3, 4],
@@ -135,6 +135,7 @@ export default [
   {
     withoutTransfers: {
       data: [
+        TimeScal,
         [
           { id: 1, connectedRoutes: [1], transfers: [] as FootPath<number>[] },
           { id: 2, connectedRoutes: [1], transfers: [] as FootPath<number>[] },
@@ -159,6 +160,7 @@ export default [
     },
     withSlowTransfers: {
       data: [
+        TimeScal,
         [
           {
             id: 1,
@@ -191,6 +193,7 @@ export default [
     },
     withFastTransfers: {
       data: [
+        TimeScal,
         [
           {
             id: 1,
@@ -337,6 +340,7 @@ export default [
     },
     withMandatoryTransfer: {
       data: [
+        TimeScal,
         [
           { id: 1, connectedRoutes: [1], transfers: [] },
           { id: 2, connectedRoutes: [1], transfers: [] },
@@ -438,6 +442,6 @@ export default [
       ],
     },
   },
-] satisfies TestDataset;
+] satisfies TestDataset<number>;
 
 export { MAX_ROUNDS };
