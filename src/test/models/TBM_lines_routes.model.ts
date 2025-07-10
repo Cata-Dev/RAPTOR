@@ -36,7 +36,7 @@ export class dbTBM_Lines_routes extends TimeStamps {
 
 // for more of what you can do here.
 export default function init(db: Connection): ReturnModelType<typeof dbTBM_Lines_routes> {
-  if (getModelForClass(dbTBM_Lines_routes, { existingConnection: db })) deleteModelWithClass(dbTBM_Lines_routes);
+  deleteModelWithClass(dbTBM_Lines_routes);
 
   return getModelForClass(dbTBM_Lines_routes, {
     existingConnection: db,

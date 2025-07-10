@@ -49,8 +49,8 @@ export class JourneyStepBase {
   /** @description JourneyStep type */
   public type!: JourneyStepType;
 
-  @prop({ required: true })
-  public time!: number;
+  @prop({ required: true, type: () => Schema.Types.Mixed })
+  public time!: unknown;
 }
 
 class Transfer {
@@ -162,8 +162,8 @@ export class dbComputeResult extends TimeStamps {
   })
   public to!: LocationBase;
 
-  @prop({ required: true })
-  departureTime!: Date;
+  @prop({ required: true, type: () => Schema.Types.Mixed })
+  departureTime!: unknown;
 
   @prop({ required: true, type: () => RunSettings })
   settings!: RunSettings;
@@ -173,7 +173,7 @@ export class dbComputeResult extends TimeStamps {
 }
 
 export default function init(db: Connection) {
-  if (getModelForClass(dbComputeResult, { existingConnection: db })) deleteModelWithClass(dbComputeResult);
+  deleteModelWithClass(dbComputeResult);
 
   return getModelForClass(dbComputeResult, {
     existingConnection: db,

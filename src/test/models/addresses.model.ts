@@ -42,7 +42,7 @@ export class dbAddresses extends TimeStamps {
 }
 
 export default function init(db: Connection): ReturnModelType<typeof dbAddresses> {
-  if (getModelForClass(dbAddresses, { existingConnection: db })) deleteModelWithClass(dbAddresses);
+  deleteModelWithClass(dbAddresses);
 
   return getModelForClass(dbAddresses, { existingConnection: db });
 }

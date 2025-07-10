@@ -28,7 +28,7 @@ export class dbFootPaths {
 }
 
 export default function init(db: Connection): ReturnModelType<typeof dbFootPaths> {
-  if (getModelForClass(dbFootPaths, { existingConnection: db })) deleteModelWithClass(dbFootPaths);
+  deleteModelWithClass(dbFootPaths);
 
   return getModelForClass(dbFootPaths, { existingConnection: db });
 }

@@ -36,7 +36,7 @@ export default function init(db: Connection): ReturnModelType<typeof dbTBM_Sched
   TBMSchedulesRtInit(db);
   TBMStopsInit(db);
 
-  if (getModelForClass(dbTBM_ScheduledRoutes, { existingConnection: db })) deleteModelWithClass(dbTBM_ScheduledRoutes);
+  deleteModelWithClass(dbTBM_ScheduledRoutes);
 
   return getModelForClass(dbTBM_ScheduledRoutes, {
     existingConnection: db,

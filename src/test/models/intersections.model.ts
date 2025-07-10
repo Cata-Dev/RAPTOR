@@ -29,7 +29,7 @@ export class dbIntersections extends TimeStamps {
 }
 
 export default function init(db: Connection): ReturnModelType<typeof dbIntersections> {
-  if (getModelForClass(dbIntersections, { existingConnection: db })) deleteModelWithClass(dbIntersections);
+  deleteModelWithClass(dbIntersections);
 
   return getModelForClass(dbIntersections, { existingConnection: db });
 }

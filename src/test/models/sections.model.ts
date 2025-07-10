@@ -53,7 +53,7 @@ export class dbSections extends TimeStamps {
 }
 
 export default function init(db: Connection): ReturnModelType<typeof dbSections> {
-  if (getModelForClass(dbSections, { existingConnection: db })) deleteModelWithClass(dbSections);
+  deleteModelWithClass(dbSections);
 
   return getModelForClass(dbSections, { existingConnection: db });
 }

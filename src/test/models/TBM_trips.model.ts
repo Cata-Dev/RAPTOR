@@ -33,7 +33,7 @@ export class dbTBM_Trips extends TimeStamps {
 }
 
 export default function init(db: Connection): ReturnModelType<typeof dbTBM_Trips> {
-  if (getModelForClass(dbTBM_Trips, { existingConnection: db })) deleteModelWithClass(dbTBM_Trips);
+  deleteModelWithClass(dbTBM_Trips);
 
   return getModelForClass(dbTBM_Trips, { existingConnection: db });
 }
