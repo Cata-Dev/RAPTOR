@@ -11,8 +11,18 @@ import ResultModelInit from "./models/result.model";
 import TBMSchedulesModelInit from "./models/TBM_schedules.model";
 import stopsModelInit, { dbTBM_Stops } from "./models/TBM_stops.model";
 import TBMScheduledRoutesModelInit, { dbTBM_ScheduledRoutes } from "./models/TBMScheduledRoutes.model";
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-import { bufferTime, MAX_SAFE_TIMESTAMP, McRAPTOR, McSharedRAPTOR, RAPTORData, RAPTORRunSettings, SharedID, SharedRAPTORData, Stop } from "../";
+import {
+  bufferTime,
+  MAX_SAFE_TIMESTAMP,
+  McRAPTOR,
+  McSharedRAPTOR,
+  RAPTORData,
+  RAPTORRunSettings,
+  SharedID,
+  SharedRAPTORData,
+  sharedTimeScal,
+  Stop,
+} from "../";
 import { Journey, JourneyStepBase, JourneyStepFoot, JourneyStepType, JourneyStepVehicle, LocationType } from "./models/result.model";
 import { binarySearch, mapAsync, unpackRefType, wait } from "./utils";
 import { benchmark } from "./utils/benchmark";
@@ -102,6 +112,7 @@ async function init() {
 
   async function createRAPTOR() {
     const RAPTORDataInst = SharedRAPTORData.makeFromRawData(
+      sharedTimeScal,
       await mapAsync<(typeof stops)[number], Stop<number, number>>(stops, async ({ id, connectedRoutes }) => ({
         id,
         connectedRoutes,
@@ -130,7 +141,7 @@ async function init() {
       ),
     );
     RAPTORDataInst.secure = true;
-    const RAPTORInstance = new McSharedRAPTOR<number, [[number, "bufferTime"]]>(RAPTORDataInst, [bufferTime]);
+    const RAPTORInstance = new McSharedRAPTOR<number, number, [[number, "bufferTime"]]>(RAPTORDataInst, [bufferTime]);
 
     return { RAPTORInstance, RAPTORDataInst };
   }

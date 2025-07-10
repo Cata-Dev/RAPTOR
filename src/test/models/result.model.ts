@@ -16,7 +16,7 @@ export enum LocationType {
 import { deleteModelWithClass, getModelForClass, prop, type Ref } from "@typegoose/typegoose";
 import { TimeStamps } from "@typegoose/typegoose/lib/defaultClasses";
 import { modelOptions } from "@typegoose/typegoose/lib/modelOptions";
-import { Connection } from "mongoose";
+import { Connection, Schema } from "mongoose";
 import { RAPTORRunSettings } from "../../";
 import { dbAddresses } from "./addresses.model";
 import { dbTBM_Stops } from "./TBM_stops.model";
@@ -92,8 +92,8 @@ export class Criterion {
   @prop({ required: true })
   public name!: string;
 
-  @prop({ required: true })
-  public value!: number;
+  @prop({ required: true, type: () => Schema.Types.Mixed })
+  public value!: unknown;
 }
 
 export class Journey {
