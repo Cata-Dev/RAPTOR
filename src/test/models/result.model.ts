@@ -13,7 +13,7 @@ export enum LocationType {
   Address = "A",
 }
 
-import { deleteModelWithClass, getModelForClass, prop, type Ref } from "@typegoose/typegoose";
+import { deleteModelWithClass, getModelForClass, prop, Severity, type Ref } from "@typegoose/typegoose";
 import { TimeStamps } from "@typegoose/typegoose/lib/defaultClasses";
 import { modelOptions } from "@typegoose/typegoose/lib/modelOptions";
 import { Connection, Schema } from "mongoose";
@@ -96,6 +96,7 @@ export class Criterion {
   public value!: unknown;
 }
 
+@modelOptions({ options: { allowMixed: Severity.ALLOW } })
 export class Journey {
   @prop({
     required: true,
@@ -140,7 +141,7 @@ export function isLocationAddress(loc: LocationBase): loc is LocationAddress {
   return loc.type === LocationType.Address;
 }
 
-@modelOptions({ options: { customName: "results" } })
+@modelOptions({ options: { customName: "results", allowMixed: Severity.ALLOW } })
 export class dbComputeResult extends TimeStamps {
   @prop({
     required: true,
