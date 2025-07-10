@@ -1,21 +1,21 @@
 import { McRAPTOR, Ordered, RAPTOR, RAPTORData } from "../../src";
 
-interface TestAsset {
-  data: ConstructorParameters<typeof RAPTORData<number, number, number>>;
+interface TestAsset<TimeVal> {
+  data: ConstructorParameters<typeof RAPTORData<TimeVal, number, number, number>>;
   tests: {
-    params: Parameters<RAPTOR<number, number, number>["run"]>;
-    validate: (res: ReturnType<RAPTOR<number, number, number>["getBestJourneys"]>) => void;
+    params: Parameters<RAPTOR<TimeVal, number, number, number>["run"]>;
+    validate: (res: ReturnType<RAPTOR<TimeVal, number, number, number>["getBestJourneys"]>) => void;
   }[];
 }
 
-type TestDataset = [string, Record<string, TestAsset>];
+type TestDataset<TimeVal> = [string, Record<string, TestAsset<TimeVal>>];
 
-interface McTestAsset<V extends Ordered<V>, CA extends [V, string][]> {
-  data: ConstructorParameters<typeof RAPTORData<number, number, number>>;
+interface McTestAsset<TimeVal, V extends Ordered<V>, CA extends [V, string][]> {
+  data: TestAsset<TimeVal>["data"];
   tests: {
-    params: Parameters<McRAPTOR<V, CA, number, number, number>["run"]>;
-    validate: (res: ReturnType<McRAPTOR<V, CA, number, number, number>["getBestJourneys"]>) => void;
+    params: Parameters<McRAPTOR<TimeVal, V, CA, number, number, number>["run"]>;
+    validate: (res: ReturnType<McRAPTOR<TimeVal, V, CA, number, number, number>["getBestJourneys"]>) => void;
   }[];
 }
 
-type McTestDataset<V extends Ordered<V>, CA extends [V, string][]> = [string, Record<string, McTestAsset<V, CA>>];
+type McTestDataset<TimeVal, V extends Ordered<V>, CA extends [V, string][]> = [string, Record<string, McTestAsset<TimeVal, V, CA>>];

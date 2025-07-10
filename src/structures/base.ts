@@ -1,7 +1,5 @@
-/**
- * A timestamp representation of a Date ; in milliseconds.
- */
-type Timestamp = number;
+import { Time } from "./time";
+
 type Id = number | string;
 type LabelType = "DEFAULT" | "DEPARTURE" | "FOOT" | "VEHICLE";
 
@@ -29,12 +27,12 @@ interface MapRead<K, V> {
 /**
  * @description A Trip, i.e. a succession of stop times.
  */
-interface Trip<TI extends Id = Id> {
+interface Trip<TimeVal, TI extends Id = Id> {
   id: TI;
   /**
    * @param times Time of arrival & departure at each stop.
    */
-  times: ArrayRead<[Timestamp, Timestamp]>;
+  times: ArrayRead<[TimeVal, TimeVal]>;
 }
 
 interface FootPath<SI extends Id> {
@@ -54,14 +52,14 @@ interface Stop<SI extends Id, RI extends Id> {
 /**
  * @description A Route, i.e. a succession of geographical specific points (stops) alongside with their corresponding operated trips.
  */
-class Route<SI extends Id, RI extends Id, TI extends Id = Id> {
+class Route<TimeVal, SI extends Id, RI extends Id, TI extends Id = Id> {
   /**
    * @description Creates a new Route. Note that stops and trips are linked : they are cross-connected.
    */
   constructor(
     readonly id: RI,
     readonly stops: ArrayRead<SI>,
-    readonly trips: ArrayRead<Trip<TI>>,
+    readonly trips: ArrayRead<Trip<TimeVal, TI>>,
   ) {}
 
   /**
@@ -69,7 +67,7 @@ class Route<SI extends Id, RI extends Id, TI extends Id = Id> {
    * @param t Trip index in route.
    * @param p Stop index in route (trip).
    */
-  departureTime(t: number, p: number): Timestamp {
+  departureTime(t: number, p: number): TimeVal {
     const time = this.trips.at(t)?.times.at(p)?.[1];
     if (time === undefined) throw new Error(`No departure time for stop at index ${p} in trip at index ${t} (indexes out of bounds?).`);
 
@@ -96,29 +94,32 @@ interface Comparable<T> {
   compare(other: T): number | null;
 }
 
-interface Criterion<SI extends Id, RI extends Id, T extends Ordered<T>, N extends string> {
+interface Criterion<TimeVal, SI extends Id, RI extends Id, T extends Ordered<T>, N extends string> {
   name: N;
   /** Usually 0, +/-Infinity or 1 */
   initialValue: T;
   update: (
-    prefixJourney: Journey<SI, RI, T, [[T, N]]>,
-    newJourneyStep: Omit<JourneyStep<SI, RI, T, [[T, N]]>, "label" | keyof Comparable<never>>,
-    time: Timestamp,
+    prefixJourney: Journey<TimeVal, SI, RI, T, [[T, N]]>,
+    newJourneyStep: Omit<JourneyStep<TimeVal, SI, RI, T, [[T, N]]>, "label" | keyof Comparable<never>>,
+    time: TimeVal,
     stop: SI,
   ) => T;
 }
 
 /** A tuple of size N+1 (time + other criteria) */
-class Label<SI extends Id, RI extends Id, V extends Ordered<V>, CA extends [V, string][]> implements Comparable<Label<SI, RI, V, CA>> {
-  protected readonly values: Record<CA[number][1], CA[number][0]> & { time: number };
+class Label<TimeVal, SI extends Id, RI extends Id, V extends Ordered<V>, CA extends [V, string][]>
+  implements Comparable<Label<TimeVal, SI, RI, V, CA>>
+{
+  protected readonly values: Record<CA[number][1], CA[number][0]> & { time: TimeVal };
 
   constructor(
-    readonly criteria: { [K in keyof CA]: Criterion<SI, RI, CA[K][0], CA[K][1]> }, //, K
-    time: number,
+    protected readonly timeType: Time<TimeVal>,
+    readonly criteria: { [K in keyof CA]: Criterion<TimeVal, SI, RI, CA[K][0], CA[K][1]> }, //, K
+    time: TimeVal,
   ) {
-    this.values = criteria.reduce<Partial<Label<SI, RI, V, CA>["values"]>>((acc, v) => ({ ...acc, [v.name]: v.initialValue }), {
+    this.values = criteria.reduce<Partial<Label<TimeVal, SI, RI, V, CA>["values"]>>((acc, v) => ({ ...acc, [v.name]: v.initialValue }), {
       time,
-    } as Partial<Label<SI, RI, V, CA>["values"]>) as Label<SI, RI, V, CA>["values"];
+    } as Partial<Label<TimeVal, SI, RI, V, CA>["values"]>) as Label<TimeVal, SI, RI, V, CA>["values"];
   }
 
   get time() {
@@ -129,9 +130,9 @@ class Label<SI extends Id, RI extends Id, V extends Ordered<V>, CA extends [V, s
     return this.values[criterionName] as C[0];
   }
 
-  update(time: number, data: Parameters<Criterion<SI, RI, CA[number][0], CA[number][1]>["update"]>) {
-    const updated = new Label<SI, RI, V, CA>(this.criteria, time);
-    for (const c of this.criteria as Criterion<SI, RI, V, CA[number][1]>[])
+  update(time: TimeVal, data: Parameters<Criterion<TimeVal, SI, RI, CA[number][0], CA[number][1]>["update"]>) {
+    const updated = new Label<TimeVal, SI, RI, V, CA>(this.timeType, this.criteria, time);
+    for (const c of this.criteria as Criterion<TimeVal, SI, RI, V, CA[number][1]>[])
       (updated.values as Record<CA[number][1], CA[number][0]>)[c.name] = c.update(...data);
 
     return updated;
@@ -142,7 +143,7 @@ class Label<SI extends Id, RI extends Id, V extends Ordered<V>, CA extends [V, s
    * @param l The label to be compared with
    * @returns `-1` if this label is dominated by {@link l}, `0` if they are equal, `1` otherwise
    */
-  compare(l: Label<SI, RI, V, CA>) {
+  compare(l: Label<TimeVal, SI, RI, V, CA>) {
     let sup: 0 | -1 = 0;
     let inf: 0 | 1 = 0;
     for (const criterionName of Object.keys(this.values) as (keyof typeof this.values)[]) {
@@ -165,36 +166,38 @@ class Label<SI extends Id, RI extends Id, V extends Ordered<V>, CA extends [V, s
 }
 
 type JourneyStep<
+  TimeVal,
   SI extends Id,
   RI extends Id,
   V extends Ordered<V>,
   CA extends [V, string][],
   T extends LabelType = LabelType,
   F extends boolean = false,
-> = Comparable<JourneyStep<SI, RI, V, CA>> & {
-  label: Label<SI, RI, V, CA>;
+> = Comparable<JourneyStep<TimeVal, SI, RI, V, CA>> & {
+  label: Label<TimeVal, SI, RI, V, CA>;
 } & (T extends "VEHICLE"
     ? {
         /** @param boardedAt {@link SI} in {@link RAPTOR.stops} */
-        boardedAt: F extends true ? SI : [SI, JourneyStep<SI, RI, V, CA>];
+        boardedAt: F extends true ? SI : [SI, JourneyStep<TimeVal, SI, RI, V, CA>];
         /** @param route {@link Route} in {@link RAPTOR.routes} */
-        route: Route<SI, RI>;
+        route: Route<TimeVal, SI, RI>;
         tripIndex: number;
       }
     : T extends "FOOT"
       ? {
           /** @param boardedAt {@link SI} in {@link RAPTOR.stops} */
-          boardedAt: F extends true ? SI : [SI, JourneyStep<SI, RI, V, CA>];
+          boardedAt: F extends true ? SI : [SI, JourneyStep<TimeVal, SI, RI, V, CA>];
           /** @param transfer {@link FootPath<SI>} in {@link RAPTOR.stops} */
           transfer: FootPath<SI>;
         }
       : // eslint-disable-next-line @typescript-eslint/no-empty-object-type
         {});
 
-function makeJSComparable<SI extends Id, RI extends Id, V extends Ordered<V>, CA extends [V, string][], T extends LabelType = LabelType>(
-  partialJourneyStep: Omit<JourneyStep<SI, RI, V, CA, T>, keyof Comparable<JourneyStep<SI, RI, V, CA>>>,
-): JourneyStep<SI, RI, V, CA, T> {
-  return { ...partialJourneyStep, compare: (js: JourneyStep<SI, RI, V, CA>) => partialJourneyStep.label.compare(js.label) } as JourneyStep<
+function makeJSComparable<TimeVal, SI extends Id, RI extends Id, V extends Ordered<V>, CA extends [V, string][], T extends LabelType = LabelType>(
+  partialJourneyStep: Omit<JourneyStep<TimeVal, SI, RI, V, CA, T>, keyof Comparable<JourneyStep<TimeVal, SI, RI, V, CA>>>,
+): JourneyStep<TimeVal, SI, RI, V, CA, T> {
+  return { ...partialJourneyStep, compare: (js: JourneyStep<TimeVal, SI, RI, V, CA>) => partialJourneyStep.label.compare(js.label) } as JourneyStep<
+    TimeVal,
     SI,
     RI,
     V,
@@ -203,7 +206,8 @@ function makeJSComparable<SI extends Id, RI extends Id, V extends Ordered<V>, CA
   >;
 }
 
-type Journey<SI extends Id, RI extends Id, V extends Ordered<V>, CA extends [V, string][]> = JourneyStep<
+type Journey<TimeVal, SI extends Id, RI extends Id, V extends Ordered<V>, CA extends [V, string][]> = JourneyStep<
+  TimeVal,
   SI,
   RI,
   V,
@@ -357,24 +361,27 @@ class Bag<T extends Comparable<T>> {
   }
 }
 
-interface IRAPTORData<SI extends Id = Id, RI extends Id = Id, TI extends Id = Id> {
+interface IRAPTORData<TimeVal, SI extends Id = Id, RI extends Id = Id, TI extends Id = Id> {
+  readonly timeType: Time<TimeVal>;
   readonly stops: MapRead<SI, Stop<SI, RI>>;
-  readonly routes: MapRead<RI, Route<SI, RI, TI>>;
+  readonly routes: MapRead<RI, Route<TimeVal, SI, RI, TI>>;
   attachData: (...args: never[]) => void;
 }
 
-const MAX_SAFE_TIMESTAMP = 8_640_000_000_000_000;
-
-class RAPTORData<SI extends Id = Id, RI extends Id = Id, TI extends Id = Id> implements IRAPTORData<SI, RI, TI> {
+class RAPTORData<TimeVal, SI extends Id = Id, RI extends Id = Id, TI extends Id = Id> implements IRAPTORData<TimeVal, SI, RI, TI> {
   readonly _stops: MapRead<SI, Stop<SI, RI>>;
-  readonly _routes: MapRead<RI, Route<SI, RI, TI>>;
+  readonly _routes: MapRead<RI, Route<TimeVal, SI, RI, TI>>;
   protected attachedStops: MapRead<SI, Stop<SI, RI>> = new Map();
-  protected attachedRoutes: MapRead<RI, Route<SI, RI, TI>> = new Map();
+  protected attachedRoutes: MapRead<RI, Route<TimeVal, SI, RI, TI>> = new Map();
 
   /**
    * @description Creates a new RAPTORData instance for a defined network.
    */
-  constructor(stops: ArrayRead<Stop<SI, RI>>, routes: ArrayRead<ConstructorParameters<typeof Route<SI, RI, TI>>>) {
+  constructor(
+    readonly timeType: Time<TimeVal>,
+    stops: ArrayRead<Stop<SI, RI>>,
+    routes: ArrayRead<ConstructorParameters<typeof Route<TimeVal, SI, RI, TI>>>,
+  ) {
     this._stops = new Map(
       stops.map(({ id, connectedRoutes, transfers }) => [
         id,
@@ -399,8 +406,8 @@ class RAPTORData<SI extends Id = Id, RI extends Id = Id, TI extends Id = Id> imp
 
   get stops() {
     return {
-      get: (key) => this.getStop(key),
-      [Symbol.iterator]: function* (this: RAPTORData<SI, RI, TI>) {
+      get: (key: SI) => this.getStop(key),
+      [Symbol.iterator]: function* (this: RAPTORData<TimeVal, SI, RI, TI>) {
         const seen = new Set<SI>();
 
         for (const [k] of this._stops) {
@@ -418,7 +425,7 @@ class RAPTORData<SI extends Id = Id, RI extends Id = Id, TI extends Id = Id> imp
 
         return undefined;
       }.bind(this),
-    } satisfies IRAPTORData<SI, RI, TI>["stops"];
+    };
   }
 
   protected getRoute(key: RI) {
@@ -427,7 +434,7 @@ class RAPTORData<SI extends Id = Id, RI extends Id = Id, TI extends Id = Id> imp
     if (!original && !attached) return undefined;
 
     // Merge data
-    return new Route<SI, RI, TI>(
+    return new Route<TimeVal, SI, RI, TI>(
       key,
       [...(original?.stops ?? []), ...(attached?.stops ?? [])],
       [...(original?.trips ?? []), ...(attached?.trips ?? [])],
@@ -437,34 +444,34 @@ class RAPTORData<SI extends Id = Id, RI extends Id = Id, TI extends Id = Id> imp
   get routes() {
     return {
       get: (key: RI) => this.getRoute(key),
-      [Symbol.iterator]: function* (this: RAPTORData<SI, RI, TI>) {
+      [Symbol.iterator]: function* (this: RAPTORData<TimeVal, SI, RI, TI>) {
         const seen = new Set<RI>();
 
         for (const [k] of this._routes) {
           // No need to check in `seen` : considering no duplication inside `this._routes`
 
           // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-          yield [k, this.getRoute(k)!] satisfies [RI, Route<SI, RI, TI>];
+          yield [k, this.getRoute(k)!] satisfies [RI, Route<TimeVal, SI, RI, TI>];
           seen.add(k);
         }
 
         for (const [k, v] of this.attachedRoutes) {
           if (seen.has(k)) continue;
 
-          yield [k, v] satisfies [RI, Route<SI, RI, TI>];
+          yield [k, v] satisfies [RI, Route<TimeVal, SI, RI, TI>];
           // No need to add to `seen` : considering no duplication inside `attachedRoutes`
         }
 
         return undefined;
       }.bind(this),
-    } satisfies IRAPTORData<SI, RI, TI>["routes"];
+    };
   }
 
   /**
    * @description Attach additional data that can be edited at any time.
    * Does not handle duplicate data.
    */
-  attachData(stops: ArrayRead<Stop<SI, RI>>, routes: ArrayRead<ConstructorParameters<typeof Route<SI, RI, TI>>>) {
+  attachData(stops: ArrayRead<Stop<SI, RI>>, routes: ArrayRead<ConstructorParameters<typeof Route<TimeVal, SI, RI, TI>>>) {
     this.attachedStops = new Map(stops.map((s) => [s.id, s]));
     this.attachedRoutes = new Map(routes.map(([rId, stopsIds, trips]) => [rId, new Route(rId, stopsIds, trips)] as const));
   }
@@ -484,10 +491,8 @@ export {
   LabelType,
   makeJSComparable,
   MapRead,
-  MAX_SAFE_TIMESTAMP,
   RAPTORData,
   Route,
   Stop,
-  Timestamp,
   Trip,
 };

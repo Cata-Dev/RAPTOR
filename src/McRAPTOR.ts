@@ -1,26 +1,27 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import BaseRAPTOR from "./base";
-import { Bag, Criterion, Id, IRAPTORData, Journey, JourneyStep, Label, makeJSComparable, Ordered, Route, Stop, Timestamp } from "./structures";
+import { Bag, Criterion, Id, IRAPTORData, Journey, JourneyStep, Label, makeJSComparable, Ordered, Route, Stop } from "./structures";
 
 export default class McRAPTOR<
+  TimeVal,
   V extends Ordered<V>,
   CA extends [V, string][],
   SI extends Id = Id,
   RI extends Id = Id,
   TI extends Id = Id,
-> extends BaseRAPTOR<SI, RI, TI, V, CA> {
+> extends BaseRAPTOR<TimeVal, SI, RI, TI, V, CA> {
   /** @description A {@link Label} Bags_i(SI) stores earliest known arrival times and best values for criteria at stop `SI` with up to `i` trips. */
-  protected bags: Map<SI, Bag<JourneyStep<SI, RI, V, CA>>>[] = [];
+  protected bags: Map<SI, Bag<JourneyStep<TimeVal, SI, RI, V, CA>>>[] = [];
 
   // For target pruning
-  protected Bpt: Bag<JourneyStep<SI, RI, V, CA>> | null = null;
+  protected Bpt: Bag<JourneyStep<TimeVal, SI, RI, V, CA>> | null = null;
 
   /**
    * @description Creates a new McRAPTOR instance for a defined network and a set of {@link criteria}.
    */
   constructor(
-    data: IRAPTORData<SI, RI, TI>,
-    protected readonly criteria: { [K in keyof CA]: Criterion<SI, RI, CA[K][0], CA[K][1]> },
+    data: IRAPTORData<TimeVal, SI, RI, TI>,
+    protected readonly criteria: { [K in keyof CA]: Criterion<TimeVal, SI, RI, CA[K][0], CA[K][1]> },
   ) {
     super(data);
   }
@@ -34,15 +35,15 @@ export default class McRAPTOR<
    * @param cb A callback taking any new feasible journey step
    */
   protected forEachNDEt(
-    route: Route<SI, RI, TI>,
+    route: Route<TimeVal, SI, RI, TI>,
     stop: SI,
     stopIndex: number,
-    fromJourneyStep: JourneyStep<SI, RI, V, CA>,
-    cb: (newJourneyStep: JourneyStep<SI, RI, V, CA, "VEHICLE">) => void,
+    fromJourneyStep: JourneyStep<TimeVal, SI, RI, V, CA>,
+    cb: (newJourneyStep: JourneyStep<TimeVal, SI, RI, V, CA, "VEHICLE">) => void,
   ) {
     const backTrace = this.traceBackFromStep(fromJourneyStep, this.k);
     let t = this.et(route, stop, fromJourneyStep.label.time);
-    const previousLabels: Label<SI, RI, V, CA>[] = [];
+    const previousLabels: Label<TimeVal, SI, RI, V, CA>[] = [];
     while (t) {
       const tArr = route.trips.at(t.tripIndex)!.times.at(stopIndex)![0];
       const partialJourneyStep = {
@@ -50,7 +51,12 @@ export default class McRAPTOR<
         route,
         tripIndex: t.tripIndex,
       };
-      const label = fromJourneyStep.label.update(tArr, [backTrace as Journey<SI, RI, V, [[V, CA[number][1]]]>, partialJourneyStep, tArr, stop]);
+      const label = fromJourneyStep.label.update(tArr, [
+        backTrace as Journey<TimeVal, SI, RI, V, [[V, CA[number][1]]]>,
+        partialJourneyStep,
+        tArr,
+        stop,
+      ]);
       if (previousLabels.some((previousLabel) => (label.compare(previousLabel) ?? 2) <= 0))
         // New label is dominated, stop looking for earliest catchable trips
         break;
@@ -72,15 +78,15 @@ export default class McRAPTOR<
     super.init();
 
     // Re-initialization
-    this.bags = Array.from({ length: this.runParams!.rounds }, () => new Map<SI, Bag<JourneyStep<SI, RI, V, CA>>>());
+    this.bags = Array.from({ length: this.runParams!.rounds }, () => new Map<SI, Bag<JourneyStep<TimeVal, SI, RI, V, CA>>>());
 
     // Initialization
     for (const [stopId] of this.stops) {
-      this.bags[0].set(stopId, new Bag<JourneyStep<SI, RI, V, CA>>());
+      this.bags[0].set(stopId, new Bag<JourneyStep<TimeVal, SI, RI, V, CA>>());
     }
     this.bags[0].get(this.runParams!.ps)!.add(
       makeJSComparable({
-        label: new Label(this.criteria, this.runParams!.departureTime),
+        label: new Label(this.time, this.criteria, this.runParams!.departureTime),
       }),
     );
   }
@@ -96,22 +102,22 @@ export default class McRAPTOR<
     }
   }
 
-  protected traverseRoute(route: Route<SI, RI, TI>, stop: SI): void {
-    let RouteBag = new Bag<JourneyStep<SI, RI, V, CA, "VEHICLE">>();
+  protected traverseRoute(route: Route<TimeVal, SI, RI, TI>, stop: SI): void {
+    let RouteBag = new Bag<JourneyStep<TimeVal, SI, RI, V, CA, "VEHICLE">>();
 
     for (let i = route.stops.indexOf(stop); i < route.stops.length; i++) {
       const pi = route.stops.at(i)!;
 
       // Step 1: update route labels w.r.t. current stop pi
       // Need to use a temporary bag, otherwise updating makes the bag incoherent and comparison occurs on incomparable journey steps (they are not at the same stop)
-      const RouteBagPi = new Bag<JourneyStep<SI, RI, V, CA, "VEHICLE">>();
+      const RouteBagPi = new Bag<JourneyStep<TimeVal, SI, RI, V, CA, "VEHICLE">>();
       for (const journeyStep of RouteBag) {
         const tArr = route.trips.at(journeyStep.tripIndex)!.times.at(i)![0];
         RouteBagPi.addOnly(
           makeJSComparable({
             ...journeyStep,
             label: journeyStep.label.update(tArr, [
-              this.traceBackFromStep(journeyStep.boardedAt[1], this.k) as Journey<SI, RI, V, [[V, CA[number][1]]]>,
+              this.traceBackFromStep(journeyStep.boardedAt[1], this.k) as Journey<TimeVal, SI, RI, V, [[V, CA[number][1]]]>,
               { ...journeyStep },
               tArr,
               pi,
@@ -124,7 +130,7 @@ export default class McRAPTOR<
 
       // Step 2: non-dominated merge of route bag to current round stop bag
       const Bpi = this.bags[this.k].get(pi)!;
-      const { added } = Bpi.merge(RouteBag as Bag<JourneyStep<SI, RI, V, CA>>);
+      const { added } = Bpi.merge(RouteBag as Bag<JourneyStep<TimeVal, SI, RI, V, CA>>);
       if (
         added > 0 &&
         // Target pruning, don't mark if all labels are worse than any of the target
@@ -158,15 +164,15 @@ export default class McRAPTOR<
       for (const transfer of this.validFootPaths(stop.transfers)) {
         if (transfer.to === stopId) continue;
 
-        const arrivalTime: Timestamp = pJourneyStep.label.time + this.walkDuration(transfer.length);
+        const arrivalTime: TimeVal = this.time.plusScal(pJourneyStep.label.time, this.walkDuration(transfer.length));
 
         const Bpto = this.bags[this.k].get(transfer.to)!;
         const { added } = Bpto.add(
-          makeJSComparable<SI, RI, V, CA, "FOOT">({
+          makeJSComparable<TimeVal, SI, RI, V, CA, "FOOT">({
             boardedAt: [stopId, pJourneyStep],
             transfer,
             label: pJourneyStep.label.update(arrivalTime, [
-              pBackTrace as Journey<SI, RI, V, [[V, CA[number][1]]]>,
+              pBackTrace as Journey<TimeVal, SI, RI, V, [[V, CA[number][1]]]>,
               { boardedAt: [stopId, pJourneyStep], transfer },
               arrivalTime,
               transfer.to,
@@ -183,8 +189,8 @@ export default class McRAPTOR<
     }
   }
 
-  getBestJourneys(pt: SI): Journey<SI, RI, V, CA>[][] {
-    return Array.from({ length: this.bags.length }, (_, k) => k).reduce<Journey<SI, RI, V, CA>[][]>(
+  getBestJourneys(pt: SI): Journey<TimeVal, SI, RI, V, CA>[][] {
+    return Array.from({ length: this.bags.length }, (_, k) => k).reduce<Journey<TimeVal, SI, RI, V, CA>[][]>(
       (acc, k) => {
         const ptJourneySteps = this.bags[k].get(pt);
         if (!ptJourneySteps) return acc;
@@ -199,7 +205,8 @@ export default class McRAPTOR<
                 alrJourney.every((js, i) =>
                   // Deep compare objects as they don't have the same address
                   Object.keys(journey[i]).every(
-                    (key) => journey[i][key as keyof Journey<SI, RI, V, CA>[number]] === js[key as keyof Journey<SI, RI, V, CA>[number]],
+                    (key) =>
+                      journey[i][key as keyof Journey<TimeVal, SI, RI, V, CA>[number]] === js[key as keyof Journey<TimeVal, SI, RI, V, CA>[number]],
                   ),
                 ),
             )
@@ -209,7 +216,7 @@ export default class McRAPTOR<
 
         return acc;
       },
-      Array.from<never, Journey<SI, RI, V, CA>[]>({ length: this.bags.length }, () => []),
+      Array.from<never, Journey<TimeVal, SI, RI, V, CA>[]>({ length: this.bags.length }, () => []),
     );
   }
 }

@@ -1,18 +1,18 @@
 import { Criterion, Id, JourneyStep, Ordered } from "./structures";
 
-function isCriterionJourneyStepVehicle<SI extends Id, RI extends Id, V extends Ordered<V>, CA extends [V, string][]>(
-  js: Parameters<Criterion<SI, RI, V, CA[number][1]>["update"]>[1],
-): js is JourneyStep<SI, RI, V, CA, "VEHICLE"> {
+function isCriterionJourneyStepVehicle<TimeVal, SI extends Id, RI extends Id, V extends Ordered<V>, CA extends [V, string][]>(
+  js: Parameters<Criterion<TimeVal, SI, RI, V, CA[number][1]>["update"]>[1],
+): js is JourneyStep<TimeVal, SI, RI, V, CA, "VEHICLE"> {
   return "route" in js;
 }
 
-function isCriterionJourneyStepFoot<SI extends Id, RI extends Id, V extends Ordered<V>, CA extends [V, string][]>(
-  js: Parameters<Criterion<SI, RI, V, CA[number][1]>["update"]>[1],
-): js is JourneyStep<SI, RI, V, CA, "FOOT"> {
+function isCriterionJourneyStepFoot<TimeVal, SI extends Id, RI extends Id, V extends Ordered<V>, CA extends [V, string][]>(
+  js: Parameters<Criterion<TimeVal, SI, RI, V, CA[number][1]>["update"]>[1],
+): js is JourneyStep<TimeVal, SI, RI, V, CA, "FOOT"> {
   return "transfer" in js;
 }
 
-const bufferTime: Criterion<Id, Id, number, "bufferTime"> = {
+const bufferTime: Criterion<number, Id, Id, number, "bufferTime"> = {
   name: "bufferTime",
   initialValue: -Infinity,
   update: (prefixJourney, newJourneyStep) => {
@@ -32,7 +32,7 @@ const bufferTime: Criterion<Id, Id, number, "bufferTime"> = {
   },
 };
 
-const footDistance: Criterion<Id, Id, number, "footDistance"> = {
+const footDistance: Criterion<unknown, Id, Id, number, "footDistance"> = {
   name: "footDistance",
   initialValue: 0,
   update: (prefixJourney, newJourneyStep) => {
