@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { expect, test } from "@jest/globals";
 import { FootPath, Journey, TimeScal } from "../../src";
 import { TestAsset, TestDataset } from "./asset";
@@ -10,7 +9,8 @@ const baseValidate: TestAsset<number>["tests"][number]["validate"] = (res) => {
   test("Run result is exact (generic)", () => {
     expect(res[0]).toBe(null);
     for (let i = 2; i < MAX_ROUNDS; ++i) expect(res[i]).toBe(null);
-    const journey = res[1]!;
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    const journey = res[1][0]!;
     expect(journey.length).toBe(2);
 
     const js0 = journey[0];
@@ -208,7 +208,8 @@ export default [
           validate: (res) => {
             test("Run result is exact", () => {
               expect(res[0]).toBe(null);
-              footValidate(res[1]!);
+              // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+              footValidate(res[1][0]!);
               for (let i = 2; i < MAX_ROUNDS; ++i) expect(res[i]).toBe(null);
             });
           },
