@@ -114,8 +114,5 @@ lib/
 docs/
 
 # Test
-test.sh
 *.geojson
-flamegraph*.html
-isolate-0x*.json
-prof_preproc*.json
+bench/
