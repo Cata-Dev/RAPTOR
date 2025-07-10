@@ -448,6 +448,7 @@ async function insertResults<TimeVal, V extends Ordered<V>, CA extends [V, strin
   }
   const b6 = await benchmark(resultRAPTOR, [], undefined, getResTimes);
   if (!b6.lastReturn) throw new Error(`No best journeys`);
+  console.debug("Best journeys", b6.lastReturn);
 
   if (saveResults) {
     const b7 = await benchmark(
