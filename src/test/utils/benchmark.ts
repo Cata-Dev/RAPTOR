@@ -27,7 +27,7 @@ export async function benchmark<F extends (...args: any[]) => any>(
   const totalDuration = new Duration(durations.reduce((acc, v) => acc + v.ms, 0));
   const averageDuration = new Duration(totalDuration.ms / times);
   // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
-  if (logStats) console.log(`Benchmark of ${f.name || "anonymous"}: ${averageDuration}`);
+  if (logStats) console.log(`Benchmark of ${f.name || "anonymous"} (${times} time${times > 1 ? "s" : ""}): ${averageDuration}`);
   return {
     fName: f.name,
     args,
