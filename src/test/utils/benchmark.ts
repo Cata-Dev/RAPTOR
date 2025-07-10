@@ -4,7 +4,7 @@
  * @param args The argument(s) to pass to the function {@link f}
  * @param thisArg A custom "this" to pass to the function {@link f}
  * @param times Number of times to repeat the benchmark
- * @param logStats Wheter to log to the bench to the console at its end, or not
+ * @param logStats Whether to log to the bench to the console at its end, or not
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function benchmark<F extends (...args: any[]) => any>(
@@ -27,7 +27,7 @@ export async function benchmark<F extends (...args: any[]) => any>(
   const totalDuration = new Duration(durations.reduce((acc, v) => acc + v.ms, 0));
   const averageDuration = new Duration(totalDuration.ms / times);
   // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
-  if (logStats) console.log(`Benchmark of ${f.name || "anonymous"} : ${averageDuration}`);
+  if (logStats) console.log(`Benchmark of ${f.name || "anonymous"}: ${averageDuration}`);
   return {
     fName: f.name,
     args,
