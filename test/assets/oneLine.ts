@@ -7,8 +7,8 @@ const PARAMS: TestAsset<number>["tests"][number]["params"] = [1, 4, 0, { walkSpe
 
 const baseValidate: TestAsset<number>["tests"][number]["validate"] = (res) => {
   test("Run result is exact (generic)", () => {
-    expect(res[0]).toBe(null);
-    for (let i = 2; i < MAX_ROUNDS; ++i) expect(res[i]).toBe(null);
+    expect(res[0]).toEqual([]);
+    for (let i = 2; i < MAX_ROUNDS; ++i) expect(res[i]).toEqual([]);
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const journey = res[1][0]!;
     expect(journey.length).toBe(2);
@@ -156,8 +156,8 @@ export default [
           params: [PARAMS[0], PARAMS[1], 4, PARAMS[3], PARAMS[4]],
           validate: (res) => {
             test("Run result is exact (late departure)", () => {
-              expect(res[0]).toBe(null);
-              for (let i = 0; i < MAX_ROUNDS; ++i) expect(res[i]).toBe(null);
+              expect(res[0]).toEqual([]);
+              for (let i = 0; i < MAX_ROUNDS; ++i) expect(res[i]).toEqual([]);
             });
           },
         },
@@ -207,10 +207,10 @@ export default [
           params: PARAMS,
           validate: (res) => {
             test("Run result is exact", () => {
-              expect(res[0]).toBe(null);
+              expect(res[0]).toEqual([]);
               // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
               footValidate(res[1][0]!);
-              for (let i = 2; i < MAX_ROUNDS; ++i) expect(res[i]).toBe(null);
+              for (let i = 2; i < MAX_ROUNDS; ++i) expect(res[i]).toEqual([]);
             });
           },
         },

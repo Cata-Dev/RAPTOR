@@ -7,9 +7,9 @@ import { TestAsset, TestDataset } from "./asset";
 const MAX_ROUNDS = 6;
 const PARAMS: TestAsset<number>["tests"][number]["params"] = [1, 7, 0, { walkSpeed: 1 * 1_000, maxTransferLength: 100 }, MAX_ROUNDS];
 
-const baseValidateN = (journey: Journey<number, number, number, never, []> | null) => {
-  test("Run result is exact (generic null)", () => {
-    expect(journey).toBe(null);
+const baseValidateN = (journey: Journey<number, number, number, never, []> | undefined) => {
+  test("Run result is exact (generic undefined)", () => {
+    expect(journey).toBe(undefined);
   });
 };
 
@@ -152,9 +152,9 @@ export default [
         {
           params: PARAMS,
           validate: (res) => {
-            for (let i = 0; i < 2; ++i) baseValidateN(res[i][0]!);
+            for (let i = 0; i < 2; ++i) baseValidateN(res[i][0]);
             baseValidateVV(res[2][0]!);
-            for (let i = 3; i < MAX_ROUNDS; ++i) baseValidateN(res[i][0]!);
+            for (let i = 3; i < MAX_ROUNDS; ++i) baseValidateN(res[i][0]);
           },
         },
       ],
@@ -184,10 +184,10 @@ export default [
         {
           params: PARAMS,
           validate: (res) => {
-            for (let i = 0; i < 1; ++i) baseValidateN(res[i][0]!);
+            for (let i = 0; i < 1; ++i) baseValidateN(res[i][0]);
             baseValidateVF(res[1][0]!);
             baseValidateVV(res[2][0]!);
-            for (let i = 3; i < MAX_ROUNDS; ++i) baseValidateN(res[i][0]!);
+            for (let i = 3; i < MAX_ROUNDS; ++i) baseValidateN(res[i][0]);
           },
         },
       ],
@@ -224,7 +224,7 @@ export default [
         {
           params: PARAMS,
           validate: (res) => {
-            for (let i = 0; i < 1; ++i) baseValidateN(res[i][0]!);
+            for (let i = 0; i < 1; ++i) baseValidateN(res[i][0]);
             describe("Run result is exact, early departure", () => {
               baseValidateVF(res[1][0]!);
               test("k=2", () => {
@@ -268,14 +268,14 @@ export default [
                 expect(js3.tripIndex).toBe(0);
               });
             });
-            for (let i = 3; i < MAX_ROUNDS; ++i) baseValidateN(res[i][0]!);
+            for (let i = 3; i < MAX_ROUNDS; ++i) baseValidateN(res[i][0]);
           },
         },
         {
           params: [PARAMS[0], PARAMS[1], 2, PARAMS[3], PARAMS[4]],
           validate: (res) => {
-            for (let i = 0; i < 1; ++i) baseValidateN(res[i][0]!);
-            for (let i = 3; i < MAX_ROUNDS; ++i) baseValidateN(res[i][0]!);
+            for (let i = 0; i < 1; ++i) baseValidateN(res[i][0]);
+            for (let i = 3; i < MAX_ROUNDS; ++i) baseValidateN(res[i][0]);
             test("Run result is exact, late departure", () => {
               const j1 = res[1][0]!;
               expect(j1.length).toBe(3);
@@ -401,7 +401,7 @@ export default [
         {
           params: [1, 6, 0, PARAMS[3], PARAMS[4]] as typeof PARAMS,
           validate: (res) => {
-            for (let i = 0; i < 2; ++i) baseValidateN(res[i][0]!);
+            for (let i = 0; i < 2; ++i) baseValidateN(res[i][0]);
             test("2 trips witch a mandatory foot transfer", () => {
               const journey = res[2][0]!;
 
@@ -437,7 +437,7 @@ export default [
               expect(js3.route.id).toBe(2);
               expect(js3.tripIndex).toBe(0);
             });
-            for (let i = 3; i < MAX_ROUNDS; ++i) baseValidateN(res[i][0]!);
+            for (let i = 3; i < MAX_ROUNDS; ++i) baseValidateN(res[i][0]);
           },
         },
       ],

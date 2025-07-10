@@ -19,7 +19,7 @@ for (const [datasetName, dataset] of [oneLine, twoLines] as const) {
           sharedRaptorInstance.run(...test.params);
           const res = sharedRaptorInstance.getBestJourneys(test.params[1]);
           for (const journeys of res) expect(journeys.length || 1).toBe(1);
-          test.validate(res.map((journeys) => (journeys.length > 0 ? journeys[0] : null)));
+          test.validate(res.map((journeys) => (journeys.length ? [journeys[0]] : [])));
         }
       });
     }
