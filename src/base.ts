@@ -201,6 +201,11 @@ export default class BaseRAPTOR<
 
     return trace;
   }
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  getBestJourneys(pt: SI): Journey<TimeVal, SI, RI, V, CA>[][] {
+    throw new Error("Not implemented");
+  }
 }
 
 export { RAPTORRunSettings };

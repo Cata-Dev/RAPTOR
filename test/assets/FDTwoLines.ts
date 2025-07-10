@@ -1,7 +1,7 @@
 import { expect, test } from "@jest/globals";
 import { McTestDataset } from "./asset";
-import { validateWithoutCriteria } from "./FDOneLine";
 import twoLines from "./twoLines";
+import { validateWithoutCriteria } from "./utils";
 
 export default [
   "Foot distance, two lines",
@@ -47,15 +47,15 @@ export default [
               twoLines[1].withFastTransfers.tests[0].validate,
             )(res);
             test("Label foot distances are exact (same results as RAPTOR)", () => {
-              expect(journeysWithoutCriteria[1]?.at(-1)?.label.value("footDistance")).toBe(5);
-              expect(journeysWithoutCriteria[2]?.at(-1)?.label.value("footDistance")).toBe(3);
+              expect(journeysWithoutCriteria[1][0]?.at(-1)?.label.value("footDistance")).toBe(5);
+              expect(journeysWithoutCriteria[2][0]?.at(-1)?.label.value("footDistance")).toBe(3);
             });
 
             test("Label foot distances are exact (new results due to criterion)", () => {
-              for (let k = 0; k < 2; ++k) expect(journeysFromCriteria[k]?.length ?? 0).toBe(0);
+              for (let k = 0; k < 2; ++k) expect(journeysFromCriteria[k].length).toBe(0);
               expect(journeysFromCriteria[2]?.length).toBe(1);
               expect(journeysFromCriteria[2][0].at(-1)?.label.value("footDistance")).toBe(0);
-              for (let k = 3; k < journeysFromCriteria.length; ++k) expect(journeysFromCriteria[k]?.length ?? 0).toBe(0);
+              for (let k = 3; k < journeysFromCriteria.length; ++k) expect(journeysFromCriteria[k].length).toBe(0);
             });
           },
         },

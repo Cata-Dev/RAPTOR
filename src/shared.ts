@@ -42,7 +42,7 @@ export class SharedRAPTOR<TimeVal> extends RAPTOR<TimeVal, SharedID, SharedID, n
     const convertedPt = typeof pt === "string" ? pt : this.data.stopPointerFromId(pt);
     if (convertedPt === undefined) throw new Error(`Unable to retrieve target stop ${pt}`);
 
-    return super.getBestJourneys(convertedPt).map((journey) => (journey ? journey.map(convertBackJourneyStep(this.data.stops)) : null));
+    return super.getBestJourneys(convertedPt).map((journeys) => (journeys.length ? [journeys[0].map(convertBackJourneyStep(this.data.stops))] : []));
   }
 }
 

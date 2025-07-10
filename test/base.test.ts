@@ -28,5 +28,9 @@ describe("Base RAPTOR should not be usable", () => {
         transfers: [],
       });
     }).toThrow("Not implemented");
+
+    expect(() => {
+      (raptorInstance as unknown as { getBestJourneys: BaseRAPTOR<never>["getBestJourneys"] }).getBestJourneys(0);
+    }).toThrow("Not implemented");
   });
 });
