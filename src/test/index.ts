@@ -6,6 +6,7 @@ import "core-js/features/reflect";
 import { DocumentType } from "@typegoose/typegoose";
 import minimist from "minimist";
 import { FilterQuery } from "mongoose";
+import { exit } from "process";
 import {
   bufferTime,
   footDistance,
@@ -460,5 +461,6 @@ async function insertResults<TimeVal, V extends Ordered<V>, CA extends [V, strin
 })()
   .then(() => {
     console.log("Main ended");
+    exit(0);
   })
   .catch(console.error);
