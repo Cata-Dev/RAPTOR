@@ -254,8 +254,10 @@ async function insertResults<TimeVal, V extends Ordered<V>, CA extends [V, strin
 (async () => {
   // Setup params from command line
   const args = minimist(process.argv);
+  console.debug(`Using args`, args);
 
   const fpReqLen = "fp-req-len" in args ? (args["fp-req-len"] as number) : 3_000;
+  console.debug(`Foot paths query max len`, fpReqLen);
   const fpRunLen = "fp-run-len" in args ? (args["fp-run-len"] as number) : 2_000;
 
   let instanceType: "RAPTOR" | "SharedRAPTOR" | "McRAPTOR" | "McSharedRAPTOR";
@@ -281,6 +283,7 @@ async function insertResults<TimeVal, V extends Ordered<V>, CA extends [V, strin
         throw new Error(`Unexpected instance type "${args.t}"`);
     }
   } else instanceType = "McSharedRAPTOR";
+  console.debug("Using instance type", instanceType);
 
   const createTimes = "createTimes" in args ? (args.createTimes as number) : 1;
   const runTimes = "runTimes" in args ? (args.runTimes as number) : 1;
@@ -289,10 +292,15 @@ async function insertResults<TimeVal, V extends Ordered<V>, CA extends [V, strin
   const criteria = [] as [] | [typeof footDistance] | [typeof bufferTime] | [typeof footDistance, typeof bufferTime];
   if ("fd" in args && args.fd === true) (criteria as [typeof footDistance]).push(footDistance);
   if ("bt" in args && args.bt === true) (criteria as [typeof bufferTime]).push(bufferTime);
+  console.debug(
+    "Using criteria",
+    criteria.map((c) => c.name),
+  );
   if (criteria.length && instanceType !== "McRAPTOR" && instanceType !== "McSharedRAPTOR")
     console.warn("Got some criteria but instance type is uni-criteria.");
 
   const saveResults = "save" in args && args.save === true ? true : false;
+  console.debug(`Saving results`, saveResults);
 
   const b1 = await benchmark(queryData, []);
   const queriedData = b1.lastReturn;
@@ -432,6 +440,7 @@ async function insertResults<TimeVal, V extends Ordered<V>, CA extends [V, strin
   function runRAPTOR() {
     RAPTORInstance.run(ps, pt, departureTime, settings);
   }
+  console.log(`Running with: ps=${ps}, pt=${pt}, departure time=${new Date(departureTime).toLocaleString()}, settings=${JSON.stringify(settings)}`);
   await benchmark(runRAPTOR, [], undefined, runTimes);
 
   function resultRAPTOR() {
@@ -440,11 +449,13 @@ async function insertResults<TimeVal, V extends Ordered<V>, CA extends [V, strin
   const b6 = await benchmark(resultRAPTOR, [], undefined, getResTimes);
   if (!b6.lastReturn) throw new Error(`No best journeys`);
 
-  if (saveResults)
-    await benchmark(
+  if (saveResults) {
+    const b7 = await benchmark(
       insertResults<number, number, [] | [[number, "footDistance"]] | [[number, "bufferTime"]] | [[number, "footDistance"], [number, "bufferTime"]]>,
       [queriedData.resultModel, RAPTORDataInst.timeType, from, { type: LocationType.TBM, id: pt }, departureTime, settings, b6.lastReturn],
     );
+    console.log("Saved result id", b7.lastReturn);
+  }
 })()
   .then(() => {
     console.log("Main ended");
