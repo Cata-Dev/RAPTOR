@@ -1,5 +1,5 @@
 import { ArrayRead, FootPath, IRAPTORData, MapRead, RAPTORData, Route, Stop, Trip } from "./base";
-import { Time, TimeScal } from "./time";
+import { Time, TimeIntOrderLow, TimeScal } from "./time";
 
 //
 // Time
@@ -17,6 +17,14 @@ const sharedTimeScal: SharedTime<number> = {
   sharedSerializedLen: 1,
   sharedSerialize: (time) => new Float64Array([time]),
   sharedDeserialize: (data) => data[0],
+};
+
+const sharedTimeIntOrderLow: SharedTime<readonly [number, number]> = {
+  ...TimeIntOrderLow,
+
+  sharedSerializedLen: 2,
+  sharedSerialize: ([low, high]) => new Float64Array([low, high]),
+  sharedDeserialize: (data) => [data[0], data[1]],
 };
 
 type SharedID = number | SerializedId;
@@ -750,4 +758,4 @@ class SharedRAPTORData<TimeVal> implements IRAPTORData<TimeVal, SharedID, Shared
   }
 }
 
-export { ArrayView, SerializedId, SharedID, SharedRAPTORData, sharedTimeScal };
+export { ArrayView, SerializedId, SharedID, SharedRAPTORData, sharedTimeIntOrderLow, sharedTimeScal };

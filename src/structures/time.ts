@@ -62,5 +62,16 @@ const TimeScal: Time<number> = {
   max: Math.max,
 };
 
-export { makeTime, MAX_SAFE_TIMESTAMP, TimeScal };
+/**
+ * A time defined by an interval, ordered by its lower bound.
+ */
+const TimeIntOrderLow = makeTime<readonly [number, number]>(
+  (a, b) => (a[0] > b[0] ? 1 : a[0] < b[0] ? -1 : 0),
+  [MAX_SAFE_TIMESTAMP, MAX_SAFE_TIMESTAMP],
+  [Infinity, Infinity],
+  [-Infinity, -Infinity],
+  ([low, high], timeScal) => [low + timeScal, high + timeScal],
+);
+
+export { makeTime, MAX_SAFE_TIMESTAMP, TimeIntOrderLow, TimeScal };
 export type { Time, Timestamp };

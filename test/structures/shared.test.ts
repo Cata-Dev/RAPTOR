@@ -1,5 +1,5 @@
 import { describe, expect, test } from "@jest/globals";
-import { SharedRAPTORData, sharedTimeScal, Time } from "../../src";
+import { SharedRAPTORData, sharedTimeIntOrderLow, sharedTimeScal, Time } from "../../src";
 import { TestAsset } from "../assets/asset";
 import twoLines from "../assets/twoLines";
 
@@ -122,5 +122,71 @@ describe("SharedRAPTORData class", () => {
           ?.reduce((acc, v) => `${acc}-${v}`, ""),
       );
     }
+  });
+});
+
+const originalTimeZ = 0;
+const originalTimeInt = 3;
+const originalTimeFloat = 3.3;
+const originalTimeInf = -Infinity;
+
+describe("Shared TimeScal", () => {
+  const serializedTimeZ = sharedTimeScal.sharedSerialize(originalTimeZ);
+  const serializedTimeInt = sharedTimeScal.sharedSerialize(originalTimeInt);
+  const serializedTimeFloat = sharedTimeScal.sharedSerialize(originalTimeFloat);
+  const serializedTimeInf = sharedTimeScal.sharedSerialize(originalTimeInf);
+
+  test("Serialization", () => {
+    expect(serializedTimeZ.length).toBe(1);
+    expect(serializedTimeInt.length).toBe(1);
+    expect(serializedTimeFloat.length).toBe(1);
+    expect(serializedTimeInf.length).toBe(1);
+
+    expect(serializedTimeZ[0]).toBe(originalTimeZ);
+    expect(serializedTimeInt[0]).toBe(originalTimeInt);
+    expect(serializedTimeFloat[0]).toBe(originalTimeFloat);
+    expect(serializedTimeInf[0]).toBe(originalTimeInf);
+  });
+
+  test("Deserialization", () => {
+    expect(sharedTimeScal.sharedDeserialize(serializedTimeZ)).toBe(originalTimeZ);
+    expect(sharedTimeScal.sharedDeserialize(serializedTimeInt)).toBe(originalTimeInt);
+    expect(sharedTimeScal.sharedDeserialize(serializedTimeFloat)).toBe(originalTimeFloat);
+    expect(sharedTimeScal.sharedDeserialize(serializedTimeInf)).toBe(originalTimeInf);
+  });
+});
+
+describe("Shared TimeIntOrderLow", () => {
+  const originalTimeIntZ = [originalTimeZ, originalTimeZ] as const;
+  const originalTimeIntInt = [originalTimeInt, originalTimeInt + 5] as const;
+  const originalTimeIntFloat = [originalTimeFloat, originalTimeFloat + 5] as const;
+  const originalTimeIntInf = [originalTimeInf, Infinity] as const;
+
+  const serializedTimeIntZ = sharedTimeIntOrderLow.sharedSerialize(originalTimeIntZ);
+  const serializedTimeIntInt = sharedTimeIntOrderLow.sharedSerialize(originalTimeIntInt);
+  const serializedTimeIntFloat = sharedTimeIntOrderLow.sharedSerialize(originalTimeIntFloat);
+  const serializedTimeIntInf = sharedTimeIntOrderLow.sharedSerialize(originalTimeIntInf);
+
+  test("Serialization", () => {
+    expect(serializedTimeIntZ.length).toBe(2);
+    expect(serializedTimeIntInt.length).toBe(2);
+    expect(serializedTimeIntFloat.length).toBe(2);
+    expect(serializedTimeIntInf.length).toBe(2);
+
+    expect(serializedTimeIntZ[0]).toBe(originalTimeIntZ[0]);
+    expect(serializedTimeIntZ[1]).toBe(originalTimeIntZ[1]);
+    expect(serializedTimeIntInt[0]).toBe(originalTimeIntInt[0]);
+    expect(serializedTimeIntInt[1]).toBe(originalTimeIntInt[1]);
+    expect(serializedTimeIntFloat[0]).toBe(originalTimeIntFloat[0]);
+    expect(serializedTimeIntFloat[1]).toBe(originalTimeIntFloat[1]);
+    expect(serializedTimeIntInf[0]).toBe(originalTimeIntInf[0]);
+    expect(serializedTimeIntInf[1]).toBe(originalTimeIntInf[1]);
+  });
+
+  test("Deserialization", () => {
+    expect(sharedTimeIntOrderLow.sharedDeserialize(serializedTimeIntZ)).toEqual(originalTimeIntZ);
+    expect(sharedTimeIntOrderLow.sharedDeserialize(serializedTimeIntInt)).toEqual(originalTimeIntInt);
+    expect(sharedTimeIntOrderLow.sharedDeserialize(serializedTimeIntFloat)).toEqual(originalTimeIntFloat);
+    expect(sharedTimeIntOrderLow.sharedDeserialize(serializedTimeIntInf)).toEqual(originalTimeIntInf);
   });
 });
