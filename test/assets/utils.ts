@@ -1,9 +1,9 @@
-import { Ordered, Time, Journey } from "../../src";
+import { Time, Journey } from "../../src";
 import { TestAsset, McTestAsset } from "./asset";
 
 const validateWithoutCriteria =
-  <TimeVal, V extends Ordered<V>, CA extends [V, string][]>(timeType: Time<TimeVal>, validate: TestAsset<TimeVal>["tests"][number]["validate"]) =>
-  (
+  <TimeVal>(timeType: Time<TimeVal>, validate: TestAsset<TimeVal>["tests"][number]["validate"]) =>
+  <V, CA extends [V, string][]>(
     res: Parameters<McTestAsset<TimeVal, V, CA>["tests"][number]["validate"]>[0],
   ): [([Journey<TimeVal, number, number, V, CA>] | [])[], typeof res] => {
     let bestTime: TimeVal = timeType.MAX;

@@ -1,4 +1,4 @@
-import { Time } from "./time";
+import { Ordered, Time } from "./time";
 
 type Id = number | string;
 type LabelType = "DEFAULT" | "DEPARTURE" | "FOOT" | "VEHICLE";
@@ -75,18 +75,6 @@ class Route<TimeVal, SI extends Id, RI extends Id, TI extends Id = Id> {
   }
 }
 
-/**
- * Define an order relation
- */
-type Ordered<T> =
-  | number
-  | {
-      /**
-       * @param compare Compares with another value `other`, returns `< 0` if it's superior to `other`, `0` if equal, `> 0` if inferior
-       */
-      compareOrder(other: T): number;
-    };
-
 interface Comparable<T> {
   /**
    * @param compare Compares with another value `other`, returns `< 0` if it's superior to `other`, `0` if equal, `> 0` if inferior, and `null` if not comparable
@@ -94,7 +82,7 @@ interface Comparable<T> {
   compare(other: T): number | null;
 }
 
-interface Criterion<TimeVal, SI extends Id, RI extends Id, T extends Ordered<T>, N extends string> {
+interface Criterion<TimeVal, SI extends Id, RI extends Id, T, N extends string> extends Ordered<T> {
   name: N;
   /** Usually 0, +/-Infinity or 1 */
   initialValue: T;
@@ -107,9 +95,7 @@ interface Criterion<TimeVal, SI extends Id, RI extends Id, T extends Ordered<T>,
 }
 
 /** A tuple of size N+1 (time + other criteria) */
-class Label<TimeVal, SI extends Id, RI extends Id, V extends Ordered<V>, CA extends [V, string][]>
-  implements Comparable<Label<TimeVal, SI, RI, V, CA>>
-{
+class Label<TimeVal, SI extends Id, RI extends Id, V, CA extends [V, string][]> implements Comparable<Label<TimeVal, SI, RI, V, CA>> {
   protected readonly values: Record<CA[number][1], CA[number][0]> & { time: TimeVal };
 
   constructor(
@@ -144,21 +130,17 @@ class Label<TimeVal, SI extends Id, RI extends Id, V extends Ordered<V>, CA exte
    * @returns `-1` if this label is dominated by {@link l}, `0` if they are equal, `1` otherwise
    */
   compare(l: Label<TimeVal, SI, RI, V, CA>) {
-    let sup: 0 | -1 = 0;
-    let inf: 0 | 1 = 0;
-    for (const criterionName of Object.keys(this.values) as (keyof typeof this.values)[]) {
-      if (
-        typeof this.values[criterionName] === "number"
-          ? this.values[criterionName] > (l.values[criterionName] as number)
-          : this.values[criterionName].compareOrder(l.values[criterionName]) < 0
-      )
-        sup = -1;
-      if (
-        typeof this.values[criterionName] === "number"
-          ? this.values[criterionName] < (l.values[criterionName] as number)
-          : this.values[criterionName].compareOrder(l.values[criterionName]) > 0
-      )
-        inf = 1;
+    // Has `l` an inferior criterion ?
+    let inf: 0 | -1 = 0;
+    // Has `l` a superior criterion ?
+    let sup: 0 | 1 = 0;
+
+    if (this.timeType.order(this.time, l.time) > 0) inf = -1;
+    if (this.timeType.order(this.time, l.time) < 0) sup = 1;
+
+    for (const c of this.criteria as Criterion<TimeVal, SI, RI, V, CA[number][1]>[]) {
+      if (c.order(this.values[c.name], l.values[c.name]) > 0) inf = -1;
+      if (c.order(this.values[c.name], l.values[c.name]) < 0) sup = 1;
     }
 
     return inf && sup ? null : inf || sup;
@@ -169,7 +151,7 @@ type JourneyStep<
   TimeVal,
   SI extends Id,
   RI extends Id,
-  V extends Ordered<V>,
+  V,
   CA extends [V, string][],
   T extends LabelType = LabelType,
   F extends boolean = false,
@@ -193,7 +175,7 @@ type JourneyStep<
       : // eslint-disable-next-line @typescript-eslint/no-empty-object-type
         {});
 
-function makeJSComparable<TimeVal, SI extends Id, RI extends Id, V extends Ordered<V>, CA extends [V, string][], T extends LabelType = LabelType>(
+function makeJSComparable<TimeVal, SI extends Id, RI extends Id, V, CA extends [V, string][], T extends LabelType = LabelType>(
   partialJourneyStep: Omit<JourneyStep<TimeVal, SI, RI, V, CA, T>, keyof Comparable<JourneyStep<TimeVal, SI, RI, V, CA>>>,
 ): JourneyStep<TimeVal, SI, RI, V, CA, T> {
   return { ...partialJourneyStep, compare: (js: JourneyStep<TimeVal, SI, RI, V, CA>) => partialJourneyStep.label.compare(js.label) } as JourneyStep<
@@ -206,7 +188,7 @@ function makeJSComparable<TimeVal, SI extends Id, RI extends Id, V extends Order
   >;
 }
 
-type Journey<TimeVal, SI extends Id, RI extends Id, V extends Ordered<V>, CA extends [V, string][]> = JourneyStep<
+type Journey<TimeVal, SI extends Id, RI extends Id, V, CA extends [V, string][]> = JourneyStep<
   TimeVal,
   SI,
   RI,
@@ -480,7 +462,6 @@ class RAPTORData<TimeVal, SI extends Id = Id, RI extends Id = Id, TI extends Id 
 export {
   ArrayRead,
   Bag,
-  Ordered,
   Criterion,
   FootPath,
   Id,

@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
-import { Id, IRAPTORData, Journey, JourneyStep, Ordered, Route, Stop } from "./structures";
+import { Id, IRAPTORData, Journey, JourneyStep, Route, Stop } from "./structures";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import type { Time } from "./structures";
 
@@ -12,14 +12,7 @@ interface RAPTORRunSettings {
  * @description A RAPTOR instance
  * @template TimeVal Time representation internal type, its full type is {@link Time<TimeVal>}.
  */
-export default class BaseRAPTOR<
-  TimeVal,
-  SI extends Id = Id,
-  RI extends Id = Id,
-  TI extends Id = Id,
-  V extends Ordered<V> = never,
-  CA extends [V, string][] = [],
-> {
+export default class BaseRAPTOR<TimeVal, SI extends Id = Id, RI extends Id = Id, TI extends Id = Id, V = never, CA extends [V, string][] = []> {
   static defaultRounds = 6;
 
   protected runParams: { settings: RAPTORRunSettings; ps: SI; pt: SI; departureTime: TimeVal; rounds: number } | null = null;

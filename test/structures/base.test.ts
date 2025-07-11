@@ -52,12 +52,14 @@ const c1Update = jest.fn<Criterion<number, number, number, number, "c1">["update
 const c1: Criterion<number, number, number, number, "c1"> = {
   name: "c1",
   initialValue: Infinity,
+  order: TimeScal.order,
   update: c1Update,
 };
 const c2Update = jest.fn<Criterion<number, number, number, number, "c2">["update"]>((prefixJourney, newJourneyStep, time, stop) => time + stop);
 const c2: Criterion<number, number, number, number, "c2"> = {
   name: "c2",
   initialValue: -Infinity,
+  order: TimeScal.order,
   update: c2Update,
 };
 describe("Label class", () => {
