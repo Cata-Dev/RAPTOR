@@ -723,7 +723,7 @@ class SharedRAPTORData<TimeVal> implements IRAPTORData<TimeVal, SharedID, Shared
           id,
           {
             id,
-            connectedRoutes: s.connectedRoutes.map((r) => this.routePointerFromId(r) ?? r),
+            connectedRoutes: s.connectedRoutes.map((rId) => this.routePointerFromId(rId) ?? SharedRAPTORData.serializeId(rId)),
             transfers: s.transfers.map(({ length, to }) => ({
               length,
               to: this.stopPointerFromId(to) ?? SharedRAPTORData.serializeId(to),
