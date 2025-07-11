@@ -343,36 +343,86 @@ async function insertResults<TimeVal, V extends Ordered<V>, CA extends [V, strin
   const rawRAPTORData = b2.lastReturn;
   if (!rawRAPTORData) throw new Error("No raw RAPTOR data");
 
-  const attachStops = new Map<number, Stop<number, number>>();
-  const distances: Record<number, number> = {
-    [ps]: 100,
-  };
-
-  let RAPTORDataInst: Omit<IRAPTORData<number, SharedID, SharedID, number>, "attachData"> & { attachData: SharedRAPTORData<number>["attachData"] };
-  let RAPTORInstance: BaseRAPTOR<
-    number,
-    SharedID,
-    SharedID,
-    number,
-    number,
-    [] | [[number, "footDistance"]] | [[number, "bufferTime"]] | [[number, "footDistance"], [number, "bufferTime"]]
-  >;
+  let rawSharedRAPTORData: Awaited<ReturnType<typeof computeSharedRAPTORData>>;
 
   if (instanceType === "SharedRAPTOR" || instanceType === "McSharedRAPTOR") {
     // Shared-specific RAPTOR data computation
 
     const b3 = await benchmark(computeSharedRAPTORData, [rawRAPTORData]);
-    const rawSharedRAPTORData = b3.lastReturn;
-    if (!rawSharedRAPTORData) throw new Error("No raw Shared RAPTOR data");
+    if (!b3.lastReturn) throw new Error("No raw Shared RAPTOR data");
+    rawSharedRAPTORData = b3.lastReturn;
 
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     psInternalId = queriedData.stops.at(-1)!.id + 1;
     ps = SharedRAPTORData.serializeId(psInternalId);
+  }
+
   // Create RAPTOR
 
+  const b4 = await (instanceType === "RAPTOR"
+    ? benchmark<typeof createRAPTOR<number>>(createRAPTOR, [rawRAPTORData], undefined, createTimes)
+    : instanceType === "SharedRAPTOR"
+      ? // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        benchmark<typeof createSharedRAPTOR<number>>(createSharedRAPTOR, [rawSharedRAPTORData!], undefined, createTimes)
+      : instanceType === "McRAPTOR"
+        ? benchmark(
+            createMcRAPTOR<
+              number,
+              number,
+              [] | [[number, "footDistance"]] | [[number, "bufferTime"]] | [[number, "footDistance"], [number, "bufferTime"]]
+            >,
+            [
+              rawRAPTORData,
+              criteria as Parameters<
+                typeof createMcRAPTOR<
+                  number,
+                  number,
+                  [] | [[number, "footDistance"]] | [[number, "bufferTime"]] | [[number, "footDistance"], [number, "bufferTime"]]
+                >
+              >[1],
+            ],
+            undefined,
+            createTimes,
+          )
+        : benchmark(
+            createMcSharedRAPTOR<
+              number,
+              number,
+              [] | [[number, "footDistance"]] | [[number, "bufferTime"]] | [[number, "footDistance"], [number, "bufferTime"]]
+            >,
+            [
+              // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+              rawSharedRAPTORData!,
+              criteria as Parameters<
+                typeof createMcSharedRAPTOR<
+                  number,
+                  number,
+                  [] | [[number, "footDistance"]] | [[number, "bufferTime"]] | [[number, "footDistance"], [number, "bufferTime"]]
+                >
+              >[1],
+            ],
+            undefined,
+            createTimes,
+          ));
+  if (!b4.lastReturn) throw new Error("No RAPTOR instance");
+  const [RAPTORDataInst, RAPTORInstance] = b4.lastReturn as readonly [
+    Omit<IRAPTORData<number, SharedID, SharedID, number>, "attachData"> & { attachData: SharedRAPTORData<number>["attachData"] },
+    BaseRAPTOR<
+      number,
+      SharedID,
+      SharedID,
+      number,
+      number,
+      [] | [[number, "footDistance"]] | [[number, "bufferTime"]] | [[number, "footDistance"], [number, "bufferTime"]]
+    >,
+  ];
 
   // Attach stops
 
+  const attachStops = new Map<number, Stop<number, number>>();
+  const distances: Record<number, number> = {
+    [ps]: 100,
+  };
 
   attachStops.set(psInternalId, {
     id: psInternalId,
