@@ -393,6 +393,11 @@ async function insertResults<TimeVal, V, CA extends [V, string][]>(
 
   // Compute RAPTOR data
 
+  const distances: Record<number, number> = {
+    // Need the true ps
+    [ps]: 100,
+  };
+
   const b2 = await benchmark(computeRAPTORData, [queriedData, fpReqLen, dataType, delayPos * 1_000, delayNeg * 1_000]);
   const rawRAPTORData = b2.lastReturn;
   if (!rawRAPTORData) throw new Error("No raw RAPTOR data");
@@ -476,9 +481,6 @@ async function insertResults<TimeVal, V, CA extends [V, string][]>(
   // Attach stops
 
   const attachStops = new Map<number, Stop<number, number>>();
-  const distances: Record<number, number> = {
-    [ps]: 100,
-  };
 
   attachStops.set(psInternalId, {
     id: psInternalId,
