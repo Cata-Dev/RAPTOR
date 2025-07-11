@@ -42,7 +42,7 @@ if [ -n "$GLOBAL" ]; then
     FOLDER="bench/$INSTANCE"
     mkdir "$FOLDER" 2>/dev/null || true
     echo "Bench instance $INSTANCE"
-    pnpm exec 0x -D "$FOLDER" lib/test/index.js -t "$INSTANCE" "$FOOT_DISTANCE" --runTimes "$TIMES" 1>"$FOLDER/out.txt" 2>/dev/null
+    pnpm exec 0x -D "$FOLDER" lib/test/index.js -i "$INSTANCE" "$FOOT_DISTANCE" --runTimes "$TIMES" 1>"$FOLDER/out.txt" 2>/dev/null
     sed -i "s|$(dirname "$PWD")/||g" "$FOLDER/flamegraph.html"
     echo "Done at: $FOLDER/flamegraph.html"
   done
@@ -63,7 +63,7 @@ if [ -n "$CRITERIA" ]; then
       mkdir "$FOLDER" 2>/dev/null || true
       echo "Bench instance $INSTANCE with criteria $CRITERIA"
       # shellcheck disable=SC2086
-      pnpm exec 0x -D "$FOLDER" lib/test/index.js -t "$INSTANCE" "$FOOT_DISTANCE" $CRITERIA --runTimes "$TIMES" 1>"$FOLDER/out.txt" 2>/dev/null
+      pnpm exec 0x -D "$FOLDER" lib/test/index.js -i "$INSTANCE" "$FOOT_DISTANCE" $CRITERIA --runTimes "$TIMES" 1>"$FOLDER/out.txt" 2>/dev/null
       sed -i "s|$(dirname "$PWD")/||g" "$FOLDER/flamegraph.html"
       echo "Done at: $FOLDER/flamegraph.html"
     done

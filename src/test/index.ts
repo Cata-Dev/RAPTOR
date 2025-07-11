@@ -10,8 +10,8 @@ import { exit } from "process";
 import {
   bufferTime,
   footDistance,
+  InternalTimeInt,
   IRAPTORData,
-  MAX_SAFE_TIMESTAMP,
   McRAPTOR,
   McSharedRAPTOR,
   Ordered,
@@ -21,10 +21,13 @@ import {
   SharedID,
   SharedRAPTOR,
   SharedRAPTORData,
+  sharedTimeIntOrderLow,
   sharedTimeScal,
   Stop,
   Time,
+  TimeIntOrderLow,
   TimeScal,
+  Timestamp,
 } from "../";
 import BaseRAPTOR from "../base";
 import NonScheduledRoutesModelInit, { dbFootPaths } from "./models/NonScheduledRoutes.model";
@@ -129,9 +132,15 @@ function getArgsOptNumber(args: ReturnType<typeof minimist>, opt: string): numbe
   return null;
 }
 
-async function computeRAPTORData({ stops, dbNonScheduledRoutes, dbScheduledRoutes }: Awaited<ReturnType<typeof queryData>>, fpReqLen: number) {
+type DataType = "scalar" | "interval";
+
+async function computeRAPTORData(
+  { stops, dbNonScheduledRoutes, dbScheduledRoutes }: Awaited<ReturnType<typeof queryData>>,
+  fpReqLen: number,
+  dataType: DataType,
+) {
   return [
-    TimeScal,
+    dataType === "scalar" ? TimeScal : TimeIntOrderLow,
     await mapAsync<(typeof stops)[number], Stop<number, number>>(stops, async ({ id, connectedRoutes }) => ({
       id,
       connectedRoutes,
@@ -147,22 +156,28 @@ async function computeRAPTORData({ stops, dbNonScheduledRoutes, dbScheduledRoute
           stops,
           trips.map(({ tripId, schedules }) => ({
             id: tripId,
-            times: schedules.map((schedule) =>
-              typeof schedule === "object" && "hor_estime" in schedule
-                ? ([schedule.hor_estime.getTime() || MAX_SAFE_TIMESTAMP, schedule.hor_estime.getTime() || MAX_SAFE_TIMESTAMP] satisfies [
-                    unknown,
-                    unknown,
-                  ])
-                : ([Infinity, Infinity] satisfies [unknown, unknown]),
-            ),
+            times: schedules
+              .map<[number, number]>((schedule) =>
+                typeof schedule === "object" && "hor_estime" in schedule
+                  ? [schedule.hor_estime.getTime() || TimeScal.MAX_SAFE, schedule.hor_estime.getTime() || TimeScal.MAX_SAFE]
+                  : [TimeScal.MAX, TimeScal.MAX],
+              )
+              // Transform to interval
+              .map((schedule) =>
+                dataType === "interval"
+                  ? [[schedule[0], schedule[0]] satisfies InternalTimeInt, [schedule[1], schedule[1]] satisfies InternalTimeInt]
+                  : schedule,
+              ),
           })),
         ] satisfies [unknown, unknown, unknown],
     ),
-  ] satisfies ConstructorParameters<typeof RAPTORData<number>>;
+  ] as ConstructorParameters<typeof RAPTORData<Timestamp | InternalTimeInt>>;
 }
 
-function computeSharedRAPTORData([_, stops, routes]: Awaited<ReturnType<typeof computeRAPTORData>>) {
-  return [sharedTimeScal, stops, routes] satisfies Parameters<typeof SharedRAPTORData.makeFromRawData<number>>;
+function computeSharedRAPTORData([_, stops, routes]: Awaited<ReturnType<typeof computeRAPTORData>>, dataType: DataType) {
+  return [dataType === "scalar" ? sharedTimeScal : sharedTimeIntOrderLow, stops, routes] as Parameters<
+    typeof SharedRAPTORData.makeFromRawData<Timestamp | InternalTimeInt>
+  >;
 }
 
 function createRAPTOR<TimeVal>(data: ConstructorParameters<typeof RAPTORData<TimeVal>>) {
@@ -272,9 +287,26 @@ async function insertResults<TimeVal, V extends Ordered<V>, CA extends [V, strin
   const fpRunLen = getArgsOptNumber(args, "fp-run-len") ?? 2_000;
   console.debug(`Foot paths run max len`, fpRunLen);
 
+  let dataType: DataType;
+  if ("d" in args) {
+    switch ((args.d as string).toLowerCase()) {
+      case "scal":
+        dataType = "scalar";
+        break;
+
+      case "int":
+        dataType = "interval";
+        break;
+
+      default:
+        throw new Error(`Unexpected data type "${args.d}"`);
+    }
+  } else dataType = "interval";
+  console.debug("Using data type", dataType);
+
   let instanceType: "RAPTOR" | "SharedRAPTOR" | "McRAPTOR" | "McSharedRAPTOR";
-  if ("t" in args) {
-    switch ((args.t as string).toLowerCase()) {
+  if ("i" in args) {
+    switch ((args.i as string).toLowerCase()) {
       case "r":
         instanceType = "RAPTOR";
         break;
@@ -292,9 +324,9 @@ async function insertResults<TimeVal, V extends Ordered<V>, CA extends [V, strin
         break;
 
       default:
-        throw new Error(`Unexpected instance type "${args.t}"`);
+        throw new Error(`Unexpected instance type "${args.i}"`);
     }
-  } else instanceType = "McSharedRAPTOR";
+  } else instanceType = "RAPTOR";
   console.debug("Using instance type", instanceType);
 
   const createTimes = getArgsOptNumber(args, "createTimes") ?? 1;
@@ -339,7 +371,7 @@ async function insertResults<TimeVal, V extends Ordered<V>, CA extends [V, strin
 
   // Compute RAPTOR data
 
-  const b2 = await benchmark(computeRAPTORData, [queriedData, fpReqLen]);
+  const b2 = await benchmark(computeRAPTORData, [queriedData, fpReqLen, dataType]);
   const rawRAPTORData = b2.lastReturn;
   if (!rawRAPTORData) throw new Error("No raw RAPTOR data");
 
@@ -348,7 +380,7 @@ async function insertResults<TimeVal, V extends Ordered<V>, CA extends [V, strin
   if (instanceType === "SharedRAPTOR" || instanceType === "McSharedRAPTOR") {
     // Shared-specific RAPTOR data computation
 
-    const b3 = await benchmark(computeSharedRAPTORData, [rawRAPTORData]);
+    const b3 = await benchmark(computeSharedRAPTORData, [rawRAPTORData, dataType]);
     if (!b3.lastReturn) throw new Error("No raw Shared RAPTOR data");
     rawSharedRAPTORData = b3.lastReturn;
 
@@ -360,14 +392,14 @@ async function insertResults<TimeVal, V extends Ordered<V>, CA extends [V, strin
   // Create RAPTOR
 
   const b4 = await (instanceType === "RAPTOR"
-    ? benchmark<typeof createRAPTOR<number>>(createRAPTOR, [rawRAPTORData], undefined, createTimes)
+    ? benchmark(createRAPTOR<Timestamp | InternalTimeInt>, [rawRAPTORData], undefined, createTimes)
     : instanceType === "SharedRAPTOR"
       ? // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        benchmark<typeof createSharedRAPTOR<number>>(createSharedRAPTOR, [rawSharedRAPTORData!], undefined, createTimes)
+        benchmark(createSharedRAPTOR<Timestamp | InternalTimeInt>, [rawSharedRAPTORData!], undefined, createTimes)
       : instanceType === "McRAPTOR"
         ? benchmark(
             createMcRAPTOR<
-              number,
+              Timestamp | InternalTimeInt,
               number,
               [] | [[number, "footDistance"]] | [[number, "bufferTime"]] | [[number, "footDistance"], [number, "bufferTime"]]
             >,
@@ -375,7 +407,7 @@ async function insertResults<TimeVal, V extends Ordered<V>, CA extends [V, strin
               rawRAPTORData,
               criteria as Parameters<
                 typeof createMcRAPTOR<
-                  number,
+                  Timestamp | InternalTimeInt,
                   number,
                   [] | [[number, "footDistance"]] | [[number, "bufferTime"]] | [[number, "footDistance"], [number, "bufferTime"]]
                 >
@@ -386,7 +418,7 @@ async function insertResults<TimeVal, V extends Ordered<V>, CA extends [V, strin
           )
         : benchmark(
             createMcSharedRAPTOR<
-              number,
+              Timestamp | InternalTimeInt,
               number,
               [] | [[number, "footDistance"]] | [[number, "bufferTime"]] | [[number, "footDistance"], [number, "bufferTime"]]
             >,
@@ -395,7 +427,7 @@ async function insertResults<TimeVal, V extends Ordered<V>, CA extends [V, strin
               rawSharedRAPTORData!,
               criteria as Parameters<
                 typeof createMcSharedRAPTOR<
-                  number,
+                  Timestamp | InternalTimeInt,
                   number,
                   [] | [[number, "footDistance"]] | [[number, "bufferTime"]] | [[number, "footDistance"], [number, "bufferTime"]]
                 >
@@ -406,9 +438,11 @@ async function insertResults<TimeVal, V extends Ordered<V>, CA extends [V, strin
           ));
   if (!b4.lastReturn) throw new Error("No RAPTOR instance");
   const [RAPTORDataInst, RAPTORInstance] = b4.lastReturn as readonly [
-    Omit<IRAPTORData<number, SharedID, SharedID, number>, "attachData"> & { attachData: SharedRAPTORData<number>["attachData"] },
+    Omit<IRAPTORData<Timestamp | InternalTimeInt, SharedID, SharedID, number>, "attachData"> & {
+      attachData: SharedRAPTORData<Timestamp | InternalTimeInt>["attachData"];
+    },
     BaseRAPTOR<
-      number,
+      Timestamp | InternalTimeInt,
       SharedID,
       SharedID,
       number,
@@ -457,8 +491,9 @@ async function insertResults<TimeVal, V extends Ordered<V>, CA extends [V, strin
     )[0]?.hor_estime?.getTime() ?? Infinity;
   const maxSchedule =
     (await queriedData.TBMSchedulesModel.find({}, { hor_estime: 1 }).sort({ hor_estime: -1 }).limit(1))[0]?.hor_estime?.getTime() ?? Infinity;
+  const meanSchedule = (minSchedule + maxSchedule) / 2;
 
-  const departureTime = (minSchedule + maxSchedule) / 2;
+  const departureTime = dataType === "interval" ? ([meanSchedule, meanSchedule] satisfies [unknown, unknown]) : meanSchedule;
 
   const settings: RAPTORRunSettings = { walkSpeed: 1.5, maxTransferLength: fpRunLen };
 
@@ -467,7 +502,9 @@ async function insertResults<TimeVal, V extends Ordered<V>, CA extends [V, strin
   function runRAPTOR() {
     RAPTORInstance.run(ps, pt, departureTime, settings);
   }
-  console.log(`Running with: ps=${ps}, pt=${pt}, departure time=${new Date(departureTime).toLocaleString()}, settings=${JSON.stringify(settings)}`);
+  console.log(
+    `Running with: ps=${ps}, pt=${pt}, departure time=${new Date(typeof departureTime === "number" ? departureTime : departureTime[0]).toLocaleString()}, settings=${JSON.stringify(settings)}`,
+  );
   await benchmark(runRAPTOR, [], undefined, runTimes);
 
   // Get results
@@ -483,7 +520,11 @@ async function insertResults<TimeVal, V extends Ordered<V>, CA extends [V, strin
     // Save results
 
     const b7 = await benchmark(
-      insertResults<number, number, [] | [[number, "footDistance"]] | [[number, "bufferTime"]] | [[number, "footDistance"], [number, "bufferTime"]]>,
+      insertResults<
+        Timestamp | InternalTimeInt,
+        number,
+        [] | [[number, "footDistance"]] | [[number, "bufferTime"]] | [[number, "footDistance"], [number, "bufferTime"]]
+      >,
       [queriedData.resultModel, RAPTORDataInst.timeType, from, { type: LocationType.TBM, id: pt }, departureTime, settings, b6.lastReturn],
     );
     console.log("Saved result id", b7.lastReturn);
