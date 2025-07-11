@@ -7,6 +7,7 @@ import { DocumentType } from "@typegoose/typegoose";
 import minimist from "minimist";
 import { FilterQuery } from "mongoose";
 import { exit } from "process";
+import { inspect } from "util";
 import {
   bufferTime,
   footDistance,
@@ -516,7 +517,7 @@ async function insertResults<TimeVal, V, CA extends [V, string][]>(
   }
   const b6 = await benchmark(resultRAPTOR, [], undefined, getResTimes);
   if (!b6.lastReturn) throw new Error(`No best journeys`);
-  console.debug("Best journeys", b6.lastReturn);
+  console.debug("Best journeys", inspect(b6.lastReturn, false, 6));
 
   if (saveResults) {
     // Save results
