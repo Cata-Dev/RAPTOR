@@ -337,6 +337,8 @@ async function insertResults<TimeVal, V extends Ordered<V>, CA extends [V, strin
     // Béthanie
     3846;
 
+  // Compute RAPTOR data
+
   const b2 = await benchmark(computeRAPTORData, [queriedData, fpReqLen]);
   const rawRAPTORData = b2.lastReturn;
   if (!rawRAPTORData) throw new Error("No raw RAPTOR data");
@@ -357,6 +359,8 @@ async function insertResults<TimeVal, V extends Ordered<V>, CA extends [V, strin
   >;
 
   if (instanceType === "SharedRAPTOR" || instanceType === "McSharedRAPTOR") {
+    // Shared-specific RAPTOR data computation
+
     const b3 = await benchmark(computeSharedRAPTORData, [rawRAPTORData]);
     const rawSharedRAPTORData = b3.lastReturn;
     if (!rawSharedRAPTORData) throw new Error("No raw Shared RAPTOR data");
@@ -364,55 +368,11 @@ async function insertResults<TimeVal, V extends Ordered<V>, CA extends [V, strin
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     psInternalId = queriedData.stops.at(-1)!.id + 1;
     ps = SharedRAPTORData.serializeId(psInternalId);
+  // Create RAPTOR
 
-    const b4 = await (instanceType === "SharedRAPTOR"
-      ? benchmark<typeof createSharedRAPTOR<number>>(createSharedRAPTOR, [rawSharedRAPTORData], undefined, createTimes)
-      : benchmark(
-          createMcSharedRAPTOR<
-            number,
-            number,
-            [] | [[number, "footDistance"]] | [[number, "bufferTime"]] | [[number, "footDistance"], [number, "bufferTime"]]
-          >,
-          [
-            rawSharedRAPTORData,
-            criteria as Parameters<
-              typeof createMcSharedRAPTOR<
-                number,
-                number,
-                [] | [[number, "footDistance"]] | [[number, "bufferTime"]] | [[number, "footDistance"], [number, "bufferTime"]]
-              >
-            >[1],
-          ],
-          undefined,
-          createTimes,
-        ));
-    if (!b4.lastReturn) throw new Error("No RAPTOR instance");
-    [RAPTORDataInst, RAPTORInstance] = b4.lastReturn as readonly [typeof RAPTORDataInst, typeof RAPTORInstance];
-  } else {
-    const b4 = await (instanceType === "RAPTOR"
-      ? benchmark<typeof createRAPTOR<number>>(createRAPTOR, [rawRAPTORData], undefined, createTimes)
-      : benchmark(
-          createMcRAPTOR<
-            number,
-            number,
-            [] | [[number, "footDistance"]] | [[number, "bufferTime"]] | [[number, "footDistance"], [number, "bufferTime"]]
-          >,
-          [
-            rawRAPTORData,
-            criteria as Parameters<
-              typeof createMcRAPTOR<
-                number,
-                number,
-                [] | [[number, "footDistance"]] | [[number, "bufferTime"]] | [[number, "footDistance"], [number, "bufferTime"]]
-              >
-            >[1],
-          ],
-          undefined,
-          createTimes,
-        ));
-    if (!b4.lastReturn) throw new Error("No RAPTOR instance");
-    [RAPTORDataInst, RAPTORInstance] = b4.lastReturn as readonly [typeof RAPTORDataInst, typeof RAPTORInstance];
-  }
+
+  // Attach stops
+
 
   attachStops.set(psInternalId, {
     id: psInternalId,
@@ -436,6 +396,8 @@ async function insertResults<TimeVal, V extends Ordered<V>, CA extends [V, strin
 
   RAPTORDataInst.attachData(Array.from(attachStops.values()), []);
 
+  // Run params
+
   // https://www.mongodb.com/docs/manual/core/aggregation-pipeline-optimization/#-sort----limit-coalescence
   const minSchedule =
     (
@@ -450,11 +412,15 @@ async function insertResults<TimeVal, V extends Ordered<V>, CA extends [V, strin
 
   const settings: RAPTORRunSettings = { walkSpeed: 1.5, maxTransferLength: fpRunLen };
 
+  // Run
+
   function runRAPTOR() {
     RAPTORInstance.run(ps, pt, departureTime, settings);
   }
   console.log(`Running with: ps=${ps}, pt=${pt}, departure time=${new Date(departureTime).toLocaleString()}, settings=${JSON.stringify(settings)}`);
   await benchmark(runRAPTOR, [], undefined, runTimes);
+
+  // Get results
 
   function resultRAPTOR() {
     return RAPTORInstance.getBestJourneys(pt);
@@ -464,6 +430,8 @@ async function insertResults<TimeVal, V extends Ordered<V>, CA extends [V, strin
   console.debug("Best journeys", b6.lastReturn);
 
   if (saveResults) {
+    // Save results
+
     const b7 = await benchmark(
       insertResults<number, number, [] | [[number, "footDistance"]] | [[number, "bufferTime"]] | [[number, "footDistance"], [number, "bufferTime"]]>,
       [queriedData.resultModel, RAPTORDataInst.timeType, from, { type: LocationType.TBM, id: pt }, departureTime, settings, b6.lastReturn],
