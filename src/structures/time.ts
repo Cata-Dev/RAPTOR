@@ -68,7 +68,7 @@ type InternalTimeInt = readonly [Timestamp, Timestamp];
  * A time defined by an interval, ordered by its lower bound.
  */
 const TimeIntOrderLow = makeTime<InternalTimeInt>(
-  (a, b) => (a[0] > b[0] ? 1 : a[0] < b[0] ? -1 : 0),
+  (a, b) => TimeScal.order(a[0], b[0]),
   [MAX_SAFE_TIMESTAMP, MAX_SAFE_TIMESTAMP],
   [Infinity, Infinity],
   [-Infinity, -Infinity],
