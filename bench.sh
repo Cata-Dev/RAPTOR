@@ -57,15 +57,24 @@ if [ -n "$CRITERIA" ]; then
     for CRITERIA in \
       '--fd' \
       '--bt' \
-      '--fd --bt'
+      # Might be very long...
+      # '--fd --bt'
     do
-      FOLDER="bench/$INSTANCE$(echo "$CRITERIA" | sed 's/ //g')"
-      mkdir "$FOLDER" 2>/dev/null || true
-      echo "Bench instance $INSTANCE with criteria $CRITERIA"
-      # shellcheck disable=SC2086
-      pnpm exec 0x -D "$FOLDER" lib/test/index.js -i "$INSTANCE" "$FOOT_DISTANCE" $CRITERIA --runTimes "$TIMES" 1>"$FOLDER/out.txt" 2>/dev/null
-      sed -i "s|$(dirname "$PWD")/||g" "$FOLDER/flamegraph.html"
-      echo "Done at: $FOLDER/flamegraph.html"
+      for DELAY in \
+        '--delay-pos=1 --delay-neg=0' \
+        '--delay-pos=2 --delay-neg=1' \
+        '--delay-pos=3 --delay-neg=2' \
+        # Might be very long...
+        # '--fd --bt'
+      do
+        FOLDER="bench/$INSTANCE$(echo "$CRITERIA" | sed 's/ //g')$(echo "$DELAY" | sed -E 's/( ?--delay|=)//g')"
+        mkdir "$FOLDER" 2>/dev/null || true
+        echo "Bench instance $INSTANCE with criteria $CRITERIA and delays $DELAY"
+        # shellcheck disable=SC2086
+        pnpm exec 0x -D "$FOLDER" lib/test/index.js -i "$INSTANCE" "$FOOT_DISTANCE" $CRITERIA $DELAY --runTimes "$TIMES" 1>"$FOLDER/out.txt" 2>/dev/null
+        sed -i "s|$(dirname "$PWD")/||g" "$FOLDER/flamegraph.html"
+        echo "Done at: $FOLDER/flamegraph.html"
+      done
     done
   done
 fi

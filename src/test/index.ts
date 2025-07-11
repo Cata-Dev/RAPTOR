@@ -138,6 +138,10 @@ async function computeRAPTORData(
   { stops, dbNonScheduledRoutes, dbScheduledRoutes }: Awaited<ReturnType<typeof queryData>>,
   fpReqLen: number,
   dataType: DataType,
+  /** In ms */
+  delayPos: number,
+  /** In ms */
+  delayNeg: number,
 ) {
   return [
     dataType === "scalar" ? TimeScal : TimeIntOrderLow,
@@ -165,7 +169,10 @@ async function computeRAPTORData(
               // Transform to interval
               .map((schedule) =>
                 dataType === "interval"
-                  ? [[schedule[0], schedule[0]] satisfies InternalTimeInt, [schedule[1], schedule[1]] satisfies InternalTimeInt]
+                  ? [
+                      [schedule[0] - delayNeg, schedule[0] + delayPos] satisfies InternalTimeInt,
+                      [schedule[1] - delayNeg, schedule[1] + delayPos] satisfies InternalTimeInt,
+                    ]
                   : schedule,
               ),
           })),
@@ -304,6 +311,18 @@ async function insertResults<TimeVal, V, CA extends [V, string][]>(
   } else dataType = "interval";
   console.debug("Using data type", dataType);
 
+  // Delay
+
+  let delayPos = getArgsOptNumber(args, "delay-pos");
+  if (!delayPos) delayPos = dataType === "scalar" ? 0 : 3;
+  else if (dataType === "scalar" && delayPos > 0) console.warn(`Ignoring positive delay of ${delayPos}s because data type is ${dataType}`);
+
+  let delayNeg = getArgsOptNumber(args, "delay-neg");
+  if (!delayNeg) delayNeg = dataType === "scalar" ? 0 : 1;
+  else if (dataType === "scalar" && delayNeg > 0) console.warn(`Ignoring negative delay of ${delayNeg}s because data type is ${dataType}`);
+
+  if (dataType !== "scalar") console.debug(`Using delay of -${delayNeg}s, ${delayPos}s`);
+
   let instanceType: "RAPTOR" | "SharedRAPTOR" | "McRAPTOR" | "McSharedRAPTOR";
   if ("i" in args) {
     switch ((args.i as string).toLowerCase()) {
@@ -374,7 +393,7 @@ async function insertResults<TimeVal, V, CA extends [V, string][]>(
 
   // Compute RAPTOR data
 
-  const b2 = await benchmark(computeRAPTORData, [queriedData, fpReqLen, dataType]);
+  const b2 = await benchmark(computeRAPTORData, [queriedData, fpReqLen, dataType, delayPos * 1_000, delayNeg * 1_000]);
   const rawRAPTORData = b2.lastReturn;
   if (!rawRAPTORData) throw new Error("No raw RAPTOR data");
 
