@@ -103,8 +103,8 @@ export default class RAPTOR<TimeVal, SI extends Id = Id, RI extends Id = Id, TI 
     }
   }
 
-  getBestJourneys(pt: SI): (null | Journey<TimeVal, SI, RI, never, []>)[] {
-    return Array.from({ length: this.multiLabel.length }, (_, k) => k).reduce<(Journey<TimeVal, SI, RI, never, []> | null)[]>(
+  getBestJourneys(pt: SI) {
+    return Array.from({ length: this.multiLabel.length }, (_, k) => k).reduce<([] | [Journey<TimeVal, SI, RI, never, []>])[]>(
       (acc, k) => {
         const ptJourneyStep = this.multiLabel[k].get(pt);
         if (!ptJourneyStep) return acc;
@@ -112,13 +112,13 @@ export default class RAPTOR<TimeVal, SI extends Id = Id, RI extends Id = Id, TI 
         try {
           const journey = this.traceBackFromStep(ptJourneyStep, k);
           const tripsCount = journey.reduce((acc, js) => acc + ("route" in js ? 1 : 0), 0);
-          if ((acc[tripsCount]?.at(-1)?.label.time ?? Infinity) > journey.at(-1)!.label.time) acc[tripsCount] = journey;
+          if (this.time.order(acc[tripsCount]?.[0]?.at(-1)?.label.time ?? this.time.MAX, journey.at(-1)!.label.time) > 0) acc[tripsCount] = [journey];
           // eslint-disable-next-line no-empty
         } catch (_) {}
 
         return acc;
       },
-      Array.from<never, Journey<TimeVal, SI, RI, never, []> | null>({ length: this.multiLabel.length }, () => null),
+      Array.from({ length: this.multiLabel.length }, () => []),
     );
   }
 }

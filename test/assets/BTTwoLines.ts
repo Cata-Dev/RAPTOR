@@ -1,8 +1,7 @@
-/* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { expect, test } from "@jest/globals";
 import { McTestDataset } from "./asset";
-import { validateWithoutCriteria } from "./FDOneLine";
 import twoLines from "./twoLines";
+import { validateWithoutCriteria } from "./utils";
 
 export default [
   "Buffer time, two lines",
@@ -33,16 +32,16 @@ export default [
               twoLines[1].withSlowTransfers.tests[0].validate,
             )(res);
             test("Label buffer times are exact (same results as RAPTOR)", () => {
-              expect(journeysWithoutCriteria[1]?.at(-1)?.label.value("bufferTime")).toBe(-0);
-              expect(journeysWithoutCriteria[2]?.at(-1)?.label.value("bufferTime")).toBe(-0);
+              expect(journeysWithoutCriteria[1][0]?.at(-1)?.label.value("bufferTime")).toBe(-0);
+              expect(journeysWithoutCriteria[2][0]?.at(-1)?.label.value("bufferTime")).toBe(-0);
             });
 
             test("Label buffer times are exact (new results due to criterion)", () => {
-              for (let k = 0; k < 1; ++k) expect(journeysFromCriteria[k]?.length ?? 0).toBe(0);
-              expect(journeysFromCriteria[1]?.length).toBe(1);
+              for (let k = 0; k < 1; ++k) expect(journeysFromCriteria[k].length).toBe(0);
+              expect(journeysFromCriteria[1].length).toBe(1);
               expect(journeysFromCriteria[1][0][0].label.value("bufferTime")).toBe(-Infinity);
-              expect(journeysFromCriteria[1][0].at(-1)!.label.value("bufferTime")).toBe(-2);
-              for (let k = 2; k < journeysFromCriteria.length; ++k) expect(journeysFromCriteria[k]?.length ?? 0).toBe(0);
+              expect(journeysFromCriteria[1][0].at(-1)?.label.value("bufferTime")).toBe(-2);
+              for (let k = 2; k < journeysFromCriteria.length; ++k) expect(journeysFromCriteria[k].length).toBe(0);
             });
           },
         },
@@ -59,20 +58,20 @@ export default [
               twoLines[1].withFastTransfers.tests[0].validate,
             )(res);
             test("Label buffer times are exact (same results as RAPTOR)", () => {
-              expect(journeysWithoutCriteria[1]?.at(-1)?.label.value("bufferTime")).toBe(-0);
-              expect(journeysWithoutCriteria[2]?.at(-1)?.label.value("bufferTime")).toBe(-0);
+              expect(journeysWithoutCriteria[1][0]?.at(-1)?.label.value("bufferTime")).toBe(-0);
+              expect(journeysWithoutCriteria[2][0]?.at(-1)?.label.value("bufferTime")).toBe(-0);
             });
 
             test("Label buffer times are exact (new results due to criterion)", () => {
-              for (let k = 0; k < 1; ++k) expect(journeysFromCriteria[k]?.length ?? 0).toBe(0);
+              for (let k = 0; k < 1; ++k) expect(journeysFromCriteria[k].length).toBe(0);
               expect(journeysFromCriteria[1]?.length).toBe(1);
               expect(journeysFromCriteria[1][0][0].label.value("bufferTime")).toBe(-Infinity);
-              expect(journeysFromCriteria[1][0].at(-1)!.label.value("bufferTime")).toBe(-2);
+              expect(journeysFromCriteria[1][0].at(-1)?.label.value("bufferTime")).toBe(-2);
 
               expect(journeysFromCriteria[2]?.length).toBe(1);
               expect(journeysFromCriteria[2][0][0].label.value("bufferTime")).toBe(-Infinity);
-              expect(journeysFromCriteria[2][0].at(-1)!.label.value("bufferTime")).toBe(-1);
-              for (let k = 3; k < journeysFromCriteria.length; ++k) expect(journeysFromCriteria[k]?.length ?? 0).toBe(0);
+              expect(journeysFromCriteria[2][0].at(-1)?.label.value("bufferTime")).toBe(-1);
+              for (let k = 3; k < journeysFromCriteria.length; ++k) expect(journeysFromCriteria[k].length).toBe(0);
             });
           },
         },
@@ -99,18 +98,18 @@ export default [
               twoLines[1].withMandatoryTransfer.tests[0].validate,
             )(res);
             test("Label buffer times are exact (same results as RAPTOR)", () => {
-              expect(journeysWithoutCriteria[2]![0].label.value("bufferTime")).toBe(-Infinity);
-              expect(journeysWithoutCriteria[2]![1].label.value("bufferTime")).toBe(-1);
-              expect(journeysWithoutCriteria[2]![2].label.value("bufferTime")).toBe(-1);
-              expect(journeysWithoutCriteria[2]![3].label.value("bufferTime")).toBe(-1);
+              expect(journeysWithoutCriteria[2][0]?.[0].label.value("bufferTime")).toBe(-Infinity);
+              expect(journeysWithoutCriteria[2][0]?.[1].label.value("bufferTime")).toBe(-1);
+              expect(journeysWithoutCriteria[2][0]?.[2].label.value("bufferTime")).toBe(-1);
+              expect(journeysWithoutCriteria[2][0]?.[3].label.value("bufferTime")).toBe(-1);
             });
 
             test("Label buffer times are exact (new results due to criterion)", () => {
-              for (let k = 0; k < 2; ++k) expect(journeysFromCriteria[k]?.length ?? 0).toBe(0);
+              for (let k = 0; k < 2; ++k) expect(journeysFromCriteria[k].length).toBe(0);
               expect(journeysFromCriteria[2]?.length).toBe(1);
               expect(journeysFromCriteria[2][0][0].label.value("bufferTime")).toBe(-Infinity);
-              expect(journeysFromCriteria[2][0].at(-1)!.label.value("bufferTime")).toBe(-2);
-              for (let k = 3; k < journeysFromCriteria.length; ++k) expect(journeysFromCriteria[k]?.length ?? 0).toBe(0);
+              expect(journeysFromCriteria[2][0].at(-1)?.label.value("bufferTime")).toBe(-2);
+              for (let k = 3; k < journeysFromCriteria.length; ++k) expect(journeysFromCriteria[k].length).toBe(0);
             });
           },
         },
