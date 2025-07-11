@@ -270,7 +270,7 @@ async function insertResults<TimeVal, V extends Ordered<V>, CA extends [V, strin
   const fpReqLen = getArgsOptNumber(args, "fp-req-len") ?? 3_000;
   console.debug(`Foot paths query max len`, fpReqLen);
   const fpRunLen = getArgsOptNumber(args, "fp-run-len") ?? 2_000;
-  console.debug(`Foot paths run max len`, fpReqLen);
+  console.debug(`Foot paths run max len`, fpRunLen);
 
   let instanceType: "RAPTOR" | "SharedRAPTOR" | "McRAPTOR" | "McSharedRAPTOR";
   if ("t" in args) {
