@@ -1,9 +1,9 @@
 import McRAPTOR from "./McRAPTOR";
 import RAPTOR from "./RAPTOR";
-import { Criterion, Ordered, SharedID, SharedRAPTORData } from "./structures";
+import { Criterion, SharedID, SharedRAPTORData } from "./structures";
 
 const convertBackJourneyStep =
-  <TimeVal, V extends Ordered<V>, CA extends [V, string][]>(stops: SharedRAPTORData<TimeVal>["stops"]) =>
+  <TimeVal, V, CA extends [V, string][]>(stops: SharedRAPTORData<TimeVal>["stops"]) =>
   (js: NonNullable<ReturnType<McRAPTOR<TimeVal, V, CA, SharedID, SharedID, number>["getBestJourneys"]>[number]>[number][number]) => {
     return {
       ...js,
@@ -46,7 +46,7 @@ export class SharedRAPTOR<TimeVal> extends RAPTOR<TimeVal, SharedID, SharedID, n
   }
 }
 
-export class McSharedRAPTOR<TimeVal, V extends Ordered<V>, CA extends [V, string][]> extends McRAPTOR<TimeVal, V, CA, SharedID, SharedID, number> {
+export class McSharedRAPTOR<TimeVal, V, CA extends [V, string][]> extends McRAPTOR<TimeVal, V, CA, SharedID, SharedID, number> {
   constructor(
     protected readonly data: SharedRAPTORData<TimeVal>,
     criteria: { [K in keyof CA]: Criterion<TimeVal, SharedID, SharedID, CA[K][0], CA[K][1]> },
