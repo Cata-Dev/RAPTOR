@@ -194,7 +194,6 @@ function createRAPTOR<TimeVal>(data: ConstructorParameters<typeof RAPTORData<Tim
 
 function createSharedRAPTOR<TimeVal>(data: Parameters<typeof SharedRAPTORData.makeFromRawData<TimeVal>>) {
   const SharedRAPTORDataInst = SharedRAPTORData.makeFromRawData(...data);
-  SharedRAPTORDataInst.secure = true;
   return [SharedRAPTORDataInst, new SharedRAPTOR(SharedRAPTORDataInst)] as const;
 }
 
@@ -211,7 +210,6 @@ function createMcSharedRAPTOR<TimeVal, V, CA extends [V, string][]>(
   criteria: ConstructorParameters<typeof McRAPTOR<TimeVal, V, CA>>[1],
 ) {
   const SharedRAPTORDataInst = SharedRAPTORData.makeFromRawData(...data);
-  SharedRAPTORDataInst.secure = true;
   return [SharedRAPTORDataInst, new McSharedRAPTOR(SharedRAPTORDataInst, criteria)] as const;
 }
 
@@ -348,6 +346,14 @@ async function insertResults<TimeVal, V, CA extends [V, string][]>(
   } else instanceType = "McSharedRAPTOR";
   console.debug("Using instance type", instanceType);
 
+  let sharedSecure = false;
+  if ("shared-secure" in args) {
+    if (instanceType !== "SharedRAPTOR" && instanceType !== "McSharedRAPTOR")
+      console.warn("Ignoring shared secure because instance type isn't shared");
+    else if (args["shared-secure"]) sharedSecure = true;
+  }
+  if (instanceType === "SharedRAPTOR" || instanceType === "McSharedRAPTOR") console.debug(`Shared secure`, sharedSecure);
+
   const createTimes = getArgsOptNumber(args, "createTimes") ?? 1;
   const runTimes = getArgsOptNumber(args, "runTimes") ?? 1;
   const getResTimes = getArgsOptNumber(args, "getResTimes") ?? 1;
@@ -477,6 +483,8 @@ async function insertResults<TimeVal, V, CA extends [V, string][]>(
       [] | [[number, "footDistance"]] | [[number, "bufferTime"]] | [[number, "footDistance"], [number, "bufferTime"]]
     >,
   ];
+
+  if (sharedSecure) (RAPTORDataInst as SharedRAPTORData<Timestamp | InternalTimeInt>).secure = true;
 
   // Attach stops
 
