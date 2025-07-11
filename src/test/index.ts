@@ -119,6 +119,16 @@ async function queryData() {
   return { dbScheduledRoutes, stops, dbNonScheduledRoutes, TBMSchedulesModel, resultModel };
 }
 
+function getArgsOptNumber(args: ReturnType<typeof minimist>, opt: string): number | null {
+  if (opt in args) {
+    if (typeof args[opt] === "number") return args[opt];
+
+    console.warn(`Supplied "${opt}" was not of type number`, args[opt]);
+  }
+
+  return null;
+}
+
 async function computeRAPTORData({ stops, dbNonScheduledRoutes, dbScheduledRoutes }: Awaited<ReturnType<typeof queryData>>, fpReqLen: number) {
   return [
     TimeScal,
@@ -257,9 +267,10 @@ async function insertResults<TimeVal, V extends Ordered<V>, CA extends [V, strin
   const args = minimist(process.argv);
   console.debug(`Using args`, args);
 
-  const fpReqLen = "fp-req-len" in args ? (args["fp-req-len"] as number) : 3_000;
+  const fpReqLen = getArgsOptNumber(args, "fp-req-len") ?? 3_000;
   console.debug(`Foot paths query max len`, fpReqLen);
-  const fpRunLen = "fp-run-len" in args ? (args["fp-run-len"] as number) : 2_000;
+  const fpRunLen = getArgsOptNumber(args, "fp-run-len") ?? 2_000;
+  console.debug(`Foot paths run max len`, fpReqLen);
 
   let instanceType: "RAPTOR" | "SharedRAPTOR" | "McRAPTOR" | "McSharedRAPTOR";
   if ("t" in args) {
@@ -286,9 +297,9 @@ async function insertResults<TimeVal, V extends Ordered<V>, CA extends [V, strin
   } else instanceType = "McSharedRAPTOR";
   console.debug("Using instance type", instanceType);
 
-  const createTimes = "createTimes" in args ? (args.createTimes as number) : 1;
-  const runTimes = "runTimes" in args ? (args.runTimes as number) : 1;
-  const getResTimes = "getResTimes" in args ? (args.getResTimes as number) : 1;
+  const createTimes = getArgsOptNumber(args, "createTimes") ?? 1;
+  const runTimes = getArgsOptNumber(args, "runTimes") ?? 1;
+  const getResTimes = getArgsOptNumber(args, "getResTimes") ?? 1;
 
   const criteria = [] as [] | [typeof footDistance] | [typeof bufferTime] | [typeof footDistance, typeof bufferTime];
   if ("fd" in args && args.fd === true) (criteria as [typeof footDistance]).push(footDistance);
@@ -308,22 +319,23 @@ async function insertResults<TimeVal, V extends Ordered<V>, CA extends [V, strin
   if (!queriedData) throw new Error("No queried data");
 
   // Setup source & destination
-  let from: LocationAddress | LocationTBM;
   let ps: number | SharedID;
+  let from: LocationAddress | LocationTBM;
 
-  if ("ps" in args) {
-    ps = args.ps as number;
-    from = { type: LocationType.TBM, id: ps };
-  } else {
+  const psOpt = getArgsOptNumber(args, "ps");
+  if (psOpt === null) {
     ps = 974; // Barrière d'Ornano
     from = { type: LocationType.Address, id: 174287 };
+  } else {
+    ps = psOpt;
+    from = { type: LocationType.TBM, id: ps };
   }
   let psInternalId = ps;
 
   const pt =
-    "pt" in args
-      ? (args.pt as number) // Béthanie
-      : 3846;
+    getArgsOptNumber(args, "pt") ??
+    // Béthanie
+    3846;
 
   const b2 = await benchmark(computeRAPTORData, [queriedData, fpReqLen]);
   const rawRAPTORData = b2.lastReturn;
