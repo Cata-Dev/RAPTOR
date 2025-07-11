@@ -345,7 +345,7 @@ async function insertResults<TimeVal, V, CA extends [V, string][]>(
       default:
         throw new Error(`Unexpected instance type "${args.i}"`);
     }
-  } else instanceType = "RAPTOR";
+  } else instanceType = "McSharedRAPTOR";
   console.debug("Using instance type", instanceType);
 
   const createTimes = getArgsOptNumber(args, "createTimes") ?? 1;
