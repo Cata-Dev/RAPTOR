@@ -14,7 +14,6 @@ import {
   IRAPTORData,
   McRAPTOR,
   McSharedRAPTOR,
-  Ordered,
   RAPTOR,
   RAPTORData,
   RAPTORRunSettings,
@@ -191,7 +190,7 @@ function createSharedRAPTOR<TimeVal>(data: Parameters<typeof SharedRAPTORData.ma
   return [SharedRAPTORDataInst, new SharedRAPTOR(SharedRAPTORDataInst)] as const;
 }
 
-function createMcRAPTOR<TimeVal, V extends Ordered<V>, CA extends [V, string][]>(
+function createMcRAPTOR<TimeVal, V, CA extends [V, string][]>(
   data: ConstructorParameters<typeof RAPTORData<TimeVal>>,
   criteria: ConstructorParameters<typeof McRAPTOR<TimeVal, V, CA>>[1],
 ) {
@@ -199,7 +198,7 @@ function createMcRAPTOR<TimeVal, V extends Ordered<V>, CA extends [V, string][]>
   return [RAPTORDataInst, new McRAPTOR(RAPTORDataInst, criteria)] as const;
 }
 
-function createMcSharedRAPTOR<TimeVal, V extends Ordered<V>, CA extends [V, string][]>(
+function createMcSharedRAPTOR<TimeVal, V, CA extends [V, string][]>(
   data: Parameters<typeof SharedRAPTORData.makeFromRawData<TimeVal>>,
   criteria: ConstructorParameters<typeof McRAPTOR<TimeVal, V, CA>>[1],
 ) {
@@ -211,7 +210,7 @@ function createMcSharedRAPTOR<TimeVal, V extends Ordered<V>, CA extends [V, stri
 type DBJourney = Omit<Journey, "steps"> & {
   steps: (JourneyStepBase | JourneyStepFoot | JourneyStepVehicle)[];
 };
-function journeyDBFormatter<TimeVal, V extends Ordered<V>, CA extends [V, string][]>(
+function journeyDBFormatter<TimeVal, V, CA extends [V, string][]>(
   journey: NonNullable<ReturnType<BaseRAPTOR<TimeVal, SharedID, SharedID, number, V, CA>["getBestJourneys"]>[number][number]>,
 ): DBJourney {
   return {
@@ -249,7 +248,7 @@ function journeyDBFormatter<TimeVal, V extends Ordered<V>, CA extends [V, string
   };
 }
 
-async function insertResults<TimeVal, V extends Ordered<V>, CA extends [V, string][]>(
+async function insertResults<TimeVal, V, CA extends [V, string][]>(
   resultModel: Awaited<ReturnType<typeof queryData>>["resultModel"],
   timeType: Time<TimeVal>,
   from: LocationAddress | LocationTBM,
@@ -335,7 +334,10 @@ async function insertResults<TimeVal, V extends Ordered<V>, CA extends [V, strin
 
   const criteria = [] as [] | [typeof footDistance] | [typeof bufferTime] | [typeof footDistance, typeof bufferTime];
   if ("fd" in args && args.fd === true) (criteria as [typeof footDistance]).push(footDistance);
-  if ("bt" in args && args.bt === true) (criteria as [typeof bufferTime]).push(bufferTime);
+  if ("bt" in args && args.bt === true) {
+    if (dataType !== "scalar") console.warn(`Ignoring criterion "${bufferTime.name}" because of incompatible data type`, dataType);
+    else (criteria as [typeof bufferTime]).push(bufferTime);
+  }
   console.debug(
     "Using criteria",
     criteria.map((c) => c.name),
