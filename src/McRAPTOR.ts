@@ -97,9 +97,8 @@ export default class McRAPTOR<
       const journeySteps = this.bags[this.k - 1].get(stopId)!;
       const newBag = Bag.from(journeySteps);
       this.bags[this.k].set(stopId, newBag);
-
-      if (stopId === this.runParams!.pt) this.Bpt = newBag;
     }
+    this.Bpt = this.bags[this.k].get(this.runParams!.pt)!;
   }
 
   protected traverseRoute(route: Route<TimeVal, SI, RI, TI>, stop: SI): void {
