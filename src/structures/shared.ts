@@ -346,7 +346,7 @@ class RouteRetriever<TimeVal>
 }
 
 /**
- * Shared-memory enabled RAPTOR data
+ * Memory-shared RAPTOR data
  */
 class SharedRAPTORData<TimeVal> implements IRAPTORData<TimeVal, SharedID, SharedID, number> {
   /**
