@@ -1,4 +1,4 @@
-import { McRAPTOR, Ordered, RAPTOR, RAPTORData } from "../../src";
+import { McRAPTOR, RAPTOR, RAPTORData } from "../../src";
 
 interface TestAsset<TimeVal> {
   data: ConstructorParameters<typeof RAPTORData<TimeVal, number, number, number>>;
@@ -10,7 +10,7 @@ interface TestAsset<TimeVal> {
 
 type TestDataset<TimeVal> = [string, Record<string, TestAsset<TimeVal>>];
 
-interface McTestAsset<TimeVal, V extends Ordered<V>, CA extends [V, string][]> {
+interface McTestAsset<TimeVal, V, CA extends [V, string][]> {
   data: TestAsset<TimeVal>["data"];
   tests: {
     params: Parameters<McRAPTOR<TimeVal, V, CA, number, number, number>["run"]>;
@@ -18,4 +18,4 @@ interface McTestAsset<TimeVal, V extends Ordered<V>, CA extends [V, string][]> {
   }[];
 }
 
-type McTestDataset<TimeVal, V extends Ordered<V>, CA extends [V, string][]> = [string, Record<string, McTestAsset<TimeVal, V, CA>>];
+type McTestDataset<TimeVal, V, CA extends [V, string][]> = [string, Record<string, McTestAsset<TimeVal, V, CA>>];
