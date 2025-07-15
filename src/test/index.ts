@@ -230,36 +230,21 @@ function createMcSharedRAPTOR<TimeVal, V, CA extends [V, string][]>(
 type DBJourney = Omit<Journey, "steps"> & {
   steps: (JourneyStepBase | JourneyStepFoot | JourneyStepVehicle)[];
 };
-function journeyDBFormatter<TimeVal, V, CA extends [V, string][]>(
+function journeyDBFormatter<TimeVal extends Timestamp | InternalTimeInt, V, CA extends [V, string][]>(
   journey: NonNullable<ReturnType<BaseRAPTOR<TimeVal, SharedID, SharedID, number, V, CA>["getBestJourneys"]>[number][number]>,
 ): DBJourney {
   return {
-    steps: journey.map((js) => {
-      if ("transfer" in js) {
-        return {
-          ...js,
-          time: js.label.time,
-          type: JourneyStepType.Foot,
-        } satisfies JourneyStepFoot;
-      }
-
-      if ("route" in js) {
-        if (typeof js.route.id === "string") throw new Error("Invalid route to retrieve.");
-
-        return {
-          ...js,
-          time: js.label.time,
-          route: js.route.id,
-          type: JourneyStepType.Vehicle,
-        } satisfies JourneyStepVehicle;
-      }
-
-      return {
-        ...js,
-        time: js.label.time,
-        type: JourneyStepType.Base,
-      } satisfies JourneyStepBase;
-    }),
+    steps: journey.map<JourneyStepFoot | JourneyStepVehicle | JourneyStepBase>((js) => ({
+      ...js,
+      time: typeof js.label.time === "number" ? [js.label.time, js.label.time] : js.label.time,
+      ...("transfer" in js
+        ? { type: JourneyStepType.Foot }
+        : "route" in js
+          ? { route: js.route.id, type: JourneyStepType.Vehicle }
+          : {
+              type: JourneyStepType.Base,
+            }),
+    })),
     criteria: journey[0].label.criteria.map(({ name }) => ({
       name,
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
@@ -268,7 +253,7 @@ function journeyDBFormatter<TimeVal, V, CA extends [V, string][]>(
   };
 }
 
-async function insertResults<TimeVal, V, CA extends [V, string][]>(
+async function insertResults<TimeVal extends Timestamp | InternalTimeInt, V, CA extends [V, string][]>(
   resultModel: Awaited<ReturnType<typeof queryData>>["resultModel"],
   timeType: Time<TimeVal>,
   from: LocationAddress | LocationTBM,
@@ -282,7 +267,7 @@ async function insertResults<TimeVal, V, CA extends [V, string][]>(
   const { _id } = await resultModel.create({
     from,
     to,
-    departureTime,
+    departureTime: typeof departureTime !== "number" ? departureTime[0] : departureTime,
     journeys: results
       .flat()
       // Sort by arrival time
@@ -543,7 +528,7 @@ async function insertResults<TimeVal, V, CA extends [V, string][]>(
     (await queriedData.TBMSchedulesModel.find({}, { hor_estime: 1 }).sort({ hor_estime: -1 }).limit(1))[0]?.hor_estime?.getTime() ?? Infinity;
   const meanSchedule = (minSchedule + maxSchedule) / 2;
 
-  const departureTime = dataType === "interval" ? ([meanSchedule, meanSchedule] satisfies [unknown, unknown]) : meanSchedule;
+  const departureTime = dataType === "interval" ? ([maxUpdatedAt, maxUpdatedAt] satisfies [unknown, unknown]) : maxUpdatedAt;
 
   const settings: RAPTORRunSettings = { walkSpeed: 1.5, maxTransferLength: fpRunLen };
 
