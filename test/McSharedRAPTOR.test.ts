@@ -1,5 +1,5 @@
 import { describe, expect } from "@jest/globals";
-import { bufferTime, footDistance, McRAPTOR, McSharedRAPTOR, SharedRAPTORData, sharedTimeScal } from "../src";
+import { bufferTime, Criterion, footDistance, McRAPTOR, McSharedRAPTOR, SharedID, SharedRAPTORData, sharedTimeScal } from "../src";
 import BTOneLine from "./assets/BTOneLine";
 import BTTwoLines from "./assets/BTTwoLines";
 import FDOneLine from "./assets/FDOneLine";
@@ -32,7 +32,9 @@ for (const [datasetName, dataset] of [FDOneLine, FDTwoLines] as const) {
     for (const [assetName, asset] of Object.entries(dataset)) {
       describe(assetName, () => {
         const sharedRaptorData = SharedRAPTORData.makeFromRawData(sharedTimeScal, asset.data[1], asset.data[2]);
-        const sharedRaptorInstance = new McSharedRAPTOR<number, number, [[number, "footDistance"]]>(sharedRaptorData, [footDistance]);
+        const sharedRaptorInstance = new McSharedRAPTOR<number, number, [[number, "footDistance"]]>(sharedRaptorData, [
+          footDistance as Criterion<number, SharedID, SharedID, number, "footDistance">,
+        ]);
 
         for (const test of asset.tests) {
           sharedRaptorInstance.run(...test.params);
@@ -50,7 +52,9 @@ for (const [datasetName, dataset] of [BTOneLine, BTTwoLines] as const) {
     for (const [assetName, asset] of Object.entries(dataset)) {
       describe(assetName, () => {
         const sharedRaptorData = SharedRAPTORData.makeFromRawData(sharedTimeScal, asset.data[1], asset.data[2]);
-        const sharedRaptorInstance = new McSharedRAPTOR<number, number, [[number, "bufferTime"]]>(sharedRaptorData, [bufferTime]);
+        const sharedRaptorInstance = new McSharedRAPTOR<number, number, [[number, "bufferTime"]]>(sharedRaptorData, [
+          bufferTime as Criterion<number, SharedID, SharedID, number, "bufferTime">,
+        ]);
 
         for (const test of asset.tests) {
           sharedRaptorInstance.run(...test.params);

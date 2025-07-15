@@ -89,6 +89,7 @@ interface Criterion<TimeVal, SI extends Id, RI extends Id, T, N extends string> 
   update: (
     prefixJourney: Journey<TimeVal, SI, RI, T, [[T, N]]>,
     newJourneyStep: Omit<JourneyStep<TimeVal, SI, RI, T, [[T, N]]>, "label" | keyof Comparable<never>>,
+    timeType: Time<TimeVal>,
     time: TimeVal,
     stop: SI,
   ) => T;
