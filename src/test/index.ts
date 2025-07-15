@@ -138,10 +138,8 @@ async function computeRAPTORData(
   { stops, dbNonScheduledRoutes, dbScheduledRoutes }: Awaited<ReturnType<typeof queryData>>,
   fpReqLen: number,
   dataType: DataType,
-  /** In ms */
-  delayPos: number,
-  /** In ms */
-  delayNeg: number,
+  /** In ms, [neg, pos] */
+  delay: [number, number] | null,
 ) {
   return [
     dataType === "scalar" ? TimeScal : TimeIntOrderLow,
@@ -161,20 +159,36 @@ async function computeRAPTORData(
           trips.map(({ tripId, schedules }) => ({
             id: tripId,
             times: schedules
-              .map<[number, number]>((schedule) =>
+              .map<[(typeof schedules)[number], [number, number]]>((schedule) => [
+                schedule,
                 typeof schedule === "object" && "hor_estime" in schedule
                   ? [schedule.hor_estime.getTime() || TimeScal.MAX_SAFE, schedule.hor_estime.getTime() || TimeScal.MAX_SAFE]
                   : [TimeScal.MAX, TimeScal.MAX],
-              )
+              ])
               // Transform to interval
-              .map((schedule) =>
-                dataType === "interval"
-                  ? [
-                      [schedule[0] - delayNeg, schedule[0] + delayPos] satisfies InternalTimeInt,
-                      [schedule[1] - delayNeg, schedule[1] + delayPos] satisfies InternalTimeInt,
-                    ]
-                  : schedule,
-              ),
+              .map(([schedule, [arr, dep]]) => {
+                if (dataType === "interval") {
+                  if (delay)
+                    return [[arr - delay[0], arr + delay[1]] satisfies InternalTimeInt, [dep - delay[0], dep + delay[1]] satisfies InternalTimeInt];
+                  else {
+                    if (typeof schedule !== "object")
+                      return [
+                        [arr, arr],
+                        [dep, dep],
+                      ] satisfies [InternalTimeInt, InternalTimeInt];
+
+                    let theo = schedule.hor_theo.getTime() || TimeScal.MAX_SAFE;
+                    let estime = schedule.hor_estime.getTime() || schedule.hor_app.getTime() || TimeScal.MAX_SAFE;
+
+                    // Prevent upper bound to be MAX_SAFE
+                    if (theo < TimeScal.MAX_SAFE && estime === TimeScal.MAX_SAFE) estime = theo;
+                    if (estime < TimeScal.MAX_SAFE && theo === TimeScal.MAX_SAFE) theo = estime;
+
+                    const int = theo < estime ? [theo, estime] : [estime, theo];
+                    return [[int[0], int[1]] as const, [int[0], int[1]] as const] satisfies [unknown, unknown];
+                  }
+                } else return [arr, dep] satisfies [unknown, unknown];
+              }),
           })),
         ] satisfies [unknown, unknown, unknown],
     ),
@@ -311,15 +325,19 @@ async function insertResults<TimeVal, V, CA extends [V, string][]>(
 
   // Delay
 
-  let delayPos = getArgsOptNumber(args, "delay-pos");
-  if (!delayPos) delayPos = dataType === "scalar" ? 0 : 3;
-  else if (dataType === "scalar" && delayPos > 0) console.warn(`Ignoring positive delay of ${delayPos}s because data type is ${dataType}`);
+  const delayPos = getArgsOptNumber(args, "delay-pos");
+  if (delayPos !== null && dataType === "scalar" && delayPos > 0)
+    console.warn(`Ignoring positive delay of ${delayPos}s because data type is ${dataType}`);
 
-  let delayNeg = getArgsOptNumber(args, "delay-neg");
-  if (!delayNeg) delayNeg = dataType === "scalar" ? 0 : 1;
-  else if (dataType === "scalar" && delayNeg > 0) console.warn(`Ignoring negative delay of ${delayNeg}s because data type is ${dataType}`);
+  const delayNeg = getArgsOptNumber(args, "delay-neg");
+  if (delayNeg !== null && dataType === "scalar" && delayNeg > 0)
+    console.warn(`Ignoring negative delay of ${delayNeg}s because data type is ${dataType}`);
 
-  if (dataType !== "scalar") console.debug(`Using delay of -${delayNeg}s, ${delayPos}s`);
+  /** [neg, pos] */
+  let delay: [number, number] | null = null;
+  if (delayNeg !== null || delayPos !== null) delay = [delayNeg ?? 0, delayPos ?? 0];
+
+  if (dataType !== "scalar") console.debug(delay ? `Using delay of -${delay[0]}s, ${delay[1]}s` : `Using natural delay`);
 
   let instanceType: "RAPTOR" | "SharedRAPTOR" | "McRAPTOR" | "McSharedRAPTOR";
   if ("i" in args) {
@@ -404,7 +422,7 @@ async function insertResults<TimeVal, V, CA extends [V, string][]>(
     [ps]: 100,
   };
 
-  const b2 = await benchmark(computeRAPTORData, [queriedData, fpReqLen, dataType, delayPos * 1_000, delayNeg * 1_000]);
+  const b2 = await benchmark(computeRAPTORData, [queriedData, fpReqLen, dataType, delay]);
   const rawRAPTORData = b2.lastReturn;
   if (!rawRAPTORData) throw new Error("No raw RAPTOR data");
 
