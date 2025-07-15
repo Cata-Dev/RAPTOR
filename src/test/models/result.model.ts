@@ -13,11 +13,11 @@ export enum LocationType {
   Address = "A",
 }
 
-import { deleteModelWithClass, getModelForClass, prop, Severity, type Ref } from "@typegoose/typegoose";
+import { deleteModelWithClass, getModelForClass, prop, type Ref } from "@typegoose/typegoose";
 import { TimeStamps } from "@typegoose/typegoose/lib/defaultClasses";
 import { modelOptions } from "@typegoose/typegoose/lib/modelOptions";
-import { Connection, Schema } from "mongoose";
-import { RAPTORRunSettings } from "../../";
+import { Connection } from "mongoose";
+import { InternalTimeInt, RAPTORRunSettings } from "../../";
 import { dbAddresses } from "./addresses.model";
 import { dbTBM_Stops } from "./TBM_stops.model";
 import { dbTBM_ScheduledRoutes } from "./TBMScheduledRoutes.model";
@@ -32,10 +32,10 @@ export type routeId = dbTBM_ScheduledRoutes["_id"];
 })
 class RunSettings implements RAPTORRunSettings {
   @prop({ required: true })
-  public walkSpeed!: number;
+  public maxTransferLength!: number;
 
   @prop({ required: true })
-  public maxTransferLength!: number;
+  public walkSpeed!: number;
 }
 
 @modelOptions({
@@ -49,8 +49,8 @@ export class JourneyStepBase {
   /** @description JourneyStep type */
   public type!: JourneyStepType;
 
-  @prop({ required: true, type: () => Schema.Types.Mixed })
-  public time!: unknown;
+  @prop({ required: true })
+  public time!: InternalTimeInt;
 }
 
 class Transfer {
@@ -92,11 +92,10 @@ export class Criterion {
   @prop({ required: true })
   public name!: string;
 
-  @prop({ required: true, type: () => Schema.Types.Mixed })
+  @prop({ required: true })
   public value!: unknown;
 }
 
-@modelOptions({ options: { allowMixed: Severity.ALLOW } })
 export class Journey {
   @prop({
     required: true,
@@ -141,7 +140,7 @@ export function isLocationAddress(loc: LocationBase): loc is LocationAddress {
   return loc.type === LocationType.Address;
 }
 
-@modelOptions({ options: { customName: "results", allowMixed: Severity.ALLOW } })
+@modelOptions({ options: { customName: "results" } })
 export class dbComputeResult extends TimeStamps {
   @prop({
     required: true,
@@ -163,8 +162,8 @@ export class dbComputeResult extends TimeStamps {
   })
   public to!: LocationBase;
 
-  @prop({ required: true, type: () => Schema.Types.Mixed })
-  departureTime!: unknown;
+  @prop({ required: true })
+  departureTime!: Date;
 
   @prop({ required: true, type: () => RunSettings })
   settings!: RunSettings;
