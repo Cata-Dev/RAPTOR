@@ -12,11 +12,11 @@ function isCriterionJourneyStepFoot<TimeVal, SI extends Id, RI extends Id, V, CA
   return "transfer" in js;
 }
 
-const bufferTime: Criterion<number, Id, Id, number, "bufferTime"> = {
+const bufferTime: Criterion<unknown, Id, Id, number, "bufferTime"> = {
   name: "bufferTime",
   initialValue: -Infinity,
   order: TimeScal.order,
-  update: (prefixJourney, newJourneyStep) => {
+  update: (prefixJourney, newJourneyStep, timeType) => {
     const lastJourneyStep = prefixJourney.at(-1);
     if (!lastJourneyStep) throw new Error("A journey should at least contain the DEPARTURE label.");
 
@@ -25,8 +25,8 @@ const bufferTime: Criterion<number, Id, Id, number, "bufferTime"> = {
     return Math.max(
       lastJourneyStep.label.value("bufferTime"),
       -(
-        newJourneyStep.route.departureTime(newJourneyStep.tripIndex, newJourneyStep.route.stops.indexOf(newJourneyStep.boardedAt[0])) -
-        lastJourneyStep.label.time
+        timeType.low(newJourneyStep.route.departureTime(newJourneyStep.tripIndex, newJourneyStep.route.stops.indexOf(newJourneyStep.boardedAt[0]))) -
+        timeType.up(lastJourneyStep.label.time)
       ),
       -(30 * 60 * 1000),
     );
