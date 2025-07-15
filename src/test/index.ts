@@ -363,10 +363,8 @@ async function insertResults<TimeVal extends Timestamp | InternalTimeInt, V, CA 
 
   const criteria = [] as [] | [typeof footDistance] | [typeof bufferTime] | [typeof footDistance, typeof bufferTime];
   if ("fd" in args && args.fd === true) (criteria as [typeof footDistance]).push(footDistance);
-  if ("bt" in args && args.bt === true) {
-    if (dataType !== "scalar") console.warn(`Ignoring criterion "${bufferTime.name}" because of incompatible data type`, dataType);
-    else (criteria as [typeof bufferTime]).push(bufferTime);
-  }
+  if ("bt" in args && args.bt === true) (criteria as [typeof bufferTime]).push(bufferTime);
+
   console.debug(
     "Using criteria",
     criteria.map((c) => c.name),
