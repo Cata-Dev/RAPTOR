@@ -16,6 +16,7 @@ const rules = {
     },
   ],
   "@typescript-eslint/restrict-template-expressions": ["error", { allowNumber: true }],
+  "@typescript-eslint/no-invalid-void-type": ["error", { allowAsThisParameter: true }],
 };
 
 export default tseslint.config(
