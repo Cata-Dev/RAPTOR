@@ -518,15 +518,7 @@ async function insertResults<TimeVal extends Timestamp | InternalTimeInt, V, CA 
   // Run params
 
   // https://www.mongodb.com/docs/manual/core/aggregation-pipeline-optimization/#-sort----limit-coalescence
-  const minSchedule =
-    (
-      await queriedData.TBMSchedulesModel.find({ hor_estime: { $gt: new Date(0) } }, { hor_estime: 1 })
-        .sort({ hor_estime: 1 })
-        .limit(1)
-    )[0]?.hor_estime?.getTime() ?? Infinity;
-  const maxSchedule =
-    (await queriedData.TBMSchedulesModel.find({}, { hor_estime: 1 }).sort({ hor_estime: -1 }).limit(1))[0]?.hor_estime?.getTime() ?? Infinity;
-  const meanSchedule = (minSchedule + maxSchedule) / 2;
+  const maxUpdatedAt = (await queriedData.TBMSchedulesModel.find().sort({ updatedAt: -1 }).limit(1))[0]?.updatedAt?.getTime() ?? Infinity;
 
   const departureTime = dataType === "interval" ? ([maxUpdatedAt, maxUpdatedAt] satisfies [unknown, unknown]) : maxUpdatedAt;
 
