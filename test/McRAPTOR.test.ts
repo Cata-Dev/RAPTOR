@@ -1,5 +1,5 @@
 import { describe, expect } from "@jest/globals";
-import { bufferTime, footDistance, McRAPTOR, RAPTORData } from "../src";
+import { bufferTime, Criterion, footDistance, McRAPTOR, RAPTORData } from "../src";
 import BTOneLine from "./assets/BTOneLine";
 import FDOneLine from "./assets/FDOneLine";
 import { McTestAsset, TestAsset } from "./assets/asset";
@@ -33,7 +33,9 @@ for (const [datasetName, dataset] of [FDOneLine, FDTwoLines] as const) {
     for (const [assetName, asset] of Object.entries(dataset)) {
       describe(assetName, () => {
         const raptorData = new RAPTORData(...(asset.data as McTestAsset<number, number, [[number, "footDistance"]]>["data"]));
-        const raptorInstance = new McRAPTOR<number, number, [[number, "footDistance"]], number, number, number>(raptorData, [footDistance]);
+        const raptorInstance = new McRAPTOR<number, number, [[number, "footDistance"]], number, number, number>(raptorData, [
+          footDistance as Criterion<number, number, number, number, "footDistance">,
+        ]);
 
         for (const test of asset.tests) {
           raptorInstance.run(...test.params);
@@ -51,7 +53,9 @@ for (const [datasetName, dataset] of [BTOneLine, BTTwoLines] as const) {
     for (const [assetName, asset] of Object.entries(dataset)) {
       describe(assetName, () => {
         const raptorData = new RAPTORData(...(asset.data as McTestAsset<number, number, [[number, "bufferTime"]]>["data"]));
-        const raptorInstance = new McRAPTOR<number, number, [[number, "bufferTime"]], number, number, number>(raptorData, [bufferTime]);
+        const raptorInstance = new McRAPTOR<number, number, [[number, "bufferTime"]], number, number, number>(raptorData, [
+          bufferTime as Criterion<number, number, number, number, "bufferTime">,
+        ]);
 
         for (const test of asset.tests) {
           raptorInstance.run(...test.params);

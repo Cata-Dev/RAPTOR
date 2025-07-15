@@ -54,6 +54,7 @@ export default class McRAPTOR<TimeVal, V, CA extends [V, string][], SI extends I
       const label = fromJourneyStep.label.update(tArr, [
         backTrace as Journey<TimeVal, SI, RI, V, [[V, CA[number][1]]]>,
         partialJourneyStep,
+        this.time,
         tArr,
         stop,
       ]);
@@ -118,6 +119,7 @@ export default class McRAPTOR<TimeVal, V, CA extends [V, string][], SI extends I
             label: journeyStep.label.update(tArr, [
               this.traceBackFromStep(journeyStep.boardedAt[1], this.k) as Journey<TimeVal, SI, RI, V, [[V, CA[number][1]]]>,
               { ...journeyStep },
+              this.time,
               tArr,
               pi,
             ]),
@@ -173,6 +175,7 @@ export default class McRAPTOR<TimeVal, V, CA extends [V, string][], SI extends I
             label: pJourneyStep.label.update(arrivalTime, [
               pBackTrace as Journey<TimeVal, SI, RI, V, [[V, CA[number][1]]]>,
               { boardedAt: [stopId, pJourneyStep], transfer },
+              this.time,
               arrivalTime,
               transfer.to,
             ]),

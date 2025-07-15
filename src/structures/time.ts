@@ -15,7 +15,7 @@ interface Ordered<T> {
    * @param b Second value to compare
    * @return `> 0` if `a > b`, `0` if `a` equals `b` and `< 0` if `a < b`
    */
-  order: (a: T, b: T) => number;
+  order: (this: void, a: T, b: T) => number;
 }
 
 interface Time<T> extends Ordered<T> {
@@ -26,18 +26,30 @@ interface Time<T> extends Ordered<T> {
   /** Typically {@link -Infinity}, i.e. the value such that any other value of the same type is greater */
   readonly MIN: T;
 
-  plusScal: (timeVal: T, timeScal: Timestamp) => T;
+  /** Lower bound */
+  low(this: void, timeVal: T): Timestamp;
+  /** Upper bound */
+  up(this: void, timeVal: T): Timestamp;
+
+  plusScal: (this: void, timeVal: T, timeScal: Timestamp) => T;
 
   min: (...values: T[]) => T;
   max: (...values: T[]) => T;
 }
 
-function makeTime<T>(order: Time<T>["order"], MAX_SAFE: T, MAX: T, MIN: T, plusScal: Time<T>["plusScal"]): Time<T> {
+function makeTimeOrderLow<T>(MAX_SAFE: T, MAX: T, MIN: T, low: Time<T>["low"], up: Time<T>["up"], plusScal: Time<T>["plusScal"]): Time<T> {
+  const order: Time<T>["order"] = (a, b) =>
+    // Can't use `a - b` otherwise it fails with (-Infinity, Infinity)
+    low(a) > low(b) ? 1 : low(a) < low(b) ? -1 : 0;
+
   return {
     order,
     MAX_SAFE,
     MAX,
     MIN,
+
+    low,
+    up,
 
     plusScal,
 
@@ -49,32 +61,28 @@ function makeTime<T>(order: Time<T>["order"], MAX_SAFE: T, MAX: T, MIN: T, plusS
 /**
  * The time type for scalar internal type: {@link Time<Timestamp>}
  */
-const TimeScal: Time<Timestamp> = {
-  order: (a, b) =>
-    // Can't use `a - b` otherwise it fails with (-Infinity, Infinity)
-    a > b ? 1 : a < b ? -1 : 0,
-  MAX_SAFE: MAX_SAFE_TIMESTAMP,
-  MAX: Infinity,
-  MIN: -Infinity,
-
-  plusScal: (timeVal, timeScal) => timeVal + timeScal,
-
-  min: Math.min,
-  max: Math.max,
-};
+const TimeScal: Time<Timestamp> = makeTimeOrderLow(
+  MAX_SAFE_TIMESTAMP,
+  Infinity,
+  -Infinity,
+  (timeVal) => timeVal,
+  (timeVal) => timeVal,
+  (timeVal, timeScal) => timeVal + timeScal,
+);
 
 type InternalTimeInt = readonly [Timestamp, Timestamp];
 
 /**
  * A time defined by an interval, ordered by its lower bound.
  */
-const TimeIntOrderLow = makeTime<InternalTimeInt>(
-  (a, b) => TimeScal.order(a[0], b[0]),
+const TimeIntOrderLow = makeTimeOrderLow<InternalTimeInt>(
   [MAX_SAFE_TIMESTAMP, MAX_SAFE_TIMESTAMP],
   [Infinity, Infinity],
   [-Infinity, -Infinity],
+  (timeVal) => timeVal[0],
+  (timeVal) => timeVal[1],
   ([low, high], timeScal) => [low + timeScal, high + timeScal],
 );
 
-export { makeTime, MAX_SAFE_TIMESTAMP, TimeIntOrderLow, TimeScal };
+export { makeTimeOrderLow, MAX_SAFE_TIMESTAMP, TimeIntOrderLow, TimeScal };
 export type { InternalTimeInt, Ordered, Time, Timestamp };

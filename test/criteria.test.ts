@@ -39,22 +39,22 @@ describe("Foot distance", () => {
   });
 
   test("Update with vehicle", () => {
-    expect(footDistanceTyped.update([originJS], vehicleJourneyStep, 0, 0)).toBe(0);
-    expect(footDistanceTyped.update([originJS, footJourneyStep1], vehicleJourneyStep, 0, 0)).toBe(4);
+    expect(footDistanceTyped.update([originJS], vehicleJourneyStep, TimeScal, 0, 0)).toBe(0);
+    expect(footDistanceTyped.update([originJS, footJourneyStep1], vehicleJourneyStep, TimeScal, 0, 0)).toBe(4);
   });
 
   test("Update with foot transfer", () => {
-    expect(footDistanceTyped.update([originJS], footJourneyStep2, 0, 0)).toBe(5);
-    expect(footDistanceTyped.update([originJS, footJourneyStep1], footJourneyStep2, 0, 0)).toBe(9);
+    expect(footDistanceTyped.update([originJS], footJourneyStep2, TimeScal, 0, 0)).toBe(5);
+    expect(footDistanceTyped.update([originJS, footJourneyStep1], footJourneyStep2, TimeScal, 0, 0)).toBe(9);
   });
 
   test("Wrong usage", () => {
-    expect(() => footDistanceTyped.update([], footJourneyStep1, 0, 0)).toThrow("A journey should at least contain the DEPARTURE label.");
+    expect(() => footDistanceTyped.update([], footJourneyStep1, TimeScal, 0, 0)).toThrow("A journey should at least contain the DEPARTURE label.");
   });
 });
 
 describe("Buffer time", () => {
-  const bufferTimeTyped: Criterion<number, number, number, number, "bufferTime"> = bufferTime;
+  const bufferTimeTyped = bufferTime as Criterion<number, number, number, number, "bufferTime">;
 
   test("Naming", () => {
     expect(bufferTimeTyped.name).toBe("bufferTime");
@@ -85,16 +85,16 @@ describe("Buffer time", () => {
   });
 
   test("Update with foot transfer", () => {
-    expect(bufferTimeTyped.update([originJS], footJourneyStep, 0, 0)).toBe(-Infinity);
-    expect(bufferTimeTyped.update([originJS, vehicleJourneyStep1], footJourneyStep, 0, 0)).toBe(-5);
+    expect(bufferTimeTyped.update([originJS], footJourneyStep, TimeScal, 0, 0)).toBe(-Infinity);
+    expect(bufferTimeTyped.update([originJS, vehicleJourneyStep1], footJourneyStep, TimeScal, 0, 0)).toBe(-5);
   });
 
   test("Update with vehicle", () => {
-    expect(bufferTimeTyped.update([originJS], vehicleJourneyStep1, 0, 0)).toBe(-5);
-    expect(bufferTimeTyped.update([originJS, vehicleJourneyStep1], vehicleJourneyStep2, 0, 0)).toBe(-4);
+    expect(bufferTimeTyped.update([originJS], vehicleJourneyStep1, TimeScal, 0, 0)).toBe(-5);
+    expect(bufferTimeTyped.update([originJS, vehicleJourneyStep1], vehicleJourneyStep2, TimeScal, 0, 0)).toBe(-4);
   });
 
   test("Wrong usage", () => {
-    expect(() => bufferTimeTyped.update([], vehicleJourneyStep1, 0, 0)).toThrow("A journey should at least contain the DEPARTURE label.");
+    expect(() => bufferTimeTyped.update([], vehicleJourneyStep1, TimeScal, 0, 0)).toThrow("A journey should at least contain the DEPARTURE label.");
   });
 });

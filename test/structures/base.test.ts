@@ -48,14 +48,16 @@ describe("Route class", () => {
   });
 });
 
-const c1Update = jest.fn<Criterion<number, number, number, number, "c1">["update"]>((prefixJourney, newJourneyStep, time, stop) => stop);
+const c1Update = jest.fn<Criterion<number, number, number, number, "c1">["update"]>((prefixJourney, newJourneyStep, timeType, time, stop) => stop);
 const c1: Criterion<number, number, number, number, "c1"> = {
   name: "c1",
   initialValue: Infinity,
   order: TimeScal.order,
   update: c1Update,
 };
-const c2Update = jest.fn<Criterion<number, number, number, number, "c2">["update"]>((prefixJourney, newJourneyStep, time, stop) => time + stop);
+const c2Update = jest.fn<Criterion<number, number, number, number, "c2">["update"]>(
+  (prefixJourney, newJourneyStep, timeType, time, stop) => time + stop,
+);
 const c2: Criterion<number, number, number, number, "c2"> = {
   name: "c2",
   initialValue: -Infinity,
@@ -79,7 +81,7 @@ describe("Label class", () => {
     });
 
     test("Update", () => {
-      const lUpdated = l.update(5, [[], {}, 5, 0]);
+      const lUpdated = l.update(5, [[], {}, TimeScal, 5, 0]);
       expect(lUpdated).not.toBe(l);
       expect(lUpdated.time).toBe(5);
     });
@@ -127,6 +129,7 @@ describe("Label class", () => {
             },
           ],
           {},
+          TimeScal,
           5,
           3,
         ],
@@ -153,6 +156,7 @@ describe("Label class", () => {
             },
           ],
           {},
+          TimeScal,
           2,
           1,
         ],
