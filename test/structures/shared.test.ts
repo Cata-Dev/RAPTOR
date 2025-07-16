@@ -41,7 +41,7 @@ function testStops<TimeVal>(stops: TestAsset<TimeVal>["data"][1], SharedRAPTORDa
 
 function testRoutes<TimeVal>(timeType: Time<TimeVal>, routes: TestAsset<TimeVal>["data"][2], SharedRAPTORDataInst: SharedRAPTORData<TimeVal>) {
   SharedRAPTORDataInst.secure = true;
-  const sharedRoutes = Array.from(SharedRAPTORDataInst.routes).sort(([_, a], [__, b]) => (a.id) - (b.id));
+  const sharedRoutes = Array.from(SharedRAPTORDataInst.routes).sort(([_, a], [__, b]) => a.id - b.id);
 
   for (const [id, stops, trips] of Array.from(routes).sort(([idA], [idB]) => idA - idB)) {
     expect(sharedRoutes.find(([_, sharedRoute]) => sharedRoute.id === id)).not.toBe(undefined);
