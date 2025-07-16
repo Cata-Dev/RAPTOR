@@ -207,7 +207,7 @@ class StopRetriever extends Retriever<PtrType.Stop, IStop<SharedID, number>> imp
       yield fp;
     }
 
-    this.attachedData?.transfers(maxLength);
+    if (this.attachedData) for (const transfer of this.attachedData.transfers(maxLength)) yield transfer;
   }
 
   get chunkSize() {
