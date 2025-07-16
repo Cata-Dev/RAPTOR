@@ -1,4 +1,4 @@
-import { ArrayRead, FootPath, IRAPTORData, MapRead, RAPTORData, Route, Stop, Trip } from "./base";
+import { ArrayRead, FootPath, IRAPTORData, IStop, MapRead, RAPTORData, Route, Stop, Trip } from "./base";
 import { Time, TimeIntOrderLow, TimeScal } from "./time";
 
 //
@@ -193,28 +193,21 @@ class StopRetriever extends Retriever<PtrType.Stop, IStop<SharedID, number>> imp
     return this.sDataView[this.ptr + 1 + this.connectedRoutesChunkSize + 1];
   }
 
-  get transfers() {
-    const originalLength = this.transfersChunkSize / 2;
+  *transfers(maxLength: number) {
+    for (let i = 0; i < this.transfersChunkSize / 2; ++i) {
+      const fp = new FootPathRetriever(
+        this.sDataView,
+        this.rDataView,
+        this.ptr + 1 + this.connectedRoutesChunkSize + 1 + 1 + i * FootPathRetriever._chunkSize,
+        PtrType.Stop,
+      );
 
-    return new ArrayView(
-      // to & length
-      () => originalLength + (this.attachedData?.transfers.length ?? 0),
-      (idx) =>
-        idx < originalLength
-          ? new FootPathRetriever(
-              this.sDataView,
-              this.rDataView,
-              this.ptr + 1 + this.connectedRoutesChunkSize + 1 + 1 + idx * FootPathRetriever._chunkSize,
-              PtrType.Stop,
-            )
-          : // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-            this.attachedData!.transfers.at(idx - originalLength)!,
-      (a, b) =>
-        a instanceof FootPathRetriever && b instanceof FootPathRetriever
-          ? FootPathRetriever.equals(a, b)
-          : // Can compare directly : they're references
-            a === b,
-    );
+      if (fp.length > maxLength) break;
+
+      yield fp;
+    }
+
+    this.attachedData?.transfers(maxLength);
   }
 
   get chunkSize() {
@@ -366,7 +359,7 @@ class SharedRAPTORData<TimeVal> implements IRAPTORData<TimeVal, SharedID, number
   // Validate pointers
   secure = false;
 
-  protected attachedStops: MapRead<SharedID, Stop<SharedID, SharedID>> = new Map();
+  protected attachedStops: MapRead<SharedID, IStop<SharedID, number>> = new Map();
 
   /**
    *
@@ -394,18 +387,18 @@ class SharedRAPTORData<TimeVal> implements IRAPTORData<TimeVal, SharedID, number
             // Size of stops buffer chunk
             (1 +
               (stopsChunkSize = dataOrStops.reduce<number>(
-                (acc, v) =>
+                (acc, [_, connectedRoutes, transfers]) =>
                   acc +
                   // stop id
                   1 +
                   // length of connected routes chunk
                   (1 +
                     // connected routes chunk
-                    v.connectedRoutes.length) +
+                    connectedRoutes.length) +
                   // length of transfers chunk
                   (1 +
                     // transfers chunk
-                    v.transfers.length * 2),
+                    transfers.length * 2),
                 0,
               )) +
               // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
@@ -464,17 +457,17 @@ class SharedRAPTORData<TimeVal> implements IRAPTORData<TimeVal, SharedID, number
        */
       const sMapping = new Map<number, number>();
 
-      for (const stop of dataOrStops) {
-        sMapping.set(stop.id, idx);
-        this.sDataView[idx++] = stop.id;
+      for (const [id, connectedRoutes, transfers] of dataOrStops) {
+        sMapping.set(id, idx);
+        this.sDataView[idx++] = id;
 
-        this.sDataView[idx++] = stop.connectedRoutes.length;
+        this.sDataView[idx++] = connectedRoutes.length;
         // Store ID first, then convert to ptr
-        for (const connectedRoute of stop.connectedRoutes) this.sDataView[idx++] = connectedRoute;
+        for (const connectedRoute of connectedRoutes) this.sDataView[idx++] = connectedRoute;
 
         // Total length of transfers chunk
-        this.sDataView[idx++] = stop.transfers.length * 2;
-        for (const transfer of Array.from(stop.transfers)
+        this.sDataView[idx++] = transfers.length * 2;
+        for (const transfer of Array.from(transfers)
           // Sort in order to iterate in transfer length ascending order
           .sort((a, b) => a.length - b.length)) {
           // Store ID first, then convert to ptr
@@ -695,18 +688,23 @@ class SharedRAPTORData<TimeVal> implements IRAPTORData<TimeVal, SharedID, number
     throw new Error(`Invalid pointer ${ptr} of type ${ptrType}`);
   }
 
-  attachData(stops: ArrayRead<Stop<number, number>>, routes: ArrayRead<ConstructorParameters<typeof Route<TimeVal, number, number, number>>>) {
+  attachStops(stops: ArrayRead<ConstructorParameters<typeof Stop<number, number>>>) {
     // Need to resolve pointers when possible
     this.attachedStops = new Map(
-      stops.map((s) => {
-        const id = this.stopPointerFromId(s.id) ?? SharedRAPTORData.serializeId(s.id);
+      stops.map(([sId, connectedRoutes, transfers]) => {
+        const ptrOrId = this.stopPointerFromId(sId) ?? SharedRAPTORData.serializeId(sId);
 
         return [
-          id,
-          {
-            id,
-            connectedRoutes: s.connectedRoutes.map((rId) => this.routePointerFromId(rId) ?? SharedRAPTORData.serializeId(rId)),
-            transfers: s.transfers.map(({ length, to: sId }) => ({
+          ptrOrId,
+          new Stop(
+            ptrOrId,
+            connectedRoutes.map((rId) => {
+              const rPtr = this.routePointerFromId(rId);
+              if (!rPtr) throw new Error(`Invalid attached stop connected route ID: ${rId}`);
+
+              return rPtr;
+            }),
+            transfers.map(({ length, to: sId }) => ({
               length,
               to: this.stopPointerFromId(sId) ?? SharedRAPTORData.serializeId(sId),
             })),

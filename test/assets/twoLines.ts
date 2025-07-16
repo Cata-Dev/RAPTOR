@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 
 import { describe, expect, test } from "@jest/globals";
-import { FootPath, Journey, TimeScal } from "../../src";
+import { Journey, TimeScal } from "../../src";
 import { TestAsset, TestDataset } from "./asset";
 
 const MAX_ROUNDS = 6;
@@ -138,13 +138,13 @@ export default [
       data: [
         TimeScal,
         [
-          { id: 1, connectedRoutes: [1], transfers: [] as FootPath<number>[] },
-          { id: 2, connectedRoutes: [1], transfers: [] as FootPath<number>[] },
-          { id: 3, connectedRoutes: [1, 2], transfers: [] as FootPath<number>[] },
-          { id: 4, connectedRoutes: [1], transfers: [] as FootPath<number>[] },
-          { id: 5, connectedRoutes: [2], transfers: [] as FootPath<number>[] },
-          { id: 6, connectedRoutes: [2], transfers: [] as FootPath<number>[] },
-          { id: 7, connectedRoutes: [2], transfers: [] as FootPath<number>[] },
+          [1, [1], []],
+          [2, [1], []],
+          [3, [1, 2], []],
+          [4, [1], []],
+          [5, [2], []],
+          [6, [2], []],
+          [7, [2], []],
         ],
         routes,
       ],
@@ -163,20 +163,20 @@ export default [
       data: [
         TimeScal,
         [
-          {
-            id: 1,
-            connectedRoutes: [1],
-            transfers: [
+          [
+            1,
+            [1],
+            [
               { to: 3, length: 6 },
               { to: 6, length: 8 },
-            ] as FootPath<number>[],
-          },
-          { id: 2, connectedRoutes: [1], transfers: [] as FootPath<number>[] },
-          { id: 3, connectedRoutes: [1, 2], transfers: [] as FootPath<number>[] },
-          { id: 4, connectedRoutes: [1], transfers: [{ to: 7, length: 5 }] as FootPath<number>[] },
-          { id: 5, connectedRoutes: [2], transfers: [{ to: 2, length: 5 }] as FootPath<number>[] },
-          { id: 6, connectedRoutes: [2], transfers: [] as FootPath<number>[] },
-          { id: 7, connectedRoutes: [2], transfers: [{ to: 1, length: 10 }] as FootPath<number>[] },
+            ],
+          ],
+          [2, [1], []],
+          [3, [1, 2], []],
+          [4, [1], [{ to: 7, length: 5 }]],
+          [5, [2], [{ to: 2, length: 5 }]],
+          [6, [2], []],
+          [7, [2], [{ to: 1, length: 10 }]],
         ],
         routes,
       ],
@@ -196,27 +196,27 @@ export default [
       data: [
         TimeScal,
         [
-          {
-            id: 1,
-            connectedRoutes: [1],
-            transfers: [
+          [
+            1,
+            [1],
+            [
               { to: 3, length: 6 },
               { to: 6, length: 8 },
-            ] as FootPath<number>[],
-          },
-          {
-            id: 2,
-            connectedRoutes: [1],
-            transfers: [
+            ],
+          ],
+          [
+            2,
+            [1],
+            [
               // Better!
               { to: 6, length: 3 },
-            ] as FootPath<number>[],
-          },
-          { id: 3, connectedRoutes: [1, 2], transfers: [] as FootPath<number>[] },
-          { id: 4, connectedRoutes: [1], transfers: [{ to: 7, length: 5 }] as FootPath<number>[] },
-          { id: 5, connectedRoutes: [2], transfers: [{ to: 2, length: 5 }] as FootPath<number>[] },
-          { id: 6, connectedRoutes: [2], transfers: [] as FootPath<number>[] },
-          { id: 7, connectedRoutes: [2], transfers: [{ to: 1, length: 10 }] as FootPath<number>[] },
+            ],
+          ],
+          [3, [1, 2], []],
+          [4, [1], [{ to: 7, length: 5 }]],
+          [5, [2], [{ to: 2, length: 5 }]],
+          [6, [2], []],
+          [7, [2], [{ to: 1, length: 10 }]],
         ],
         routes,
       ],
@@ -343,12 +343,12 @@ export default [
       data: [
         TimeScal,
         [
-          { id: 1, connectedRoutes: [1], transfers: [] },
-          { id: 2, connectedRoutes: [1], transfers: [] },
-          { id: 3, connectedRoutes: [1], transfers: [{ to: 4, length: 5 }] },
-          { id: 4, connectedRoutes: [2], transfers: [] },
-          { id: 5, connectedRoutes: [2], transfers: [] },
-          { id: 6, connectedRoutes: [2], transfers: [] },
+          [1, [1], []],
+          [2, [1], []],
+          [3, [1], [{ to: 4, length: 5 }]],
+          [4, [2], []],
+          [5, [2], []],
+          [6, [2], []],
         ],
         [
           [

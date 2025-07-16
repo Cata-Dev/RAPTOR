@@ -41,12 +41,35 @@ interface FootPath<SI extends Id> {
 }
 
 /**
- * @description A Stop, i.e. a geographical specific point that is connected to routes.
+ * @description A Stop, i.e. a specific point that is connected to routes and other stops by foot transfers
  */
-interface Stop<SI extends Id, RI extends Id> {
+interface IStop<SI extends Id, RI extends Id> {
   readonly id: SI;
   readonly connectedRoutes: ArrayRead<RI>;
-  readonly transfers: ArrayRead<FootPath<SI>>;
+  transfers(maxLength?: number): Generator<FootPath<SI>, void, undefined>;
+}
+
+class Stop<SI extends Id, RI extends Id> implements IStop<SI, RI> {
+  protected readonly _transfers: ArrayRead<FootPath<SI>>;
+
+  /**
+   * Transfers are sorted (mutated) by length
+   */
+  constructor(
+    readonly id: SI,
+    readonly connectedRoutes: readonly RI[],
+    transfers: FootPath<SI>[],
+  ) {
+    this._transfers = transfers.sort((a, b) => a.length - b.length);
+  }
+
+  *transfers(maxLength = Infinity) {
+    for (const transfer of this._transfers) {
+      if (transfer.length > maxLength) return;
+
+      yield transfer;
+    }
+  }
 }
 
 /**
@@ -346,82 +369,32 @@ class Bag<T extends Comparable<T>> {
 
 interface IRAPTORData<TimeVal, SI extends Id = Id, RI extends Id = Id, TI extends Id = Id> {
   readonly timeType: Time<TimeVal>;
-  readonly stops: MapRead<SI, Stop<SI, RI>>;
+  readonly stops: MapRead<SI, IStop<SI, RI>>;
   readonly routes: MapRead<RI, Route<TimeVal, SI, RI, TI>>;
   attachStops: (...args: never[]) => void;
 }
 
 class RAPTORData<TimeVal, SI extends Id = Id, RI extends Id = Id, TI extends Id = Id> implements IRAPTORData<TimeVal, SI, RI, TI> {
-  readonly _stops: MapRead<SI, Stop<SI, RI>>;
-  readonly _routes: MapRead<RI, Route<TimeVal, SI, RI, TI>>;
-  protected attachedStops: MapRead<SI, Stop<SI, RI>> = new Map();
-  protected attachedRoutes: MapRead<RI, Route<TimeVal, SI, RI, TI>> = new Map();
+  protected readonly baseStops: Map<SI, Stop<SI, RI>>;
+  protected _stops: Map<SI, Stop<SI, RI>>;
+  protected _routes: Map<RI, Route<TimeVal, SI, RI, TI>>;
 
   /**
    * @description Creates a new RAPTORData instance for a defined network.
    */
   constructor(
     readonly timeType: Time<TimeVal>,
-    stops: ArrayRead<Stop<SI, RI>>,
+    stops: ArrayRead<ConstructorParameters<typeof Stop<SI, RI>>>,
     routes: ArrayRead<ConstructorParameters<typeof Route<TimeVal, SI, RI, TI>>>,
   ) {
-    this._stops = new Map(
-      stops.map(({ id, connectedRoutes, transfers }) => [
-        id,
-        { id, connectedRoutes, transfers: Array.from(transfers).sort((a, b) => a.length - b.length) },
-      ]),
-    );
+    this.baseStops = new Map(stops.map(([id, connectedRoutes, transfers]) => [id, new Stop(id, connectedRoutes, transfers)]));
+    this._stops = this.baseStops;
+
     this._routes = new Map(routes.map(([rId, stopsIds, trips]) => [rId, new Route(rId, stopsIds, trips)] as const));
   }
 
-  protected getStop(key: SI) {
-    const original = this._stops.get(key);
-    const attached = this.attachedStops.get(key);
-    if (!original && !attached) return undefined;
-
-    // Merge data
-    return {
-      id: key,
-      connectedRoutes: [...(original?.connectedRoutes ?? []), ...(attached?.connectedRoutes ?? [])],
-      transfers: [...(original?.transfers ?? []), ...(attached?.transfers ?? [])],
-    };
-  }
-
   get stops() {
-    return {
-      get: (key: SI) => this.getStop(key),
-      [Symbol.iterator]: function* (this: RAPTORData<TimeVal, SI, RI, TI>) {
-        const seen = new Set<SI>();
-
-        for (const [k] of this._stops) {
-          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-          yield [k, this.getStop(k)!] satisfies [SI, Stop<SI, RI>];
-          seen.add(k);
-        }
-
-        for (const [k, v] of this.attachedStops) {
-          if (seen.has(k)) continue;
-
-          yield [k, v] satisfies [SI, Stop<SI, RI>];
-          // No need to add to `seen` : considering no duplication inside `attachedStops`
-        }
-
-        return undefined;
-      }.bind(this),
-    };
-  }
-
-  protected getRoute(key: RI) {
-    const original = this._routes.get(key);
-    const attached = this.attachedRoutes.get(key);
-    if (!original && !attached) return undefined;
-
-    // Merge data
-    return new Route<TimeVal, SI, RI, TI>(
-      key,
-      [...(original?.stops ?? []), ...(attached?.stops ?? [])],
-      [...(original?.trips ?? []), ...(attached?.trips ?? [])],
-    );
+    return this._stops;
   }
 
   get routes() {
@@ -434,6 +407,31 @@ class RAPTORData<TimeVal, SI extends Id = Id, RI extends Id = Id, TI extends Id 
    * Does not handle duplicate data.
    */
   attachStops(stops: ArrayRead<ConstructorParameters<typeof Stop<SI, RI>>>) {
+    if (stops.length === 0) {
+      // When you want to reset attached data
+      this._stops = this.baseStops;
+
+      return;
+    }
+
+    // Construct from attached data
+    this._stops = new Map(
+      stops.map(([id, connectedRoutes, transfers]) => {
+        const baseStop = this.baseStops.get(id);
+
+        return [
+          id,
+          new Stop(
+            id,
+            baseStop ? [...baseStop.connectedRoutes, ...connectedRoutes] : connectedRoutes,
+            baseStop ? [...baseStop.transfers(), ...transfers] : transfers,
+          ),
+        ];
+      }),
+    );
+
+    // Add missing base
+    for (const [k, v] of this.baseStops) if (!this._stops.has(k)) this._stops.set(k, v);
   }
 }
 
@@ -452,6 +450,7 @@ export {
   MapRead,
   RAPTORData,
   Route,
+  IStop,
   Stop,
   Trip,
 };
