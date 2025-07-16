@@ -143,14 +143,17 @@ async function computeRAPTORData(
 ) {
   return [
     dataType === "scalar" ? TimeScal : TimeIntOrderLow,
-    await mapAsync<(typeof stops)[number], Stop<number, number>>(stops, async ({ id, connectedRoutes }) => ({
-      id,
-      connectedRoutes,
-      transfers: (await dbNonScheduledRoutes(id, { distance: { $lte: fpReqLen } })).map(({ to, distance }) => ({
-        to,
-        length: distance,
-      })),
-    })),
+    await mapAsync<(typeof stops)[number], ReturnType<ConstructorParameters<typeof RAPTORData<Timestamp | InternalTimeInt>>[1]["at"]>>(
+      stops,
+      async ({ id, connectedRoutes }) => [
+        id,
+        connectedRoutes,
+        (await dbNonScheduledRoutes(id, { distance: { $lte: fpReqLen } })).map(({ to, distance }) => ({
+          to,
+          length: distance,
+        })),
+      ],
+    ),
     dbScheduledRoutes.map(
       ({ _id, stops, trips }) =>
         [
@@ -472,13 +475,13 @@ async function insertResults<TimeVal extends Timestamp | InternalTimeInt, V, CA 
           ));
   if (!b4.lastReturn) throw new Error("No RAPTOR instance");
   const [RAPTORDataInst, RAPTORInstance] = b4.lastReturn as readonly [
-    Omit<IRAPTORData<Timestamp | InternalTimeInt, SharedID, SharedID, number>, "attachData"> & {
-      attachData: SharedRAPTORData<Timestamp | InternalTimeInt>["attachData"];
+    Omit<IRAPTORData<Timestamp | InternalTimeInt, SharedID, number, number>, "attachData"> & {
+      attachStops: SharedRAPTORData<Timestamp | InternalTimeInt>["attachStops"];
     },
     BaseRAPTOR<
       Timestamp | InternalTimeInt,
       SharedID,
-      SharedID,
+      number,
       number,
       number,
       [] | [[number, "footDistance"]] | [[number, "bufferTime"]] | [[number, "footDistance"], [number, "bufferTime"]]
@@ -489,29 +492,25 @@ async function insertResults<TimeVal extends Timestamp | InternalTimeInt, V, CA 
 
   // Attach stops
 
-  const attachStops = new Map<number, Stop<number, number>>();
+  const attachStops = new Map<number, ConstructorParameters<typeof Stop<number, number>>>();
 
-  attachStops.set(psInternalId, {
-    id: psInternalId,
-    connectedRoutes: [],
-    transfers: Object.keys(distances).map((k) => {
+  attachStops.set(psInternalId, [
+    psInternalId,
+    [],
+    Object.keys(distances).map((k) => {
       const sId = parseInt(k);
 
       return { to: sId, length: distances[sId] };
     }),
-  });
+  ]);
 
   Object.keys(distances).forEach((k) => {
     const sId = parseInt(k);
 
-    attachStops.set(sId, {
-      id: sId,
-      connectedRoutes: [],
-      transfers: [{ to: psInternalId, length: distances[sId] }],
-    });
+    attachStops.set(sId, [sId, [], [{ to: psInternalId, length: distances[sId] }]]);
   });
 
-  RAPTORDataInst.attachData(Array.from(attachStops.values()), []);
+  RAPTORDataInst.attachStops(Array.from(attachStops.values()));
 
   // Run params
 
