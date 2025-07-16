@@ -348,7 +348,7 @@ interface IRAPTORData<TimeVal, SI extends Id = Id, RI extends Id = Id, TI extend
   readonly timeType: Time<TimeVal>;
   readonly stops: MapRead<SI, Stop<SI, RI>>;
   readonly routes: MapRead<RI, Route<TimeVal, SI, RI, TI>>;
-  attachData: (...args: never[]) => void;
+  attachStops: (...args: never[]) => void;
 }
 
 class RAPTORData<TimeVal, SI extends Id = Id, RI extends Id = Id, TI extends Id = Id> implements IRAPTORData<TimeVal, SI, RI, TI> {
@@ -425,38 +425,15 @@ class RAPTORData<TimeVal, SI extends Id = Id, RI extends Id = Id, TI extends Id 
   }
 
   get routes() {
-    return {
-      get: (key: RI) => this.getRoute(key),
-      [Symbol.iterator]: function* (this: RAPTORData<TimeVal, SI, RI, TI>) {
-        const seen = new Set<RI>();
-
-        for (const [k] of this._routes) {
-          // No need to check in `seen` : considering no duplication inside `this._routes`
-
-          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-          yield [k, this.getRoute(k)!] satisfies [RI, Route<TimeVal, SI, RI, TI>];
-          seen.add(k);
-        }
-
-        for (const [k, v] of this.attachedRoutes) {
-          if (seen.has(k)) continue;
-
-          yield [k, v] satisfies [RI, Route<TimeVal, SI, RI, TI>];
-          // No need to add to `seen` : considering no duplication inside `attachedRoutes`
-        }
-
-        return undefined;
-      }.bind(this),
-    };
+    return this._routes;
   }
 
   /**
    * @description Attach additional data that can be edited at any time.
+   * O(whole data, base + attached)
    * Does not handle duplicate data.
    */
-  attachData(stops: ArrayRead<Stop<SI, RI>>, routes: ArrayRead<ConstructorParameters<typeof Route<TimeVal, SI, RI, TI>>>) {
-    this.attachedStops = new Map(stops.map((s) => [s.id, s]));
-    this.attachedRoutes = new Map(routes.map(([rId, stopsIds, trips]) => [rId, new Route(rId, stopsIds, trips)] as const));
+  attachStops(stops: ArrayRead<ConstructorParameters<typeof Stop<SI, RI>>>) {
   }
 }
 

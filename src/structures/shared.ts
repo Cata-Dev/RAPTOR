@@ -165,7 +165,7 @@ type SerializedId = ReturnType<(typeof SharedRAPTORData)["serializeId"]>;
 // Stop
 //
 
-class StopRetriever extends Retriever<PtrType.Stop, Stop<SharedID, SharedID>> implements Stop<SharedID, SharedID> {
+class StopRetriever extends Retriever<PtrType.Stop, IStop<SharedID, number>> implements IStop<SharedID, number> {
   get id() {
     return this.sDataView[this.ptr];
   }
@@ -274,13 +274,10 @@ class TripRetriever<TimeVal> extends Retriever<PtrType.Route, void> implements T
 // Route
 //
 
-class RouteRetriever<TimeVal>
-  extends Retriever<PtrType.Route, Route<TimeVal, SharedID, SharedID, number>>
-  implements Route<TimeVal, SharedID, SharedID, number>
-{
+class RouteRetriever<TimeVal> extends Retriever<PtrType.Route, void> implements Route<TimeVal, SharedID, number, number> {
   constructor(
     readonly timeType: SharedTime<TimeVal>,
-    ...params: ConstructorParameters<typeof Retriever<PtrType.Route, Route<TimeVal, SharedID, SharedID, number>>>
+    ...params: ConstructorParameters<typeof Retriever<PtrType.Route, void>>
   ) {
     super(...params);
   }
@@ -300,9 +297,8 @@ class RouteRetriever<TimeVal>
     const originalLength = this.rDataView[this.ptrStopsChunkSize];
 
     return new ArrayView(
-      () => originalLength + (this.attachedData?.stops.length ?? 0),
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      (idx) => (idx < originalLength ? this.rDataView[this.ptr + 2 + idx] : this.attachedData!.stops.at(idx - originalLength)!),
+      () => originalLength,
+      (idx) => this.rDataView[this.ptr + 2 + idx],
       (a, b) =>
         // Comparing references
         a === b,
@@ -325,27 +321,24 @@ class RouteRetriever<TimeVal>
 
   get trips() {
     return new ArrayView<Trip<TimeVal, number>>(
-      () => (this._tripsChunkSizes ??= this.tripsChunkSizes).length + (this.attachedData?.trips.length ?? 0),
+      () => (this._tripsChunkSizes ??= this.tripsChunkSizes).length,
       (idx) => {
         this._tripsChunkSizes ??= this.tripsChunkSizes;
 
-        return idx < this._tripsChunkSizes.length
-          ? new TripRetriever(
-              this.timeType,
-              this.sDataView,
-              this.rDataView,
-              this.ptrTripsChunkSize + 1 + this._tripsChunkSizes.reduce((acc, v, i) => (i < idx ? acc + v : acc), 0),
-              PtrType.Route,
-            )
-          : // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-            this.attachedData!.trips.at(idx - this._tripsChunkSizes.length)!;
+        return new TripRetriever(
+          this.timeType,
+          this.sDataView,
+          this.rDataView,
+          this.ptrTripsChunkSize + 1 + this._tripsChunkSizes.reduce((acc, v, i) => (i < idx ? acc + v : acc), 0),
+          PtrType.Route,
+        );
       },
       (a, b) => a.id === b.id,
     );
   }
 
   departureTime(t: number, p: number): TimeVal {
-    return (Route.prototype as Route<TimeVal, SharedID, SharedID, number>).departureTime.apply(this, [t, p]);
+    return (Route.prototype as Route<TimeVal, SharedID, number, number>).departureTime.apply(this, [t, p]);
   }
 
   get chunkSize() {
@@ -356,7 +349,7 @@ class RouteRetriever<TimeVal>
 /**
  * Memory-shared RAPTOR data
  */
-class SharedRAPTORData<TimeVal> implements IRAPTORData<TimeVal, SharedID, SharedID, number> {
+class SharedRAPTORData<TimeVal> implements IRAPTORData<TimeVal, SharedID, number, number> {
   /**
    * Internal data (shared) buffer
    */
@@ -374,7 +367,6 @@ class SharedRAPTORData<TimeVal> implements IRAPTORData<TimeVal, SharedID, Shared
   secure = false;
 
   protected attachedStops: MapRead<SharedID, Stop<SharedID, SharedID>> = new Map();
-  protected attachedRoutes: MapRead<SharedID, Route<TimeVal, SharedID, SharedID, number>> = new Map();
 
   /**
    *
@@ -591,7 +583,7 @@ class SharedRAPTORData<TimeVal> implements IRAPTORData<TimeVal, SharedID, Shared
   }
 
   protected pointerFromId(id: number, ptrType: PtrType): number | undefined {
-    if ((ptrType === PtrType.Stop ? this.attachedStops : this.attachedRoutes).get(id)) return id;
+    if (ptrType === PtrType.Stop && this.attachedStops.get(id)) return id;
 
     const retriever =
       ptrType === PtrType.Stop
@@ -650,7 +642,7 @@ class SharedRAPTORData<TimeVal> implements IRAPTORData<TimeVal, SharedID, Shared
 
         return new StopRetriever(this.sDataView, this.rDataView, ptr, PtrType.Stop, attached ?? null);
       },
-    } as MapRead<SharedID, Stop<SharedID, SharedID>>;
+    } as MapRead<SharedID, Stop<SharedID, number>>;
   }
 
   /**
@@ -664,26 +656,12 @@ class SharedRAPTORData<TimeVal> implements IRAPTORData<TimeVal, SharedID, Shared
   get routes() {
     return {
       [Symbol.iterator]: function* (this: SharedRAPTORData<TimeVal>) {
-        const seen = new Set<SharedID>();
-
         const routeRetriever = new RouteRetriever(this.timeType, this.sDataView, this.rDataView, 0, PtrType.Route, null);
         for (let ptr = 0; ptr < this.rDataView.length; ptr += routeRetriever.point(ptr).chunkSize) {
-          seen.add(ptr);
-
           /**
            * Pointer (index in buffer) to route, retrieve it through `get` method.
            */
-          yield [
-            ptr,
-            new RouteRetriever(this.timeType, this.sDataView, this.rDataView, ptr, PtrType.Route, this.attachedRoutes.get(ptr) ?? null),
-          ] satisfies [unknown, unknown];
-        }
-
-        for (const [k, v] of this.attachedRoutes) {
-          if (seen.has(k)) continue;
-
-          yield [k, v] satisfies [unknown, unknown];
-          // No need to add to `seen` : considering no duplication inside `attachedRoutes`
+          yield [ptr, new RouteRetriever(this.timeType, this.sDataView, this.rDataView, ptr, PtrType.Route)] satisfies [unknown, unknown];
         }
 
         return undefined;
@@ -692,16 +670,12 @@ class SharedRAPTORData<TimeVal> implements IRAPTORData<TimeVal, SharedID, Shared
        * Maps a route pointer to its corresponding {@link RouteRetriever}
        * @param ptr Pointer to a route
        */
-      get: (ptr: SharedID) => {
+      get: (ptr: number) => {
         if (this.secure && typeof ptr === "number") this.validatePointer(ptr, PtrType.Route);
 
-        const attached = this.attachedRoutes.get(ptr);
-        // Means this route would not have been present in original data, no need to merge it
-        if (typeof ptr === "string") return attached;
-
-        return new RouteRetriever(this.timeType, this.sDataView, this.rDataView, ptr, PtrType.Route, attached ?? null);
+        return new RouteRetriever(this.timeType, this.sDataView, this.rDataView, ptr, PtrType.Route);
       },
-    } as MapRead<SharedID, Route<TimeVal, SharedID, SharedID, number>>;
+    } as MapRead<number, Route<TimeVal, SharedID, number, number>>;
   }
 
   /**
@@ -736,21 +710,6 @@ class SharedRAPTORData<TimeVal> implements IRAPTORData<TimeVal, SharedID, Shared
               length,
               to: this.stopPointerFromId(sId) ?? SharedRAPTORData.serializeId(sId),
             })),
-          },
-        ] as const;
-      }),
-    );
-
-    this.attachedRoutes = new Map(
-      routes.map(([rId, stopsIds, trips]) => {
-        const id = this.routePointerFromId(rId) ?? SharedRAPTORData.serializeId(rId);
-
-        return [
-          id,
-          new Route(
-            id,
-            stopsIds.map((sId) => this.stopPointerFromId(sId) ?? SharedRAPTORData.serializeId(sId)),
-            trips,
           ),
         ] as const;
       }),
