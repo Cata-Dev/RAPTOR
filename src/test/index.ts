@@ -143,7 +143,7 @@ async function computeRAPTORData(
 ) {
   return [
     dataType === "scalar" ? TimeScal : TimeIntOrderLow,
-    await mapAsync<(typeof stops)[number], ReturnType<ConstructorParameters<typeof RAPTORData<Timestamp | InternalTimeInt>>[1]["at"]>>(
+    await mapAsync<(typeof stops)[number], ConstructorParameters<typeof RAPTORData<Timestamp | InternalTimeInt>>[1][number]>(
       stops,
       async ({ id, connectedRoutes }) => [
         id,
