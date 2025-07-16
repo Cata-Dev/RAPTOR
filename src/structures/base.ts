@@ -384,8 +384,8 @@ class RAPTORData<TimeVal, SI extends Id = Id, RI extends Id = Id, TI extends Id 
    */
   constructor(
     readonly timeType: Time<TimeVal>,
-    stops: ArrayRead<ConstructorParameters<typeof Stop<SI, RI>>>,
-    routes: ArrayRead<ConstructorParameters<typeof Route<TimeVal, SI, RI, TI>>>,
+    stops: ConstructorParameters<typeof Stop<SI, RI>>[],
+    routes: ConstructorParameters<typeof Route<TimeVal, SI, RI, TI>>[],
   ) {
     this.baseStops = new Map(stops.map(([id, connectedRoutes, transfers]) => [id, new Stop(id, connectedRoutes, transfers)]));
     this._stops = this.baseStops;
@@ -406,7 +406,7 @@ class RAPTORData<TimeVal, SI extends Id = Id, RI extends Id = Id, TI extends Id 
    * O(whole data, base + attached)
    * Does not handle duplicate data.
    */
-  attachStops(stops: ArrayRead<ConstructorParameters<typeof Stop<SI, RI>>>) {
+  attachStops(stops: ConstructorParameters<typeof Stop<SI, RI>>[]) {
     if (stops.length === 0) {
       // When you want to reset attached data
       this._stops = this.baseStops;
