@@ -1,5 +1,5 @@
 import { expect, test } from "@jest/globals";
-import { FootPath, Journey, TimeScal } from "../../src";
+import { Journey, TimeScal } from "../../src";
 import { TestAsset, TestDataset } from "./asset";
 
 const MAX_ROUNDS = 6;
@@ -98,10 +98,10 @@ export default [
       data: [
         TimeScal,
         [
-          { id: 1, connectedRoutes: [1], transfers: [] as FootPath<number>[] },
-          { id: 2, connectedRoutes: [1], transfers: [] as FootPath<number>[] },
-          { id: 3, connectedRoutes: [1], transfers: [] as FootPath<number>[] },
-          { id: 4, connectedRoutes: [1], transfers: [] as FootPath<number>[] },
+          [1, [1], []],
+          [2, [1], []],
+          [3, [1], []],
+          [4, [1], []],
         ],
         routes,
       ],
@@ -116,34 +116,34 @@ export default [
       data: [
         TimeScal,
         [
-          {
-            id: 1,
-            connectedRoutes: [1],
-            transfers: [
+          [
+            1,
+            [1],
+            [
               // Not better
               { to: 2, length: 3 },
               { to: 3, length: 5 },
               // Dumb
               { to: 1, length: 1 },
-            ] as FootPath<number>[],
-          },
-          {
-            id: 2,
-            connectedRoutes: [1],
-            transfers: [
+            ],
+          ],
+          [
+            2,
+            [1],
+            [
               // Not better
               { to: 4, length: 5 },
-            ] as FootPath<number>[],
-          },
-          {
-            id: 3,
-            connectedRoutes: [1],
-            transfers: [
+            ],
+          ],
+          [
+            3,
+            [1],
+            [
               // Going back
               { to: 2, length: 1 },
-            ] as FootPath<number>[],
-          },
-          { id: 4, connectedRoutes: [1], transfers: [] as FootPath<number>[] },
+            ],
+          ],
+          [4, [1], []],
         ],
         routes,
       ],
@@ -167,10 +167,10 @@ export default [
       data: [
         TimeScal,
         [
-          {
-            id: 1,
-            connectedRoutes: [1],
-            transfers: [
+          [
+            1,
+            [1],
+            [
               // Better but ignored
               { to: 3, length: 3 },
               // Not better
@@ -178,27 +178,27 @@ export default [
               { to: 3, length: 5 },
               // Dumb
               { to: 1, length: 1 },
-            ] as FootPath<number>[],
-          },
-          {
-            id: 2,
-            connectedRoutes: [1],
-            transfers: [
+            ],
+          ],
+          [
+            2,
+            [1],
+            [
               // Not better
               { to: 4, length: 5 },
-            ] as FootPath<number>[],
-          },
-          {
-            id: 3,
-            connectedRoutes: [1],
-            transfers: [
+            ],
+          ],
+          [
+            3,
+            [1],
+            [
               // Better!
               { to: 4, length: 1 },
               // Not better, going back
               { to: 1, length: 1 },
-            ] as FootPath<number>[],
-          },
-          { id: 4, connectedRoutes: [1], transfers: [] as FootPath<number>[] },
+            ],
+          ],
+          [4, [1], []],
         ],
         routes,
       ],

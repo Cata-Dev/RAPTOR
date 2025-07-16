@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import BaseRAPTOR from "./base";
-import { Bag, Criterion, Id, IRAPTORData, Journey, JourneyStep, Label, makeJSComparable, Route, Stop } from "./structures";
+import { Bag, Criterion, Id, IRAPTORData, IStop, Journey, JourneyStep, Label, makeJSComparable, Route } from "./structures";
 
 export default class McRAPTOR<TimeVal, V, CA extends [V, string][], SI extends Id = Id, RI extends Id = Id, TI extends Id = Id> extends BaseRAPTOR<
   TimeVal,
@@ -155,14 +155,14 @@ export default class McRAPTOR<TimeVal, V, CA extends [V, string][], SI extends I
     }
   }
 
-  protected traverseFootPaths(stopId: SI, stop: Stop<SI, RI>): void {
+  protected traverseFootPaths(stopId: SI, stop: IStop<SI, RI>): void {
     for (const pJourneyStep of this.bags[this.k].get(stopId)!) {
       // Prevent chaining transfers
       if ("transfer" in pJourneyStep) continue;
 
       const pBackTrace = this.traceBackFromStep(pJourneyStep, this.k);
 
-      for (const transfer of this.validFootPaths(stop.transfers)) {
+      for (const transfer of stop.transfers(this.runParams!.settings.maxTransferLength)) {
         if (transfer.to === stopId) continue;
 
         const arrivalTime: TimeVal = this.time.plusScal(pJourneyStep.label.time, this.walkDuration(transfer.length));
