@@ -21,7 +21,7 @@ const convertBackJourneyStep =
     };
   };
 
-export class SharedRAPTOR<TimeVal> extends RAPTOR<TimeVal, SharedID, SharedID, number> {
+export class SharedRAPTOR<TimeVal> extends RAPTOR<TimeVal, SharedID, number, number> {
   constructor(protected readonly data: SharedRAPTORData<TimeVal>) {
     super(data);
   }
@@ -46,7 +46,7 @@ export class SharedRAPTOR<TimeVal> extends RAPTOR<TimeVal, SharedID, SharedID, n
   }
 }
 
-export class McSharedRAPTOR<TimeVal, V, CA extends [V, string][]> extends McRAPTOR<TimeVal, V, CA, SharedID, SharedID, number> {
+export class McSharedRAPTOR<TimeVal, V, CA extends [V, string][]> extends McRAPTOR<TimeVal, V, CA, SharedID, number, number> {
   constructor(
     protected readonly data: SharedRAPTORData<TimeVal>,
     criteria: { [K in keyof CA]: Criterion<TimeVal, SharedID, SharedID, CA[K][0], CA[K][1]> },

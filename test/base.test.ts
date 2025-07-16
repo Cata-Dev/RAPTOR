@@ -1,5 +1,5 @@
 import { describe, expect, test } from "@jest/globals";
-import { RAPTORData, Route, TimeScal } from "../src";
+import { RAPTORData, Route, Stop, TimeScal } from "../src";
 import BaseRAPTOR from "../src/base";
 
 describe("Base RAPTOR should not be usable", () => {
@@ -22,11 +22,7 @@ describe("Base RAPTOR should not be usable", () => {
     }).toThrow("Not implemented");
 
     expect(() => {
-      (raptorInstance as unknown as { traverseFootPaths: BaseRAPTOR<never>["traverseFootPaths"] }).traverseFootPaths(0, {
-        id: 0,
-        connectedRoutes: [],
-        transfers: [],
-      });
+      (raptorInstance as unknown as { traverseFootPaths: BaseRAPTOR<never>["traverseFootPaths"] }).traverseFootPaths(0, new Stop(0, [], []));
     }).toThrow("Not implemented");
 
     expect(() => {

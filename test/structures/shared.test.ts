@@ -9,19 +9,19 @@ function testStops<TimeVal>(stops: TestAsset<TimeVal>["data"][1], SharedRAPTORDa
   SharedRAPTORDataInst.secure = true;
   const sharedStops = Array.from(SharedRAPTORDataInst.stops).sort(([_, a], [__, b]) => (a.id as number) - (b.id as number));
 
-  for (const stop of Array.from(stops).sort((a, b) => a.id - b.id)) {
-    const sharedStopFound = sharedStops.find(([_, sharedStop]) => sharedStop.id === stop.id);
+  for (const [id, connectedRoutes, transfers] of Array.from(stops).sort(([aId], [bId]) => aId - bId)) {
+    const sharedStopFound = sharedStops.find(([_, sharedStop]) => sharedStop.id === id);
     expect(sharedStopFound).not.toBe(undefined);
 
-    const stopPtr = SharedRAPTORDataInst.stopPointerFromId(stop.id);
+    const stopPtr = SharedRAPTORDataInst.stopPointerFromId(id);
     if (stopPtr === undefined) throw new Error("Unexpected result");
     const sharedStopGot = SharedRAPTORDataInst.stops.get(stopPtr);
     if (sharedStopGot === undefined) throw new Error("Unexpected result");
-    expect(sharedStopGot.id).toBe(stop.id);
+    expect(sharedStopGot.id).toBe(id);
 
     // Connected routes
-    expect(sharedStopGot.connectedRoutes.length).toBe(stop.connectedRoutes.length);
-    for (const connectedRoute of stop.connectedRoutes) {
+    expect(sharedStopGot.connectedRoutes.length).toBe(connectedRoutes.length);
+    for (const connectedRoute of connectedRoutes) {
       const sharedConnectedRoute = Array.from(sharedStopGot.connectedRoutes).find(
         (sharedConnectedRoute) => SharedRAPTORDataInst.routes.get(sharedConnectedRoute)?.id === connectedRoute,
       );
@@ -29,9 +29,9 @@ function testStops<TimeVal>(stops: TestAsset<TimeVal>["data"][1], SharedRAPTORDa
     }
 
     // Transfers
-    expect(sharedStopGot.connectedRoutes.length).toBe(stop.connectedRoutes.length);
-    for (const transfer of stop.transfers) {
-      const sharedTransfer = Array.from(sharedStopGot.transfers).find(
+    expect(sharedStopGot.connectedRoutes.length).toBe(connectedRoutes.length);
+    for (const transfer of transfers) {
+      const sharedTransfer = Array.from(sharedStopGot.transfers()).find(
         (sharedTransfer) => SharedRAPTORDataInst.stops.get(sharedTransfer.to)?.id === transfer.to && sharedTransfer.length === transfer.length,
       );
       expect(sharedTransfer).not.toBe(undefined);
@@ -41,7 +41,7 @@ function testStops<TimeVal>(stops: TestAsset<TimeVal>["data"][1], SharedRAPTORDa
 
 function testRoutes<TimeVal>(timeType: Time<TimeVal>, routes: TestAsset<TimeVal>["data"][2], SharedRAPTORDataInst: SharedRAPTORData<TimeVal>) {
   SharedRAPTORDataInst.secure = true;
-  const sharedRoutes = Array.from(SharedRAPTORDataInst.routes).sort(([_, a], [__, b]) => (a.id as number) - (b.id as number));
+  const sharedRoutes = Array.from(SharedRAPTORDataInst.routes).sort(([_, a], [__, b]) => a.id - b.id);
 
   for (const [id, stops, trips] of Array.from(routes).sort(([idA], [idB]) => idA - idB)) {
     expect(sharedRoutes.find(([_, sharedRoute]) => sharedRoute.id === id)).not.toBe(undefined);

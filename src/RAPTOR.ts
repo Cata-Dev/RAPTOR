@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import BaseRAPTOR from "./base";
-import { Id, Journey, JourneyStep, Label, makeJSComparable, Route, Stop } from "./structures";
+import { Id, IStop, Journey, JourneyStep, Label, makeJSComparable, Route } from "./structures";
 
 /**
  * @description A RAPTOR instance
@@ -82,8 +82,9 @@ export default class RAPTOR<TimeVal, SI extends Id = Id, RI extends Id = Id, TI 
     }
   }
 
-  protected traverseFootPaths(stopId: SI, stop: Stop<SI, RI>): void {
-    for (const transfer of this.validFootPaths(stop.transfers)) {
+  protected traverseFootPaths(stopId: SI, stop: IStop<SI, RI>): void {
+    for (const transfer of stop.transfers(this.runParams!.settings.maxTransferLength)) {
+      console.log(transfer);
       if (transfer.to === stopId) continue;
 
       const pJourneyStep = this.multiLabel[this.k].get(stopId)!;

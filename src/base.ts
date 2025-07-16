@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
-import { Id, IRAPTORData, Journey, JourneyStep, Route, Stop } from "./structures";
+import { Id, IRAPTORData, Journey, JourneyStep, Route } from "./structures";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-import type { Time } from "./structures";
+import type { IStop, Time } from "./structures";
 
 interface RAPTORRunSettings {
   walkSpeed: number;
@@ -101,22 +101,8 @@ export default class BaseRAPTOR<TimeVal, SI extends Id = Id, RI extends Id = Id,
     throw new Error("Not implemented");
   }
 
-  /**
-   * Util method to iterate through transfers and stop when required.
-   * It takes advantage of the **sorting** of transfers by ascending transfer length.
-   * @param transfers Transfers to iterate
-   * @returns An iterator (generator) through transfers
-   */
-  protected *validFootPaths(transfers: Stop<SI, RI>["transfers"]) {
-    for (const transfer of transfers) {
-      if (transfer.length > this.runParams!.settings.maxTransferLength) return;
-
-      yield transfer;
-    }
-  }
-
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  protected traverseFootPaths(stopId: SI, stop: Stop<SI, RI>) {
+  protected traverseFootPaths(stopId: SI, stop: IStop<SI, RI>) {
     throw new Error("Not implemented");
   }
 
@@ -143,7 +129,8 @@ export default class BaseRAPTOR<TimeVal, SI extends Id = Id, RI extends Id = Id,
       for (const p of new Set(this.marked)) {
         const stop = this.stops.get(p)!;
 
-        if (!stop.transfers.length) continue;
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
+        if (stop.transfers(this.runParams!.settings.maxTransferLength).next().done ?? true) continue;
 
         this.traverseFootPaths(p, stop);
       }
