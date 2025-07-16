@@ -359,7 +359,7 @@ class SharedRAPTORData<TimeVal> implements IRAPTORData<TimeVal, SharedID, number
   // Validate pointers
   secure = false;
 
-  protected attachedStops: MapRead<SharedID, IStop<SharedID, number>> = new Map();
+  protected attachedStops = new Map<SharedID, IStop<SharedID, number>>();
 
   /**
    *
@@ -688,7 +688,7 @@ class SharedRAPTORData<TimeVal> implements IRAPTORData<TimeVal, SharedID, number
     throw new Error(`Invalid pointer ${ptr} of type ${ptrType}`);
   }
 
-  attachStops(stops: ArrayRead<ConstructorParameters<typeof Stop<number, number>>>) {
+  attachStops(stops: ConstructorParameters<typeof Stop<number, number>>[]) {
     // Need to resolve pointers when possible
     this.attachedStops = new Map(
       stops.map(([sId, connectedRoutes, transfers]) => {
