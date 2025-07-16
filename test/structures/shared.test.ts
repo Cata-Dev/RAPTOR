@@ -1,5 +1,5 @@
 import { describe, expect, test } from "@jest/globals";
-import { SharedRAPTORData, sharedTimeIntOrderLow, sharedTimeScal, Time } from "../../src";
+import { FootPath, SharedRAPTORData, sharedTimeIntOrderLow, sharedTimeScal, Time } from "../../src";
 import { TestAsset } from "../assets/asset";
 import twoLines from "../assets/twoLines";
 
@@ -122,6 +122,50 @@ describe("SharedRAPTORData class", () => {
           ?.reduce((acc, v) => `${acc}-${v}`, ""),
       );
     }
+  });
+
+  test("Attaching stops", () => {
+    const attachedStops = [
+      [
+        1,
+        [],
+        [
+          { to: 7, length: 9 },
+          { to: 4, length: 3 },
+        ],
+      ],
+      [50, [], [{ to: 1, length: 10 }]],
+    ] as const satisfies Parameters<SharedRAPTORData<unknown>["attachStops"]>[0];
+
+    const SharedRAPTORDataInst = SharedRAPTORData.makeFromRawData(sharedTimeScal, stops, routes);
+    SharedRAPTORDataInst.attachStops(attachedStops);
+
+    const attachedStopsConverted = attachedStops.map(
+      ([id, connectedRoutes, transfers]) =>
+        [
+          SharedRAPTORDataInst.stopPointerFromId(id) ?? SharedRAPTORData.serializeId(id),
+          connectedRoutes,
+          transfers.map((t: FootPath<number>) => ({
+            to: SharedRAPTORDataInst.stopPointerFromId(t.to) ?? SharedRAPTORData.serializeId(t.to),
+            length: t.length,
+          })),
+        ] as const,
+    );
+
+    const sTransfers = stops.find(([sId]) => sId === attachedStops[0][0])?.[2];
+    if (!sTransfers) throw new Error("Unexpected data");
+    for (const transfer of attachedStops[0][2]) for (const { to, length } of sTransfers) expect({ to, length }).not.toEqual(transfer);
+
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    const stop0 = SharedRAPTORDataInst.stops.get(attachedStopsConverted[0][0])!;
+    for (const transfer of attachedStopsConverted[0][2])
+      expect(Array.from(stop0.transfers()).map(({ to, length }) => ({ to, length }))).toContainEqual(transfer);
+    expect(Array.from(stop0.transfers(4)).map(({ to, length }) => ({ to, length }))).toContainEqual(attachedStopsConverted[0][2][1]);
+
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    const stop1 = SharedRAPTORDataInst.stops.get(attachedStopsConverted[1][0])!;
+    for (const transfer of attachedStopsConverted[1][2])
+      expect(Array.from(stop1.transfers()).map(({ to, length }) => ({ to, length }))).toContainEqual(transfer);
   });
 });
 
