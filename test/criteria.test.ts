@@ -49,7 +49,7 @@ describe("Foot distance", () => {
   });
 
   test("Wrong usage", () => {
-    expect(() => footDistanceTyped.update([], footJourneyStep1, TimeScal, 0, 0)).toThrow("A journey should at least contain the DEPARTURE label.");
+    expect(() => footDistanceTyped.update([], footJourneyStep1, TimeScal, NaN, 0)).toThrow("A journey should at least contain the DEPARTURE step.");
   });
 });
 
@@ -95,6 +95,6 @@ describe("Buffer time", () => {
   });
 
   test("Wrong usage", () => {
-    expect(() => bufferTimeTyped.update([], vehicleJourneyStep1, TimeScal, 0, 0)).toThrow("A journey should at least contain the DEPARTURE label.");
+    expect(() => bufferTimeTyped.update([], vehicleJourneyStep1, TimeScal, NaN, 0)).toThrow("A journey should at least contain the DEPARTURE step.");
   });
 });

@@ -18,7 +18,7 @@ const bufferTime: Criterion<unknown, Id, Id, number, "bufferTime"> = {
   order: TimeScal.order,
   update: (prefixJourney, newJourneyStep, timeType) => {
     const lastJourneyStep = prefixJourney.at(-1);
-    if (!lastJourneyStep) throw new Error("A journey should at least contain the DEPARTURE label.");
+    if (!lastJourneyStep) throw new Error("A journey should at least contain the DEPARTURE step.");
 
     if (!isCriterionJourneyStepVehicle(newJourneyStep)) return lastJourneyStep.label.value("bufferTime");
 
@@ -39,7 +39,7 @@ const footDistance: Criterion<unknown, Id, Id, number, "footDistance"> = {
   order: TimeScal.order,
   update: (prefixJourney, newJourneyStep) => {
     const lastJourneyStep = prefixJourney.at(-1);
-    if (!lastJourneyStep) throw new Error("A journey should at least contain the DEPARTURE label.");
+    if (!lastJourneyStep) throw new Error("A journey should at least contain the DEPARTURE step.");
 
     return lastJourneyStep.label.value("footDistance") + (isCriterionJourneyStepFoot(newJourneyStep) ? newJourneyStep.transfer.length : 0);
   },
