@@ -111,7 +111,7 @@ interface Criterion<TimeVal, SI extends Id, RI extends Id, T, N extends string> 
   initialValue: T;
   update: (
     prefixJourney: Journey<TimeVal, SI, RI, T, [[T, N]]>,
-    newJourneyStep: Omit<JourneyStep<TimeVal, SI, RI, T, [[T, N]]>, "label" | keyof Comparable<never>>,
+    newJourneyStep: Omit<JourneyStep<TimeVal, SI, RI, T, [[T, N]], LabelType, true>, "label" | keyof Comparable<never>>,
     timeType: Time<TimeVal>,
     time: TimeVal,
     stop: SI,
@@ -144,6 +144,24 @@ class Label<TimeVal, SI extends Id, RI extends Id, V, CA extends [V, string][]> 
     const updated = new Label<TimeVal, SI, RI, V, CA>(this.timeType, this.criteria, time);
     for (const c of this.criteria as Criterion<TimeVal, SI, RI, V, CA[number][1]>[])
       (updated.values as Record<CA[number][1], CA[number][0]>)[c.name] = c.update(...data);
+
+    return updated;
+  }
+
+  /**
+   * Change the value of one criterion
+   * @param criterionName The criterion name to change its value
+   * @param value The new value to set
+   * @returns A copy of this label with the changed criterion value
+   */
+  setValue<C extends CA[number]>(criterionName: C[1], value: C[0]) {
+    const updated = new Label<TimeVal, SI, RI, V, CA>(this.timeType, this.criteria, this.time);
+    // Restore values
+    for (const c of this.criteria as Criterion<TimeVal, SI, RI, V, CA[number][1]>[])
+      (updated.values as Record<CA[number][1], CA[number][0]>)[c.name] = this.values[c.name];
+
+    // Set value
+    (updated.values as Record<CA[number][1], CA[number][0]>)[criterionName] = value;
 
     return updated;
   }
