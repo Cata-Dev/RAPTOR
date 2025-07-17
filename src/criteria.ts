@@ -1,4 +1,4 @@
-import { Criterion, Id, JourneyStep, TimeScal } from "./structures";
+import { Criterion, Id, InternalTimeInt, Journey, JourneyStep, Label, makeJSComparable, Time, TimeScal } from "./structures";
 
 function isCriterionJourneyStepVehicle<TimeVal, SI extends Id, RI extends Id, V, CA extends [V, string][]>(
   js: Parameters<Criterion<TimeVal, SI, RI, V, CA[number][1]>["update"]>[1],
@@ -97,4 +97,51 @@ const successProbaInt: Criterion<InternalTimeInt, Id, Id, number, "successProbaI
   },
 };
 
-export { bufferTime, footDistance, successProbaInt };
+function measureJourney<TimeVal, SI extends Id, RI extends Id, V, CA extends [V, string][], T, N extends string>(
+  criterion: Criterion<TimeVal, SI, RI, T, N>,
+  timeType: Time<TimeVal>,
+  journey: Journey<TimeVal, SI, RI, V, CA>,
+  pt: SI,
+) {
+  return journey.reduce<Journey<TimeVal, SI, RI, V | T, [...CA, [T, N]]>>(
+    (acc, js, i) => {
+      const rebasedLabel = js.label.criteria.reduce(
+        (acc, criterion) =>
+          (acc as Label<TimeVal, SI, RI, V, CA>).setValue(criterion.name, js.label.value(criterion.name)) as Label<
+            TimeVal,
+            SI,
+            RI,
+            V | T,
+            [...CA, [T, N]]
+          >,
+        new Label<TimeVal, SI, RI, V | T, [...CA, [T, N]]>(timeType, [...js.label.criteria, criterion], js.label.time),
+      );
+
+      return [
+        ...acc,
+        i < 1
+          ? makeJSComparable<TimeVal, SI, RI, V | T, [...CA, [T, N]]>({
+              ...js,
+              label: rebasedLabel,
+            })
+          : makeJSComparable({
+              ...js,
+              label: (rebasedLabel as unknown as Label<TimeVal, SI, RI, T, [[T, N]]>).setValue(
+                criterion.name,
+                criterion.update(
+                  acc as unknown as Journey<TimeVal, SI, RI, T, [[T, N]]>,
+                  js,
+                  timeType,
+                  js.label.time,
+                  i + 1 < journey.length ? (journey[i + 1] as JourneyStep<TimeVal, SI, RI, V, CA, "FOOT" | "VEHICLE", true>).boardedAt : pt,
+                ),
+              ) as unknown as Label<TimeVal, SI, RI, V | T, [...CA, [T, N]]>,
+            }),
+      ];
+    },
+    // Prefix
+    [],
+  );
+}
+
+export { bufferTime, footDistance, measureJourney, successProbaInt };

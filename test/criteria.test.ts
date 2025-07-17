@@ -7,6 +7,7 @@ import {
   JourneyStep,
   Label,
   makeJSComparable,
+  measureJourney,
   Route,
   successProbaInt,
   TimeIntOrderLow,
@@ -394,3 +395,68 @@ describe("Success probability (interval)", () => {
   });
 });
 
+describe("Measuring journey", () => {
+  const originJS = makeJSComparable({
+    label: new Label<Timestamp, number, number, number, [[number, "bufferTime"]]>(TimeScal, [bufferTimeTyped], 0),
+  });
+
+  const vehicleJourneyStep = makeJSComparable<Timestamp, number, number, number, [[number, "bufferTime"]], "VEHICLE">({
+    label: setLabelValues(new Label<Timestamp, number, number, number, [[number, "bufferTime"]]>(TimeScal, [bufferTimeTyped], 0), [7]),
+    boardedAt: [0, originJS],
+    route: new Route(
+      1,
+      [0],
+      [
+        {
+          id: 0,
+          times: [[4, 6]],
+        },
+      ],
+    ),
+    tripIndex: 0,
+  });
+
+  const footJourneyStep1 = makeJSComparable<Timestamp, number, number, number, [[number, "bufferTime"]], "FOOT">({
+    label: setLabelValues(new Label<Timestamp, number, number, number, [[number, "bufferTime"]]>(TimeScal, [bufferTimeTyped], 0), [5]),
+    boardedAt: [0, originJS],
+    transfer: { to: 0, length: 3 },
+  });
+
+  const footJourneyStep2 = makeJSComparable<Timestamp, number, number, number, [[number, "bufferTime"]], "FOOT">({
+    label: setLabelValues(new Label<Timestamp, number, number, number, [[number, "bufferTime"]]>(TimeScal, [bufferTimeTyped], 0), [3]),
+    boardedAt: [0, originJS],
+    transfer: { to: 0, length: 5 },
+  });
+
+  describe("with footDistance, having already bufferTime", () => {
+    const measure1 = measureJourney(footDistanceTyped, TimeScal, [originJS], 0);
+    const measure2 = measureJourney(footDistanceTyped, TimeScal, [originJS, vehicleJourneyStep], 0);
+    const measure3 = measureJourney(footDistanceTyped, TimeScal, [originJS, footJourneyStep1], 0);
+    const measure4 = measureJourney(footDistanceTyped, TimeScal, [originJS, footJourneyStep1, vehicleJourneyStep], 0);
+    const measure5 = measureJourney(footDistanceTyped, TimeScal, [originJS, footJourneyStep1, footJourneyStep2], 0);
+    const measure6 = measureJourney(
+      footDistanceTyped,
+      TimeScal,
+      [originJS, footJourneyStep1, vehicleJourneyStep, footJourneyStep2, vehicleJourneyStep],
+      0,
+    );
+
+    test("Old criteria (bufferTime) still present and correct", () => {
+      expect(measure1.at(-1)?.label.value("bufferTime")).toBe(originJS.label.value("bufferTime"));
+      expect(measure2.at(-1)?.label.value("bufferTime")).toBe(vehicleJourneyStep.label.value("bufferTime"));
+      expect(measure3.at(-1)?.label.value("bufferTime")).toBe(footJourneyStep1.label.value("bufferTime"));
+      expect(measure4.at(-1)?.label.value("bufferTime")).toBe(vehicleJourneyStep.label.value("bufferTime"));
+      expect(measure5.at(-1)?.label.value("bufferTime")).toBe(footJourneyStep2.label.value("bufferTime"));
+      expect(measure6.at(-1)?.label.value("bufferTime")).toBe(vehicleJourneyStep.label.value("bufferTime"));
+    });
+
+    test("Measured criterion (footDistance) present and correct", () => {
+      expect(measure1.at(-1)?.label.value("footDistance")).toBe(0);
+      expect(measure2.at(-1)?.label.value("footDistance")).toBe(0);
+      expect(measure3.at(-1)?.label.value("footDistance")).toBe(3);
+      expect(measure4.at(-1)?.label.value("footDistance")).toBe(3);
+      expect(measure5.at(-1)?.label.value("footDistance")).toBe(8);
+      expect(measure6.at(-1)?.label.value("footDistance")).toBe(8);
+    });
+  });
+});
