@@ -1,5 +1,18 @@
 import { describe, expect, test } from "@jest/globals";
-import { Criterion, JourneyStep, Label, makeJSComparable, Route, footDistance, bufferTime, TimeScal } from "../src";
+import {
+  bufferTime,
+  Criterion,
+  footDistance,
+  InternalTimeInt,
+  JourneyStep,
+  Label,
+  makeJSComparable,
+  Route,
+  successProbaInt,
+  TimeIntOrderLow,
+  TimeScal,
+  Timestamp,
+} from "../src";
 import { setLabelValues } from "./structures/utils";
 
 describe("Foot distance", () => {
@@ -98,3 +111,288 @@ describe("Buffer time", () => {
     expect(() => bufferTimeTyped.update([], vehicleJourneyStep1, TimeScal, NaN, 0)).toThrow("A journey should at least contain the DEPARTURE step.");
   });
 });
+
+const successProbaIntTyped = successProbaInt as Criterion<InternalTimeInt, number, number, number, "successProbaInt">;
+describe("Success probability (interval)", () => {
+  test("Naming", () => {
+    expect(successProbaIntTyped.name).toBe("successProbaInt");
+  });
+
+  const originJS: JourneyStep<InternalTimeInt, number, number, number, [[number, "successProbaInt"]], "DEPARTURE"> = makeJSComparable({
+    label: new Label<InternalTimeInt, number, number, number, [[number, "successProbaInt"]]>(TimeIntOrderLow, [successProbaIntTyped], [0, 0]),
+  });
+
+  const footJourneyStep = makeJSComparable<InternalTimeInt, number, number, number, [[number, "successProbaInt"]], "FOOT">({
+    boardedAt: [0, originJS],
+    transfer: { to: 0, length: 3 },
+    label: new Label<InternalTimeInt, number, number, number, [[number, "successProbaInt"]]>(TimeIntOrderLow, [successProbaIntTyped], [3, 3]),
+  });
+
+  const vehicleJourneyStep1 = makeJSComparable<InternalTimeInt, number, number, number, [[number, "successProbaInt"]], "VEHICLE">({
+    boardedAt: [0, originJS],
+    route: new Route(
+      0,
+      [0],
+      [
+        {
+          id: 0,
+          times: [
+            [
+              [NaN, NaN],
+              [5, 5],
+            ],
+          ],
+        },
+      ],
+    ),
+    tripIndex: 0,
+    label: new Label<InternalTimeInt, number, number, number, [[number, "successProbaInt"]]>(TimeIntOrderLow, [successProbaIntTyped], [6, 6]),
+  });
+
+  const vehicleJourneyStep2 = makeJSComparable<InternalTimeInt, number, number, number, [[number, "successProbaInt"]], "VEHICLE">({
+    boardedAt: [0, originJS],
+    route: new Route(
+      1,
+      [0],
+      [
+        {
+          id: 0,
+          times: [
+            [
+              [NaN, NaN],
+              [8, 8],
+            ],
+          ],
+        },
+      ],
+    ),
+    tripIndex: 0,
+    label: new Label<InternalTimeInt, number, number, number, [[number, "successProbaInt"]]>(TimeIntOrderLow, [successProbaIntTyped], [NaN, NaN]),
+  });
+
+  test("Update with foot transfer", () => {
+    expect(successProbaIntTyped.update([originJS], footJourneyStep, TimeIntOrderLow, [NaN, NaN], 0)).toBe(-1);
+    expect(successProbaIntTyped.update([originJS, vehicleJourneyStep1], footJourneyStep, TimeIntOrderLow, [NaN, NaN], 0)).toBe(
+      vehicleJourneyStep1.label.value("successProbaInt"),
+    );
+  });
+
+  test("Update with vehicle", () => {
+    // Not intersecting
+    expect(successProbaIntTyped.update([originJS], vehicleJourneyStep1, TimeIntOrderLow, [NaN, NaN], 0)).toBe(-1);
+    expect(successProbaIntTyped.update([originJS, vehicleJourneyStep1], vehicleJourneyStep2, TimeIntOrderLow, [NaN, NaN], 0)).toBe(-1);
+    // Missing
+    expect(
+      successProbaIntTyped.update(
+        [originJS, vehicleJourneyStep1],
+        {
+          boardedAt: [0, vehicleJourneyStep1],
+          route: new Route(
+            1,
+            [0],
+            [
+              {
+                id: 0,
+                times: [
+                  [
+                    [NaN, NaN],
+                    [4, 5],
+                  ],
+                ],
+              },
+            ],
+          ),
+          tripIndex: 0,
+        },
+        TimeIntOrderLow,
+        [NaN, NaN],
+        0,
+      ),
+    ).toBe(-0);
+
+    // Intersecting
+    // Full => 50%
+    expect(
+      successProbaIntTyped.update(
+        [
+          originJS,
+          makeJSComparable({
+            label: new Label<InternalTimeInt, number, number, number, [[number, "successProbaInt"]]>(TimeIntOrderLow, [successProbaIntTyped], [4, 5]),
+          }),
+        ],
+        {
+          boardedAt: [0, originJS],
+          route: new Route(
+            1,
+            [0],
+            [
+              {
+                id: 0,
+                times: [
+                  [
+                    [NaN, NaN],
+                    [4, 5],
+                  ],
+                ],
+              },
+            ],
+          ),
+          tripIndex: 0,
+        },
+        TimeIntOrderLow,
+        [NaN, NaN],
+        0,
+      ),
+    ).toBe(-0.5);
+
+    // Half => 75%
+    expect(
+      successProbaIntTyped.update(
+        [
+          originJS,
+          makeJSComparable({
+            label: new Label<InternalTimeInt, number, number, number, [[number, "successProbaInt"]]>(TimeIntOrderLow, [successProbaIntTyped], [4, 6]),
+          }),
+        ],
+        {
+          boardedAt: [0, originJS],
+          route: new Route(
+            1,
+            [0],
+            [
+              {
+                id: 0,
+                times: [
+                  [
+                    [NaN, NaN],
+                    [5, 6],
+                  ],
+                ],
+              },
+            ],
+          ),
+          tripIndex: 0,
+        },
+        TimeIntOrderLow,
+        [NaN, NaN],
+        0,
+      ),
+    ).toBe(-0.75);
+  });
+
+  // [  ]
+  //  [  ]
+  // 1/3 + 0.5 * 1/3
+  expect(
+    successProbaIntTyped.update(
+      [
+        originJS,
+        makeJSComparable({
+          label: new Label<InternalTimeInt, number, number, number, [[number, "successProbaInt"]]>(TimeIntOrderLow, [successProbaIntTyped], [4, 6]),
+        }),
+      ],
+      {
+        boardedAt: [0, originJS],
+        route: new Route(
+          1,
+          [0],
+          [
+            {
+              id: 0,
+              times: [
+                [
+                  [NaN, NaN],
+                  [5, 7],
+                ],
+              ],
+            },
+          ],
+        ),
+        tripIndex: 0,
+      },
+      TimeIntOrderLow,
+      [NaN, NaN],
+      0,
+    ),
+  ).toBe(-(1 / 3 + 0.5 / 3));
+
+  // Included:
+  // [   ]
+  //  [ ]
+  // 1/3 + 0.5 * 1/3
+  expect(
+    successProbaIntTyped.update(
+      [
+        originJS,
+        makeJSComparable({
+          label: new Label<InternalTimeInt, number, number, number, [[number, "successProbaInt"]]>(TimeIntOrderLow, [successProbaIntTyped], [4, 7]),
+        }),
+      ],
+      {
+        boardedAt: [0, originJS],
+        route: new Route(
+          1,
+          [0],
+          [
+            {
+              id: 0,
+              times: [
+                [
+                  [NaN, NaN],
+                  [5, 6],
+                ],
+              ],
+            },
+          ],
+        ),
+        tripIndex: 0,
+      },
+      TimeIntOrderLow,
+      [NaN, NaN],
+      0,
+    ),
+  ).toBe(-(1 / 3 + 0.5 / 3));
+
+  //  [  ]
+  // [  ]
+  // 0.5 * 1/3
+  expect(
+    successProbaIntTyped.update(
+      [
+        originJS,
+        makeJSComparable({
+          label: new Label<InternalTimeInt, number, number, number, [[number, "successProbaInt"]]>(TimeIntOrderLow, [successProbaIntTyped], [5, 7]),
+        }),
+      ],
+      {
+        boardedAt: [0, originJS],
+        route: new Route(
+          1,
+          [0],
+          [
+            {
+              id: 0,
+              times: [
+                [
+                  [NaN, NaN],
+                  [4, 6],
+                ],
+              ],
+            },
+          ],
+        ),
+        tripIndex: 0,
+      },
+      TimeIntOrderLow,
+      [NaN, NaN],
+      0,
+    ),
+  ).toBe(-(0.5 / 3));
+
+  test("Wrong usage", () => {
+    expect(() => successProbaIntTyped.update([], vehicleJourneyStep1, TimeIntOrderLow, [NaN, NaN], 0)).toThrow(
+      "A journey should at least contain the DEPARTURE step.",
+    );
+  });
+});
+
