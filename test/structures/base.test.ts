@@ -171,6 +171,18 @@ describe("Label class", () => {
       expect(l1Updated.value("c1")).toBe(1);
       expect(l1Updated.value("c2")).toBe(3);
     });
+
+    test("setValue", () => {
+      const l = new Label<number, number, number, number, [[number, "c1"], [number, "c2"]]>(TimeScal, [c1, c2], 0);
+
+      const lUpdatedc1 = l.setValue("c1", 3);
+      expect(lUpdatedc1.value("c1")).toBe(3);
+      expect(lUpdatedc1.value("c2")).toBe(c2.initialValue);
+
+      const lUpdatedc2 = lUpdatedc1.setValue("c2", 5);
+      expect(lUpdatedc2.value("c1")).toBe(3);
+      expect(lUpdatedc2.value("c2")).toBe(5);
+    });
   });
 });
 
