@@ -13,8 +13,10 @@ import {
   footDistance,
   InternalTimeInt,
   IRAPTORData,
+  Journey,
   McRAPTOR,
   McSharedRAPTOR,
+  measureJourney,
   RAPTOR,
   RAPTORData,
   RAPTORRunSettings,
@@ -24,6 +26,7 @@ import {
   sharedTimeIntOrderLow,
   sharedTimeScal,
   Stop,
+  successProbaInt,
   Time,
   TimeIntOrderLow,
   TimeScal,
@@ -32,7 +35,7 @@ import {
 import BaseRAPTOR from "../base";
 import NonScheduledRoutesModelInit, { dbFootPaths } from "./models/NonScheduledRoutes.model";
 import ResultModelInit, {
-  Journey,
+  Journey as DBJourney,
   JourneyStepBase,
   JourneyStepFoot,
   JourneyStepType,
@@ -230,12 +233,38 @@ function createMcSharedRAPTOR<TimeVal, V, CA extends [V, string][]>(
   return [SharedRAPTORDataInst, new McSharedRAPTOR(SharedRAPTORDataInst, criteria)] as const;
 }
 
-type DBJourney = Omit<Journey, "steps"> & {
+type InstanceType = "RAPTOR" | "SharedRAPTOR" | "McRAPTOR" | "McSharedRAPTOR";
+
+function isTimeTypeInternalInt(timeType: unknown): timeType is Time<InternalTimeInt> {
+  return timeType === TimeIntOrderLow;
+}
+
+function postTreatment<TimeVal extends Timestamp | InternalTimeInt, V, CA extends [V, string][]>(
+  timeType: Time<TimeVal>,
+  instanceType: InstanceType,
+  results: ReturnType<BaseRAPTOR<TimeVal, SharedID, number, number, V, CA>["getBestJourneys"]>,
+  pt: SharedID,
+) {
+  if (isTimeTypeInternalInt(timeType)) {
+    if (instanceType === "McRAPTOR" || instanceType === "McSharedRAPTOR") {
+      // Add success proba as post treatment
+      results = results.map((journeys) =>
+        journeys.map((journey) =>
+          measureJourney(successProbaInt, timeType, journey as unknown as Journey<InternalTimeInt, SharedID, number, V, CA>, pt),
+        ),
+      ) as unknown as typeof results;
+    }
+  }
+
+  return results;
+}
+
+type DBJourneyReal = Omit<DBJourney, "steps"> & {
   steps: (JourneyStepBase | JourneyStepFoot | JourneyStepVehicle)[];
 };
 function journeyDBFormatter<TimeVal extends Timestamp | InternalTimeInt, V, CA extends [V, string][]>(
-  journey: NonNullable<ReturnType<BaseRAPTOR<TimeVal, SharedID, SharedID, number, V, CA>["getBestJourneys"]>[number][number]>,
-): DBJourney {
+  journey: NonNullable<ReturnType<BaseRAPTOR<TimeVal, SharedID, number, number, V, CA>["getBestJourneys"]>[number][number]>,
+): DBJourneyReal {
   return {
     steps: journey.map<JourneyStepFoot | JourneyStepVehicle | JourneyStepBase>((js) => ({
       ...js,
@@ -263,7 +292,7 @@ async function insertResults<TimeVal extends Timestamp | InternalTimeInt, V, CA 
   to: LocationAddress | LocationTBM,
   departureTime: TimeVal,
   settings: RAPTORRunSettings,
-  results: ReturnType<BaseRAPTOR<TimeVal, SharedID, SharedID, number, V, CA>["getBestJourneys"]>,
+  results: ReturnType<BaseRAPTOR<TimeVal, SharedID, number, number, V, CA>["getBestJourneys"]>,
 ) {
   if (!results.length) throw new Error("No journey found");
 
@@ -327,7 +356,7 @@ async function insertResults<TimeVal extends Timestamp | InternalTimeInt, V, CA 
 
   if (dataType !== "scalar") console.debug(delay ? `Using delay of -${delay[0]}s, ${delay[1]}s` : `Using natural delay`);
 
-  let instanceType: "RAPTOR" | "SharedRAPTOR" | "McRAPTOR" | "McSharedRAPTOR";
+  let instanceType: InstanceType;
   if ("i" in args) {
     switch ((args.i as string).toLowerCase()) {
       case "r":
@@ -540,10 +569,21 @@ async function insertResults<TimeVal extends Timestamp | InternalTimeInt, V, CA 
   if (!b6.lastReturn) throw new Error(`No best journeys`);
   console.debug("Best journeys", inspect(b6.lastReturn, false, 6));
 
+  const b7 = await benchmark(
+    postTreatment<
+      Timestamp | InternalTimeInt,
+      number,
+      [] | [[number, "footDistance"]] | [[number, "bufferTime"]] | [[number, "footDistance"], [number, "bufferTime"]]
+    >,
+    [RAPTORDataInst.timeType, instanceType, b6.lastReturn, pt],
+  );
+  if (!b7.lastReturn) throw new Error(`No post treatment`);
+  console.debug("Post treatment", inspect(b7.lastReturn, false, 6));
+
   if (saveResults) {
     // Save results
 
-    const b7 = await benchmark(
+    const b8 = await benchmark(
       insertResults<
         Timestamp | InternalTimeInt,
         number,
@@ -551,7 +591,7 @@ async function insertResults<TimeVal extends Timestamp | InternalTimeInt, V, CA 
       >,
       [queriedData.resultModel, RAPTORDataInst.timeType, from, { type: LocationType.TBM, id: pt }, departureTime, settings, b6.lastReturn],
     );
-    console.log("Saved result id", b7.lastReturn);
+    console.log("Saved result id", b8.lastReturn);
   }
 })()
   .then(() => {
