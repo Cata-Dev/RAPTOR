@@ -112,3 +112,7 @@ git_push.sh
 # Others
 lib/
 docs/
+
+# Test
+*.geojson
+bench/
