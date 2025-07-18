@@ -47,13 +47,8 @@ export default class RAPTOR<TimeVal, SI extends Id = Id, RI extends Id = Id, TI 
       if (t !== null) {
         const arrivalTime: TimeVal = route.trips.at(t.tripIndex)!.times.at(i)![0];
         if (
-          this.time.order(
-            arrivalTime,
-            this.time.min(
-              this.multiLabel[this.k].get(pi)?.label.time ?? this.time.MAX,
-              this.multiLabel[this.k].get(this.runParams!.pt)?.label.time ?? this.time.MAX,
-            ),
-          ) < 0
+          this.time.strict.order(arrivalTime, this.multiLabel[this.k].get(pi)?.label.time ?? this.time.MAX) < 0 &&
+          this.time.strict.order(arrivalTime, this.multiLabel[this.k].get(this.runParams!.pt)?.label.time ?? this.time.MAX) < 0
         ) {
           // local & target pruning
           this.multiLabel[this.k].set(
@@ -71,7 +66,7 @@ export default class RAPTOR<TimeVal, SI extends Id = Id, RI extends Id = Id, TI 
 
       const tpiOld = this.multiLabel[this.k - 1].get(pi)?.label.time ?? this.time.MAX;
       if (!t) {
-        if (this.time.order(tpiOld, this.time.MAX_SAFE) < 0) t = this.et(route, pi, tpiOld);
+        if (this.time.strict.order(tpiOld, this.time.MAX_SAFE) < 0) t = this.et(route, pi, tpiOld);
       } else if (tpiOld <= route.departureTime(t.tripIndex, i)) {
         // Catch an earlier trip at pi ?
         const newEt = this.et(route, pi, tpiOld);
@@ -84,7 +79,6 @@ export default class RAPTOR<TimeVal, SI extends Id = Id, RI extends Id = Id, TI 
 
   protected traverseFootPaths(stopId: SI, stop: IStop<SI, RI>): void {
     for (const transfer of stop.transfers(this.runParams!.settings.maxTransferLength)) {
-      console.log(transfer);
       if (transfer.to === stopId) continue;
 
       const pJourneyStep = this.multiLabel[this.k].get(stopId)!;
@@ -113,7 +107,8 @@ export default class RAPTOR<TimeVal, SI extends Id = Id, RI extends Id = Id, TI 
         try {
           const journey = this.traceBackFromStep(ptJourneyStep, k);
           const tripsCount = journey.reduce((acc, js) => acc + ("route" in js ? 1 : 0), 0);
-          if (this.time.order(acc[tripsCount]?.[0]?.at(-1)?.label.time ?? this.time.MAX, journey.at(-1)!.label.time) > 0) acc[tripsCount] = [journey];
+          if (this.time.strict.order(acc[tripsCount]?.[0]?.at(-1)?.label.time ?? this.time.MAX, journey.at(-1)!.label.time) > 0)
+            acc[tripsCount] = [journey];
           // eslint-disable-next-line no-empty
         } catch (_) {}
 
