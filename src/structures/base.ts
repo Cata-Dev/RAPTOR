@@ -105,7 +105,9 @@ interface Comparable<T> {
   compare(other: T): number | null;
 }
 
-interface Criterion<TimeVal, SI extends Id, RI extends Id, T, N extends string> extends Ordered<T> {
+interface Criterion<TimeVal, SI extends Id, RI extends Id, T, N extends string>
+  // Might switch to Comparable?
+  extends Ordered<T> {
   name: N;
   /** Usually 0, +/-Infinity or 1 */
   initialValue: T;
