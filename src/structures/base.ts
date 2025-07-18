@@ -179,8 +179,18 @@ class Label<TimeVal, SI extends Id, RI extends Id, V, CA extends [V, string][]> 
     // Has `l` a superior criterion ?
     let sup: 0 | 1 = 0;
 
-    if (this.timeType.order(this.time, l.time) > 0) inf = -1;
-    if (this.timeType.order(this.time, l.time) < 0) sup = 1;
+    const cmpStrict = this.timeType.strict.order(l.time, this.time);
+    if (cmpStrict < 0) inf = -1;
+    else if (cmpStrict > 0) sup = 1;
+    else {
+      if (this.timeType.large.order(l.time, this.time) !== 0 && this.timeType.large.order(this.time, l.time) !== 0)
+        // Incomparable, typically:
+        // [     ]
+        //   [ ]
+        return null;
+
+      // Equal otherwise
+    }
 
     for (const c of this.criteria as Criterion<TimeVal, SI, RI, V, CA[number][1]>[]) {
       if (c.order(this.values[c.name], l.values[c.name]) > 0) inf = -1;
