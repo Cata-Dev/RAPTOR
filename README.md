@@ -31,6 +31,9 @@ Some new features are brought in this implementation:
   This is done by scanning subsequent catchable trips, not only the earliest one.
   The scanning stops when its label is dominated by one of a previously scanned trip.
   This implies the Pareto front is maximal if every criterion is increasing for increasing trips.
+- Ability to run multiple queries (multiple RAPTOR instances, in fact) in parallel, reading the same RAPTOR data (memory chunk).
+  This is done thanks to a [SharedArrayBuffer](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/SharedArrayBuffer) together with powerful [views](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/DataView).
+  There is a little overhead due to the views.
 
 # References
 
