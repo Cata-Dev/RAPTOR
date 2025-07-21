@@ -15,7 +15,7 @@ function isCriterionJourneyStepFoot<TimeVal, SI extends Id, RI extends Id, V, CA
 const bufferTime: Criterion<unknown, Id, Id, number, "bufferTime"> = {
   name: "bufferTime",
   initialValue: -Infinity,
-  order: TimeScal.order,
+  order: TimeScal.strict.order,
   update: (prefixJourney, newJourneyStep, timeType) => {
     const lastJourneyStep = prefixJourney.at(-1);
     if (!lastJourneyStep) throw new Error("A journey should at least contain the DEPARTURE step.");
@@ -36,7 +36,7 @@ const bufferTime: Criterion<unknown, Id, Id, number, "bufferTime"> = {
 const footDistance: Criterion<unknown, Id, Id, number, "footDistance"> = {
   name: "footDistance",
   initialValue: 0,
-  order: TimeScal.order,
+  order: TimeScal.strict.order,
   update: (prefixJourney, newJourneyStep) => {
     const lastJourneyStep = prefixJourney.at(-1);
     if (!lastJourneyStep) throw new Error("A journey should at least contain the DEPARTURE step.");
@@ -48,7 +48,7 @@ const footDistance: Criterion<unknown, Id, Id, number, "footDistance"> = {
 const successProbaInt: Criterion<InternalTimeInt, Id, Id, number, "successProbaInt"> = {
   name: "successProbaInt",
   initialValue: -1,
-  order: TimeScal.order,
+  order: TimeScal.strict.order,
   update: (prefixJourney, newJourneyStep, timeType) => {
     const lastJourneyStep = prefixJourney.at(-1);
     if (!lastJourneyStep) throw new Error("A journey should at least contain the DEPARTURE step.");

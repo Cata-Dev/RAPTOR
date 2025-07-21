@@ -65,7 +65,7 @@ export default class BaseRAPTOR<TimeVal, SI extends Id = Id, RI extends Id = Id,
     for (let t = startTripIndex; t < route.trips.length; t++) {
       // Catchable?
       const tDep = route.departureTime(t, route.stops.indexOf(p));
-      if (this.time.order(tDep, this.time.MAX_SAFE) < 0 && this.time.order(tDep, after) >= 0) return { tripIndex: t, boardedAt: p };
+      if (this.time.strict.order(tDep, this.time.MAX_SAFE) < 0 && this.time.up(tDep) >= this.time.low(after)) return { tripIndex: t, boardedAt: p };
     }
 
     return null;
@@ -155,7 +155,7 @@ export default class BaseRAPTOR<TimeVal, SI extends Id = Id, RI extends Id = Id,
         throw new Error(`No journey in initRound ${initRound}.`);
 
       if (!("boardedAt" in previousStep)) {
-        if (this.time.order(previousStep.label.time, this.time.MAX_SAFE) >= 0) {
+        if (this.time.strict.order(previousStep.label.time, this.time.MAX_SAFE) >= 0) {
           k--;
           continue;
         }

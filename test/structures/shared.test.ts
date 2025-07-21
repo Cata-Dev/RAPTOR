@@ -71,8 +71,8 @@ function testRoutes<TimeVal>(timeType: Time<TimeVal>, routes: TestAsset<TimeVal>
         // Order is important here
         const sharedTime = sharedTrip?.times.at(i);
         if (sharedTime === undefined) throw new Error("Unexpected result");
-        expect(timeType.order(sharedTime[0], time[0])).toBe(0);
-        expect(timeType.order(sharedTime[1], time[1])).toBe(0);
+        expect(sharedTime[0]).toEqual(time[0]);
+        expect(sharedTime[1]).toEqual(time[1]);
       }
     }
   }

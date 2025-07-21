@@ -10,7 +10,7 @@ import {
   measureJourney,
   Route,
   successProbaInt,
-  TimeIntOrderLow,
+  TimeInt,
   TimeScal,
   Timestamp,
 } from "../src";
@@ -118,13 +118,13 @@ describe("Success probability (interval)", () => {
   });
 
   const originJS: JourneyStep<InternalTimeInt, number, number, number, [[number, "successProbaInt"]], "DEPARTURE"> = makeJSComparable({
-    label: new Label<InternalTimeInt, number, number, number, [[number, "successProbaInt"]]>(TimeIntOrderLow, [successProbaIntTyped], [0, 0]),
+    label: new Label<InternalTimeInt, number, number, number, [[number, "successProbaInt"]]>(TimeInt, [successProbaIntTyped], [0, 0]),
   });
 
   const footJourneyStep = makeJSComparable<InternalTimeInt, number, number, number, [[number, "successProbaInt"]], "FOOT">({
     boardedAt: [0, originJS],
     transfer: { to: 0, length: 3 },
-    label: new Label<InternalTimeInt, number, number, number, [[number, "successProbaInt"]]>(TimeIntOrderLow, [successProbaIntTyped], [3, 3]),
+    label: new Label<InternalTimeInt, number, number, number, [[number, "successProbaInt"]]>(TimeInt, [successProbaIntTyped], [3, 3]),
   });
 
   const vehicleJourneyStep1 = makeJSComparable<InternalTimeInt, number, number, number, [[number, "successProbaInt"]], "VEHICLE">({
@@ -145,7 +145,7 @@ describe("Success probability (interval)", () => {
       ],
     ),
     tripIndex: 0,
-    label: new Label<InternalTimeInt, number, number, number, [[number, "successProbaInt"]]>(TimeIntOrderLow, [successProbaIntTyped], [6, 6]),
+    label: new Label<InternalTimeInt, number, number, number, [[number, "successProbaInt"]]>(TimeInt, [successProbaIntTyped], [6, 6]),
   });
 
   const vehicleJourneyStep2 = makeJSComparable<InternalTimeInt, number, number, number, [[number, "successProbaInt"]], "VEHICLE">({
@@ -166,20 +166,20 @@ describe("Success probability (interval)", () => {
       ],
     ),
     tripIndex: 0,
-    label: new Label<InternalTimeInt, number, number, number, [[number, "successProbaInt"]]>(TimeIntOrderLow, [successProbaIntTyped], [NaN, NaN]),
+    label: new Label<InternalTimeInt, number, number, number, [[number, "successProbaInt"]]>(TimeInt, [successProbaIntTyped], [NaN, NaN]),
   });
 
   test("Update with foot transfer", () => {
-    expect(successProbaIntTyped.update([originJS], footJourneyStep, TimeIntOrderLow, [NaN, NaN], 0)).toBe(-1);
-    expect(successProbaIntTyped.update([originJS, vehicleJourneyStep1], footJourneyStep, TimeIntOrderLow, [NaN, NaN], 0)).toBe(
+    expect(successProbaIntTyped.update([originJS], footJourneyStep, TimeInt, [NaN, NaN], 0)).toBe(-1);
+    expect(successProbaIntTyped.update([originJS, vehicleJourneyStep1], footJourneyStep, TimeInt, [NaN, NaN], 0)).toBe(
       vehicleJourneyStep1.label.value("successProbaInt"),
     );
   });
 
   test("Update with vehicle", () => {
     // Not intersecting
-    expect(successProbaIntTyped.update([originJS], vehicleJourneyStep1, TimeIntOrderLow, [NaN, NaN], 0)).toBe(-1);
-    expect(successProbaIntTyped.update([originJS, vehicleJourneyStep1], vehicleJourneyStep2, TimeIntOrderLow, [NaN, NaN], 0)).toBe(-1);
+    expect(successProbaIntTyped.update([originJS], vehicleJourneyStep1, TimeInt, [NaN, NaN], 0)).toBe(-1);
+    expect(successProbaIntTyped.update([originJS, vehicleJourneyStep1], vehicleJourneyStep2, TimeInt, [NaN, NaN], 0)).toBe(-1);
     // Missing
     expect(
       successProbaIntTyped.update(
@@ -203,7 +203,7 @@ describe("Success probability (interval)", () => {
           ),
           tripIndex: 0,
         },
-        TimeIntOrderLow,
+        TimeInt,
         [NaN, NaN],
         0,
       ),
@@ -216,7 +216,7 @@ describe("Success probability (interval)", () => {
         [
           originJS,
           makeJSComparable({
-            label: new Label<InternalTimeInt, number, number, number, [[number, "successProbaInt"]]>(TimeIntOrderLow, [successProbaIntTyped], [4, 5]),
+            label: new Label<InternalTimeInt, number, number, number, [[number, "successProbaInt"]]>(TimeInt, [successProbaIntTyped], [4, 5]),
           }),
         ],
         {
@@ -238,7 +238,7 @@ describe("Success probability (interval)", () => {
           ),
           tripIndex: 0,
         },
-        TimeIntOrderLow,
+        TimeInt,
         [NaN, NaN],
         0,
       ),
@@ -250,7 +250,7 @@ describe("Success probability (interval)", () => {
         [
           originJS,
           makeJSComparable({
-            label: new Label<InternalTimeInt, number, number, number, [[number, "successProbaInt"]]>(TimeIntOrderLow, [successProbaIntTyped], [4, 6]),
+            label: new Label<InternalTimeInt, number, number, number, [[number, "successProbaInt"]]>(TimeInt, [successProbaIntTyped], [4, 6]),
           }),
         ],
         {
@@ -272,7 +272,7 @@ describe("Success probability (interval)", () => {
           ),
           tripIndex: 0,
         },
-        TimeIntOrderLow,
+        TimeInt,
         [NaN, NaN],
         0,
       ),
@@ -287,7 +287,7 @@ describe("Success probability (interval)", () => {
       [
         originJS,
         makeJSComparable({
-          label: new Label<InternalTimeInt, number, number, number, [[number, "successProbaInt"]]>(TimeIntOrderLow, [successProbaIntTyped], [4, 6]),
+          label: new Label<InternalTimeInt, number, number, number, [[number, "successProbaInt"]]>(TimeInt, [successProbaIntTyped], [4, 6]),
         }),
       ],
       {
@@ -309,7 +309,7 @@ describe("Success probability (interval)", () => {
         ),
         tripIndex: 0,
       },
-      TimeIntOrderLow,
+      TimeInt,
       [NaN, NaN],
       0,
     ),
@@ -324,7 +324,7 @@ describe("Success probability (interval)", () => {
       [
         originJS,
         makeJSComparable({
-          label: new Label<InternalTimeInt, number, number, number, [[number, "successProbaInt"]]>(TimeIntOrderLow, [successProbaIntTyped], [4, 7]),
+          label: new Label<InternalTimeInt, number, number, number, [[number, "successProbaInt"]]>(TimeInt, [successProbaIntTyped], [4, 7]),
         }),
       ],
       {
@@ -346,7 +346,7 @@ describe("Success probability (interval)", () => {
         ),
         tripIndex: 0,
       },
-      TimeIntOrderLow,
+      TimeInt,
       [NaN, NaN],
       0,
     ),
@@ -360,7 +360,7 @@ describe("Success probability (interval)", () => {
       [
         originJS,
         makeJSComparable({
-          label: new Label<InternalTimeInt, number, number, number, [[number, "successProbaInt"]]>(TimeIntOrderLow, [successProbaIntTyped], [5, 7]),
+          label: new Label<InternalTimeInt, number, number, number, [[number, "successProbaInt"]]>(TimeInt, [successProbaIntTyped], [5, 7]),
         }),
       ],
       {
@@ -382,14 +382,14 @@ describe("Success probability (interval)", () => {
         ),
         tripIndex: 0,
       },
-      TimeIntOrderLow,
+      TimeInt,
       [NaN, NaN],
       0,
     ),
   ).toBe(-(0.5 / 3));
 
   test("Wrong usage", () => {
-    expect(() => successProbaIntTyped.update([], vehicleJourneyStep1, TimeIntOrderLow, [NaN, NaN], 0)).toThrow(
+    expect(() => successProbaIntTyped.update([], vehicleJourneyStep1, TimeInt, [NaN, NaN], 0)).toThrow(
       "A journey should at least contain the DEPARTURE step.",
     );
   });

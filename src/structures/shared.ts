@@ -1,5 +1,5 @@
 import { ArrayRead, FootPath, IRAPTORData, IStop, MapRead, RAPTORData, Route, Stop, Trip } from "./base";
-import { Time, TimeIntOrderLow, TimeScal } from "./time";
+import { Time, TimeInt, TimeScal } from "./time";
 
 //
 // Time
@@ -20,7 +20,7 @@ const sharedTimeScal: SharedTime<number> = {
 };
 
 const sharedTimeIntOrderLow: SharedTime<readonly [number, number]> = {
-  ...TimeIntOrderLow,
+  ...TimeInt,
 
   sharedSerializedLen: 2,
   sharedSerialize: ([low, high]) => new Float64Array([low, high]),

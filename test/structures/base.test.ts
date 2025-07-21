@@ -1,5 +1,5 @@
 import { describe, expect, test, jest } from "@jest/globals";
-import { Bag, Criterion, Label, Route, TimeScal } from "../../src";
+import { Bag, Criterion, Label, Route, TimeInt, TimeScal } from "../../src";
 import { setLabelValues } from "./utils";
 
 describe("Route class", () => {
@@ -52,7 +52,7 @@ const c1Update = jest.fn<Criterion<number, number, number, number, "c1">["update
 const c1: Criterion<number, number, number, number, "c1"> = {
   name: "c1",
   initialValue: Infinity,
-  order: TimeScal.order,
+  order: TimeScal.strict.order,
   update: c1Update,
 };
 const c2Update = jest.fn<Criterion<number, number, number, number, "c2">["update"]>(
@@ -61,29 +61,56 @@ const c2Update = jest.fn<Criterion<number, number, number, number, "c2">["update
 const c2: Criterion<number, number, number, number, "c2"> = {
   name: "c2",
   initialValue: -Infinity,
-  order: TimeScal.order,
+  order: TimeScal.strict.order,
   update: c2Update,
 };
 describe("Label class", () => {
   describe("Without criterion", () => {
-    const l = new Label(TimeScal, [], 0);
-    const l1 = new Label(TimeScal, [], 3);
+    describe("Scalar time", () => {
+      const l = new Label(TimeScal, [], 0);
+      const l1 = new Label(TimeScal, [], 3);
 
-    test("Basic getters", () => {
-      expect(l.time).toBe(0);
-      expect(l1.time).toBe(3);
+      test("Basic getters", () => {
+        expect(l.time).toBe(0);
+        expect(l1.time).toBe(3);
+      });
+
+      test("Comparison", () => {
+        expect(l.compare(l1)).toBe(1);
+        expect(l1.compare(l)).toBe(-1);
+        expect(l1.compare(new Label(TimeScal, [], 3))).toBe(0);
+      });
+
+      test("Update", () => {
+        const lUpdated = l.update(5, [[], {}, TimeScal, 5, 0]);
+        expect(lUpdated).not.toBe(l);
+        expect(lUpdated.time).toBe(5);
+      });
     });
 
-    test("Comparison", () => {
-      expect(l.compare(l1)).toBe(1);
-      expect(l1.compare(l)).toBe(-1);
-      expect(l1.compare(new Label(TimeScal, [], 3))).toBe(0);
-    });
+    describe("Interval time", () => {
+      const l = new Label(TimeInt, [], [-3, -1]);
+      const l1 = new Label(TimeInt, [], [-2, 0]);
+      const l2 = new Label(TimeInt, [], [2, 4]);
 
-    test("Update", () => {
-      const lUpdated = l.update(5, [[], {}, TimeScal, 5, 0]);
-      expect(lUpdated).not.toBe(l);
-      expect(lUpdated.time).toBe(5);
+      test("Basic getters", () => {
+        expect(l.time).toEqual([-3, -1]);
+        expect(l2.time).toEqual([2, 4]);
+      });
+
+      test("Comparison", () => {
+        expect(l.compare(l1)).toBe(null);
+        expect(l1.compare(l)).toBe(null);
+        expect(l.compare(l2)).toBe(1);
+        expect(l2.compare(l)).toBe(-1);
+        expect(l.compare(l)).toBe(0);
+      });
+
+      test("Update", () => {
+        const lUpdated = l.update([-4, -2], [[], {}, TimeInt, [-4, -2], 0]);
+        expect(lUpdated).not.toBe(l);
+        expect(lUpdated.time).toEqual([-4, -2]);
+      });
     });
   });
 
