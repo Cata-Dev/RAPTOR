@@ -28,7 +28,7 @@ function testTimeIntMethods(TimeInt: Time<InternalTimeInt>) {
   expect(TimeInt.plusScal([-Infinity, 2], 1)).toEqual([-Infinity, 3]);
 
   // Strict => large
-  // Large & strict = 0 => incomparable
+  // Large & strict = 0 => incomparable OR EQUAL?
 
   // Comparable (strict)
 
