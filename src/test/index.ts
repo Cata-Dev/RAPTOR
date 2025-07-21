@@ -10,6 +10,8 @@ import { exit } from "process";
 import { inspect } from "util";
 import {
   bufferTime,
+  convertBackJourneyStep,
+  convertJourneyStep,
   footDistance,
   InternalTimeInt,
   IRAPTORData,
@@ -236,22 +238,39 @@ function createMcSharedRAPTOR<TimeVal, V, CA extends [V, string][]>(
 type InstanceType = "RAPTOR" | "SharedRAPTOR" | "McRAPTOR" | "McSharedRAPTOR";
 
 function isTimeTypeInternalInt(timeType: unknown): timeType is Time<InternalTimeInt> {
-  return timeType === TimeInt;
+  return typeof timeType === "object" && timeType !== null && "MAX_SAFE" in timeType && timeType.MAX_SAFE === TimeInt.MAX_SAFE;
 }
 
 function postTreatment<TimeVal extends Timestamp | InternalTimeInt, V, CA extends [V, string][]>(
-  timeType: Time<TimeVal>,
+  data: IRAPTORData<TimeVal, SharedID, number, number>,
   instanceType: InstanceType,
   results: ReturnType<BaseRAPTOR<TimeVal, SharedID, number, number, V, CA>["getBestJourneys"]>,
   pt: SharedID,
 ) {
+  const timeType = data.timeType;
+
   if (isTimeTypeInternalInt(timeType)) {
     if (instanceType === "McRAPTOR" || instanceType === "McSharedRAPTOR") {
       // Add success proba as post treatment
       results = results.map((journeys) =>
-        journeys.map((journey) =>
-          measureJourney(successProbaInt, timeType, journey as unknown as Journey<InternalTimeInt, SharedID, number, V, CA>, pt),
-        ),
+        journeys.map((journey) => {
+          const measured = measureJourney(
+            successProbaInt,
+            timeType,
+            (instanceType === "McSharedRAPTOR"
+              ? journey.map((js) => convertJourneyStep<TimeVal, V, CA>(data as SharedRAPTORData<TimeVal>)(js))
+              : journey) as unknown as Journey<InternalTimeInt, SharedID, number, V, CA>,
+            pt,
+          );
+
+          return instanceType === "McSharedRAPTOR"
+            ? measured.map((js) =>
+                convertBackJourneyStep<InternalTimeInt, number | V, [...CA, [number, "successProbaInt"]]>(
+                  data as unknown as SharedRAPTORData<InternalTimeInt>,
+                )(js),
+              )
+            : measured;
+        }),
       ) as unknown as typeof results;
     }
   }
@@ -504,7 +523,7 @@ async function insertResults<TimeVal extends Timestamp | InternalTimeInt, V, CA 
           ));
   if (!b4.lastReturn) throw new Error("No RAPTOR instance");
   const [RAPTORDataInst, RAPTORInstance] = b4.lastReturn as readonly [
-    Omit<IRAPTORData<Timestamp | InternalTimeInt, SharedID, number, number>, "attachData"> & {
+    Omit<IRAPTORData<Timestamp | InternalTimeInt, SharedID, number, number>, "attachStops"> & {
       attachStops: SharedRAPTORData<Timestamp | InternalTimeInt>["attachStops"];
     },
     BaseRAPTOR<
@@ -575,7 +594,7 @@ async function insertResults<TimeVal extends Timestamp | InternalTimeInt, V, CA 
       number,
       [] | [[number, "footDistance"]] | [[number, "bufferTime"]] | [[number, "footDistance"], [number, "bufferTime"]]
     >,
-    [RAPTORDataInst.timeType, instanceType, b6.lastReturn, pt],
+    [RAPTORDataInst, instanceType, b6.lastReturn, pt],
   );
   if (!b7.lastReturn) throw new Error(`No post treatment`);
   console.debug("Post treatment", inspect(b7.lastReturn, false, 6));
@@ -589,7 +608,7 @@ async function insertResults<TimeVal extends Timestamp | InternalTimeInt, V, CA 
         number,
         [] | [[number, "footDistance"]] | [[number, "bufferTime"]] | [[number, "footDistance"], [number, "bufferTime"]]
       >,
-      [queriedData.resultModel, RAPTORDataInst.timeType, from, { type: LocationType.TBM, id: pt }, departureTime, settings, b6.lastReturn],
+      [queriedData.resultModel, RAPTORDataInst.timeType, from, { type: LocationType.TBM, id: pt }, departureTime, settings, b7.lastReturn],
     );
     console.log("Saved result id", b8.lastReturn);
   }
