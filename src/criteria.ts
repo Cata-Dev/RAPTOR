@@ -80,19 +80,29 @@ const successProbaInt: Criterion<InternalTimeInt, Id, Id, number, "successProbaI
                 // [ ...
                 //   [ ...
                 1 * (newLow - prevLow)
-              : 0) +
-              (prevUp > newUp
+              : prevLow > newLow
                 ? // Infeasible segment
-                  //   ... ]
-                  // ... ]
-                  0 * (prevUp - newUp)
+                  //   [ ...
+                  // [ ...
+                  0 * (prevLow - newLow)
                 : 0) +
+              (prevUp < newUp
+                ? // Feasible segment
+                  // ... ]
+                  //   ... ]
+                  1 * (newUp - prevUp)
+                : prevUp > newUp
+                  ? // Infeasible segment
+                    //   ... ]
+                    // ... ]
+                    0 * (prevUp - newUp)
+                  : 0) +
               // Uncertain segment
               // ... [   ] ...
               // ... [   ] ...
-              0.5 * (Math.min(prevUp, newUp) - Math.max(prevLow, newLow))) /
+              0.5 * (Math.min(prevUp, newUp) - Math.max(prevLow, newLow) + 1)) /
             // Divide by width to get relative value in [0,1]
-            (Math.max(prevUp, newUp) - Math.min(prevLow, newLow)))
+            (Math.max(prevUp, newUp) - Math.min(prevLow, newLow) + 1))
     );
   },
 };
