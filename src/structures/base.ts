@@ -229,16 +229,25 @@ type JourneyStep<
       : // eslint-disable-next-line @typescript-eslint/no-empty-object-type
         {});
 
-function makeJSComparable<TimeVal, SI extends Id, RI extends Id, V, CA extends [V, string][], T extends LabelType = LabelType>(
-  partialJourneyStep: Omit<JourneyStep<TimeVal, SI, RI, V, CA, T>, keyof Comparable<JourneyStep<TimeVal, SI, RI, V, CA>>>,
-): JourneyStep<TimeVal, SI, RI, V, CA, T> {
+function makeJSComparable<
+  TimeVal,
+  SI extends Id,
+  RI extends Id,
+  V,
+  CA extends [V, string][],
+  T extends LabelType = LabelType,
+  F extends boolean = false,
+>(
+  partialJourneyStep: Omit<JourneyStep<TimeVal, SI, RI, V, CA, T, F>, keyof Comparable<JourneyStep<TimeVal, SI, RI, V, CA>>>,
+): JourneyStep<TimeVal, SI, RI, V, CA, T, F> {
   return { ...partialJourneyStep, compare: (js: JourneyStep<TimeVal, SI, RI, V, CA>) => partialJourneyStep.label.compare(js.label) } as JourneyStep<
     TimeVal,
     SI,
     RI,
     V,
     CA,
-    T
+    T,
+    F
   >;
 }
 
