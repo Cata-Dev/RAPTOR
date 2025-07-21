@@ -105,13 +105,15 @@ interface Comparable<T> {
   compare(other: T): number | null;
 }
 
-interface Criterion<TimeVal, SI extends Id, RI extends Id, T, N extends string> extends Ordered<T> {
+interface Criterion<TimeVal, SI extends Id, RI extends Id, T, N extends string>
+  // Might switch to Comparable?
+  extends Ordered<T> {
   name: N;
   /** Usually 0, +/-Infinity or 1 */
   initialValue: T;
   update: (
     prefixJourney: Journey<TimeVal, SI, RI, T, [[T, N]]>,
-    newJourneyStep: Omit<JourneyStep<TimeVal, SI, RI, T, [[T, N]]>, "label" | keyof Comparable<never>>,
+    newJourneyStep: Omit<JourneyStep<TimeVal, SI, RI, T, [[T, N]], LabelType, true>, "label" | keyof Comparable<never>>,
     timeType: Time<TimeVal>,
     time: TimeVal,
     stop: SI,
@@ -149,6 +151,24 @@ class Label<TimeVal, SI extends Id, RI extends Id, V, CA extends [V, string][]> 
   }
 
   /**
+   * Change the value of one criterion
+   * @param criterionName The criterion name to change its value
+   * @param value The new value to set
+   * @returns A copy of this label with the changed criterion value
+   */
+  setValue<C extends CA[number]>(criterionName: C[1], value: C[0]) {
+    const updated = new Label<TimeVal, SI, RI, V, CA>(this.timeType, this.criteria, this.time);
+    // Restore values
+    for (const c of this.criteria as Criterion<TimeVal, SI, RI, V, CA[number][1]>[])
+      (updated.values as Record<CA[number][1], CA[number][0]>)[c.name] = this.values[c.name];
+
+    // Set value
+    (updated.values as Record<CA[number][1], CA[number][0]>)[criterionName] = value;
+
+    return updated;
+  }
+
+  /**
    * Compares this label with another by checking criteria domination.
    * @param l The label to be compared with
    * @returns `-1` if this label is dominated by {@link l}, `0` if they are equal, `1` otherwise
@@ -159,8 +179,18 @@ class Label<TimeVal, SI extends Id, RI extends Id, V, CA extends [V, string][]> 
     // Has `l` a superior criterion ?
     let sup: 0 | 1 = 0;
 
-    if (this.timeType.order(this.time, l.time) > 0) inf = -1;
-    if (this.timeType.order(this.time, l.time) < 0) sup = 1;
+    const cmpStrict = this.timeType.strict.order(l.time, this.time);
+    if (cmpStrict < 0) inf = -1;
+    else if (cmpStrict > 0) sup = 1;
+    else {
+      if (this.timeType.large.order(l.time, this.time) !== 0 && this.timeType.large.order(this.time, l.time) !== 0)
+        // Incomparable, typically:
+        // [     ]
+        //   [ ]
+        return null;
+
+      // Equal otherwise
+    }
 
     for (const c of this.criteria as Criterion<TimeVal, SI, RI, V, CA[number][1]>[]) {
       if (c.order(this.values[c.name], l.values[c.name]) > 0) inf = -1;

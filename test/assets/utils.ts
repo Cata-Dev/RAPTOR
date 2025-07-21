@@ -10,12 +10,12 @@ const validateWithoutCriteria =
     const journeysWithoutCriteria = res.map<[Journey<TimeVal, number, number, V, CA>] | []>((journeys) => {
       const bestJourney = Array.from(journeys)
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        .sort((a, b) => timeType.order(a.at(-1)!.label.time, b.at(-1)!.label.time))
+        .sort((a, b) => timeType.strict.order(a.at(-1)!.label.time, b.at(-1)!.label.time))
         .at(0);
 
       const jTime = bestJourney?.at(-1)?.label.time;
       if (jTime !== undefined)
-        if (timeType.order(jTime, bestTime) < 0) {
+        if (timeType.strict.order(jTime, bestTime) < 0) {
           bestTime = jTime;
         } else return [];
 
