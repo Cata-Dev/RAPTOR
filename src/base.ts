@@ -65,7 +65,7 @@ export default class BaseRAPTOR<TimeVal, SI extends Id = Id, RI extends Id = Id,
     for (let t = startTripIndex; t < route.trips.length; t++) {
       // Catchable?
       const tDep = route.departureTime(t, route.stops.indexOf(p));
-      if (this.time.strict.order(tDep, this.time.MAX_SAFE) < 0 && this.time.large.order(tDep, after) > 0) return { tripIndex: t, boardedAt: p };
+      if (this.time.strict.order(tDep, this.time.MAX_SAFE) < 0 && this.time.up(tDep) >= this.time.low(after)) return { tripIndex: t, boardedAt: p };
     }
 
     return null;
