@@ -28,7 +28,7 @@ import {
   Stop,
   successProbaInt,
   Time,
-  TimeIntOrderLow,
+  TimeInt,
   TimeScal,
   Timestamp,
 } from "../";
@@ -145,7 +145,7 @@ async function computeRAPTORData(
   delay: [number, number] | null,
 ) {
   return [
-    dataType === "scalar" ? TimeScal : TimeIntOrderLow,
+    dataType === "scalar" ? TimeScal : TimeInt,
     await mapAsync<(typeof stops)[number], ConstructorParameters<typeof RAPTORData<Timestamp | InternalTimeInt>>[1][number]>(
       stops,
       async ({ id, connectedRoutes }) => [
@@ -236,7 +236,7 @@ function createMcSharedRAPTOR<TimeVal, V, CA extends [V, string][]>(
 type InstanceType = "RAPTOR" | "SharedRAPTOR" | "McRAPTOR" | "McSharedRAPTOR";
 
 function isTimeTypeInternalInt(timeType: unknown): timeType is Time<InternalTimeInt> {
-  return timeType === TimeIntOrderLow;
+  return timeType === TimeInt;
 }
 
 function postTreatment<TimeVal extends Timestamp | InternalTimeInt, V, CA extends [V, string][]>(
@@ -304,7 +304,7 @@ async function insertResults<TimeVal extends Timestamp | InternalTimeInt, V, CA 
       .flat()
       // Sort by arrival time
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      .sort((a, b) => timeType.order(a.at(-1)!.label.time, b.at(-1)!.label.time))
+      .sort((a, b) => timeType.strict.order(a.at(-1)!.label.time, b.at(-1)!.label.time))
       .map((journey) => journeyDBFormatter(journey)),
     settings,
   });
