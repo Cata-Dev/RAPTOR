@@ -105,38 +105,56 @@ function measureJourney<TimeVal, SI extends Id, RI extends Id, V, CA extends [V,
 ) {
   return journey.reduce<Journey<TimeVal, SI, RI, V | T, [...CA, [T, N]]>>(
     (acc, js, i) => {
-      const rebasedLabel = js.label.criteria.reduce(
-        (acc, criterion) =>
-          (acc as Label<TimeVal, SI, RI, V, CA>).setValue(criterion.name, js.label.value(criterion.name)) as Label<
-            TimeVal,
-            SI,
-            RI,
-            V | T,
-            [...CA, [T, N]]
-          >,
-        new Label<TimeVal, SI, RI, V | T, [...CA, [T, N]]>(timeType, [...js.label.criteria, criterion], js.label.time),
-      );
+      const rebasedJS = {
+        ...js,
+        ...("boardedAt" in js
+          ? // Not a DEPARTURE journey step
+            {
+              boardedAt:
+                // Need to provide previous journey step
+                [js.boardedAt, acc[i - 1]],
+            }
+          : {}),
+        label: js.label.criteria.reduce(
+          (acc, criterion) =>
+            (acc as Label<TimeVal, SI, RI, V, CA>).setValue(criterion.name, js.label.value(criterion.name)) as unknown as Label<
+              TimeVal,
+              SI,
+              RI,
+              V | T,
+              [...CA, [T, N]]
+            >,
+          new Label<TimeVal, SI, RI, V | T, [...CA, [T, N]]>(timeType, [...js.label.criteria, criterion], js.label.time),
+        ),
+      };
 
       return [
         ...acc,
         i < 1
           ? makeJSComparable<TimeVal, SI, RI, V | T, [...CA, [T, N]]>({
-              ...js,
-              label: rebasedLabel,
+              ...rebasedJS,
             })
-          : makeJSComparable({
-              ...js,
-              label: (rebasedLabel as unknown as Label<TimeVal, SI, RI, T, [[T, N]]>).setValue(
-                criterion.name,
-                criterion.update(
-                  acc as unknown as Journey<TimeVal, SI, RI, T, [[T, N]]>,
-                  js,
-                  timeType,
-                  js.label.time,
-                  i + 1 < journey.length ? (journey[i + 1] as JourneyStep<TimeVal, SI, RI, V, CA, "FOOT" | "VEHICLE", true>).boardedAt : pt,
-                ),
-              ) as unknown as Label<TimeVal, SI, RI, V | T, [...CA, [T, N]]>,
-            }),
+          : {
+              ...makeJSComparable({
+                ...rebasedJS,
+                label: (rebasedJS.label as unknown as Label<TimeVal, SI, RI, T, [[T, N]]>).setValue(
+                  criterion.name,
+                  criterion.update(
+                    acc as unknown as Journey<TimeVal, SI, RI, T, [[T, N]]>,
+                    rebasedJS,
+                    timeType,
+                    rebasedJS.label.time,
+                    i + 1 < journey.length ? (journey[i + 1] as JourneyStep<TimeVal, SI, RI, V, CA, "FOOT" | "VEHICLE", true>).boardedAt : pt,
+                  ),
+                ) as unknown as Label<TimeVal, SI, RI, V | T, [...CA, [T, N]]>,
+              }),
+              ...("boardedAt" in js
+                ? // Not a DEPARTURE journey step
+                  {
+                    boardedAt: js.boardedAt,
+                  }
+                : {}),
+            },
       ];
     },
     // Prefix
