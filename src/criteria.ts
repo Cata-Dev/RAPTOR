@@ -61,10 +61,10 @@ const successProbaInt: Criterion<InternalTimeInt, Id, Id, number, "successProbaI
     const prevLow = timeType.low(lastJourneyStep.label.time);
     const prevUp = timeType.up(lastJourneyStep.label.time);
 
-    const depTime = newJourneyStep.route.departureTime(newJourneyStep.tripIndex, newJourneyStep.route.stops.indexOf(newJourneyStep.boardedAt[0]));
+    const tDep = newJourneyStep.route.departureTime(newJourneyStep.tripIndex, newJourneyStep.route.stops.indexOf(newJourneyStep.boardedAt[0]));
 
-    const newLow = timeType.low(depTime);
-    const newUp = timeType.up(depTime);
+    const newLow = timeType.low(tDep);
+    const newUp = timeType.up(tDep);
 
     return (
       lastJourneyStep.label.value("successProbaInt") *
