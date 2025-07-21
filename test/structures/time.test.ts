@@ -55,6 +55,13 @@ function testTimeIntMethods(TimeInt: Time<InternalTimeInt>) {
   expect(TimeInt.large.order([0, 2], [2, 4])).toBeLessThan(0);
   expect(TimeInt.large.order([2, 4], [0, 2])).toBeGreaterThan(0);
 
+  // [  ]
+  //    |
+  expect(TimeInt.strict.order([0, 2], [2, 2])).toBe(0);
+  expect(TimeInt.strict.order([2, 2], [0, 2])).toBe(0);
+  expect(TimeInt.large.order([0, 2], [2, 2])).toBeLessThan(0);
+  expect(TimeInt.large.order([2, 2], [0, 2])).toBeGreaterThan(0);
+
   // Incomparable (included)
 
   // [ ]
