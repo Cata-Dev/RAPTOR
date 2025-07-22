@@ -2,7 +2,7 @@ import { Worker } from "worker_threads";
 import { Duration } from "./benchmark";
 import { Queue, unpackQueue } from "./Queue";
 import { TypedEventEmitter } from "./TypedEmitter";
-import { resolveCb, rejectCb, Deferred } from ".";
+import { ResolveCb, RejectCb, Deferred } from ".";
 const nsPerMs = BigInt(1e6);
 
 enum Status {
@@ -17,7 +17,7 @@ interface poolWorker<T, R> {
   work: queuedJob<T, R> | null;
 }
 
-type queuedJob<T = unknown, R = unknown> = [T, resolveCb<R>, rejectCb];
+type queuedJob<T = unknown, R = unknown> = [T, ResolveCb<R>, RejectCb];
 
 // eslint-disable-next-line @typescript-eslint/consistent-type-definitions
 type workerPoolEvents<T, R> = {
@@ -73,12 +73,12 @@ export class WorkerPool<Icb extends (...args: any[]) => unknown, F extends (...a
     }
   }
 
-  run(data: Parameters<F>, res: resolveCb<Awaited<ReturnType<F>>>, rej: rejectCb): void;
+  run(data: Parameters<F>, res: ResolveCb<Awaited<ReturnType<F>>>, rej: RejectCb): void;
   run(data: Parameters<F>): Promise<Awaited<ReturnType<F>>>;
-  async run(data: Parameters<F>, res?: resolveCb<Awaited<ReturnType<F>>>, rej?: rejectCb) {
+  async run(data: Parameters<F>, res?: ResolveCb<Awaited<ReturnType<F>>>, rej?: RejectCb) {
     let def: Deferred<Awaited<ReturnType<F>>> | null = null;
-    let resolve: resolveCb<Awaited<ReturnType<F>>>;
-    let reject: rejectCb;
+    let resolve: ResolveCb<Awaited<ReturnType<F>>>;
+    let reject: RejectCb;
 
     if (!res || !rej) {
       def = new Deferred<Awaited<ReturnType<F>>>();

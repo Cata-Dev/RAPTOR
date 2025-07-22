@@ -1,13 +1,13 @@
 import { Ref } from "@typegoose/typegoose";
 import { RefType } from "@typegoose/typegoose/lib/types";
 
-export type resolveCb<T = void> = (value: T) => void;
-export type rejectCb = (reason?: unknown) => void;
+type ResolveCb<T = void> = (value: T) => void;
+type RejectCb = (reason?: unknown) => void;
 
-export class Deferred<T = unknown> {
+class Deferred<T = unknown> {
   public promise: Promise<T>;
-  public resolve!: resolveCb<T>;
-  public reject!: rejectCb;
+  public resolve!: ResolveCb<T>;
+  public reject!: RejectCb;
 
   constructor() {
     this.promise = new Promise<T>((resolve, reject) => {
@@ -20,7 +20,7 @@ export class Deferred<T = unknown> {
 /**
  * @description Checks unicity of a value in an array
  */
-export function unique<T>(v: T, i: number, arr: T[]): boolean {
+function unique<T>(v: T, i: number, arr: T[]): boolean {
   return arr.indexOf(v) === i;
 }
 
@@ -35,7 +35,7 @@ export function unique<T>(v: T, i: number, arr: T[]): boolean {
  *    - a positive number of `a` is after `b`.
  * @returns The index of el if positive ; index of insertion if negative
  */
-export function binarySearch<T, C>(arr: T[], el: C, compare: (a: C, b: T) => number) {
+function binarySearch<T, C>(arr: T[], el: C, compare: (a: C, b: T) => number) {
   let low = 0;
   let high = arr.length - 1;
   while (low <= high) {
@@ -52,7 +52,7 @@ export function binarySearch<T, C>(arr: T[], el: C, compare: (a: C, b: T) => num
   return ~low; // ~x == -x-1
 }
 
-export function binaryFilter<T, C>(arr: T[], el: C, compare: (a: C, b: T) => number): T[] {
+function binaryFilter<T, C>(arr: T[], el: C, compare: (a: C, b: T) => number): T[] {
   const binarySearchResult = binarySearch(arr, el, compare);
   if (binarySearchResult < 0) return [];
   let low = binarySearchResult;
@@ -66,11 +66,11 @@ export function binaryFilter<T, C>(arr: T[], el: C, compare: (a: C, b: T) => num
   return arr.slice(low, high + 1);
 }
 
-export async function mapAsync<I, O>(array: I[], callback: (value: I, index: number, array: I[]) => Promise<O>): Promise<O[]> {
+async function mapAsync<I, O>(array: I[], callback: (value: I, index: number, array: I[]) => Promise<O>): Promise<O[]> {
   return await Promise.all(array.map(callback));
 }
 
-export function wait(ms = 1000): Promise<unknown> {
+function wait(ms = 1000): Promise<unknown> {
   const defP = new Deferred();
 
   setTimeout(() => {
@@ -94,3 +94,6 @@ export type unpackRefType<T> =
         ? D["_id"][]
         : never
       : never;
+
+export { Deferred, unique, binarySearch, binaryFilter, mapAsync, wait };
+export type { ResolveCb, RejectCb };
