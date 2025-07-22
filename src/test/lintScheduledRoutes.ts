@@ -43,8 +43,8 @@ import { benchmark } from "./utils/benchmark";
       for (const [tripIndex, trip] of scheduledRoute.trips.entries())
         for (const [i, schedule] of trip.schedules.entries())
           if (typeof schedule !== "object" || (schedule.rs_sv_arret_p !== Infinity && schedule.rs_sv_arret_p !== scheduledRoute.stops[i])) {
-            const scheduledRoutePop = await TBMScheduledRoutesModel.populate(scheduledRoute, "_id");
-            scheduledRoutePop._id = await TBMLinesRoutesModel.populate(scheduledRoutePop._id, "rs_sv_ligne_a");
+            const scheduledRoutePop = await TBMScheduledRoutesModel.populate(scheduledRoute, { path: "_id", options: { lean: true } });
+            scheduledRoutePop._id = await TBMLinesRoutesModel.populate(scheduledRoutePop._id, { path: "rs_sv_ligne_a", options: { lean: true } });
 
             console.log(
               `Route ${typeof scheduledRoutePop._id === "object" ? `${typeof scheduledRoutePop._id.rs_sv_ligne_a === "object" ? scheduledRoutePop._id.rs_sv_ligne_a.libelle : scheduledRoutePop._id.rs_sv_ligne_a} ${scheduledRoutePop._id.libelle} (${scheduledRoutePop._id._id})` : scheduledRoutePop._id}, trip idx ${tripIndex} (${trip.tripId}): at idx ${i}, schedule's stop ${typeof schedule === "object" ? (schedule.rs_sv_arret_p as number) : `${schedule} [NOT POPULATED]`} !== stop ${scheduledRoute.stops[i]}`,
