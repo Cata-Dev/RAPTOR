@@ -49,7 +49,7 @@ if [ -n "$GLOBAL" ]; then
       'mcsr'; do
       FOLDER="bench/$DTYPE-$INSTANCE"
       mkdir "$FOLDER" 2>/dev/null || true
-      echo "Bench instance $INSTANCE"
+      echo "Bench data type $DTYPE with instance $INSTANCE"
       pnpm exec 0x -D "$FOLDER" lib/test/index.js -d "$DTYPE" -i "$INSTANCE" "$FOOT_DISTANCE" --runTimes "$TIMES" 1>"$FOLDER/out.txt" 2>"$FOLDER/err.txt"
       sed -i "s|$(dirname "$PWD")/||g" "$FOLDER/flamegraph.html"
       echo "Done at: $FOLDER/flamegraph.html"
@@ -77,7 +77,7 @@ if [ -n "$CRITERIA" ]; then
           '--delay-pos=3 --delay-neg=2'; do
           FOLDER="bench/$DTYPE-$INSTANCE$(echo "$CRITERIA" | sed 's/ //g')$(echo "$DELAY" | sed -E 's/( ?--delay|=)//g')"
           mkdir "$FOLDER" 2>/dev/null || true
-          echo "Bench instance $INSTANCE with criteria $CRITERIA and delays $DELAY"
+          echo "Bench data type $DTYPE with instance $INSTANCE, criteria $CRITERIA and delays $DELAY"
           # shellcheck disable=SC2086
           pnpm exec 0x -D "$FOLDER" lib/test/index.js -d "$DTYPE" -i "$INSTANCE" "$FOOT_DISTANCE" $CRITERIA $DELAY --runTimes "$TIMES" 1>"$FOLDER/out.txt" 2>"$FOLDER/err.txt"
           sed -i "s|$(dirname "$PWD")/||g" "$FOLDER/flamegraph.html"
