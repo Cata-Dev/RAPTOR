@@ -318,11 +318,39 @@ async function insertResults<TimeVal extends Timestamp | InternalTimeInt, V, CA 
   return _id;
 }
 
+function man() {
+  console.log(`
+Command-line interface:
+  h, help, -h, --h, --help: see this message
+  --fp-req-len=<int>: maximum foot paths' length to retrieve and store un RAPTOR data
+  --fp-run-len=<int>: maximum foot paths' length to consider during itineraries search
+  (-d[ ] | --d=)<scal | int>: time data type, scalar or interval
+  --delay-pos=<int>: positive delay (in sec), interval time only
+  --delay-neg=<int>: negative delay (in sec), interval time only
+  (-i[ ] | --i=)<r | sr | mcr | mcsr>: instance type, RAPTOR or SharedRAPTOR or MultiCriteriaRAPTOR or MultiCriteriaSharedRAPTOR
+  --shared-secure: with a Shared instance type, check all RAPTOR data calls
+  --createTimes=<int>: number of times to run the instance creation step
+  --runTimes=<int>: number of times to run the itinerary search step
+  --getResTimes=<int>: number of times to run the results retrieval step
+  --fd, --bt, --spi: add criterion to a MultiCriteria instance, foot distance or buffer time or success probability (interval time)
+  --fd=post, --bt=post, --spi=post: add post-criterion (measurement) to a MultiCriteria instance, foot distance or buffer time or success probability (interval time)
+  --save: save results in database
+  --ps=<int>: source stop in source database for the itinerary query
+  --pt=<int>: target stop in source database for the itinerary query
+`);
+}
+
 // Main IIFE test function
 (async () => {
   // Setup params from command line
   const args = minimist(process.argv);
   console.debug(`Using args`, args);
+
+  if (("h" in args && args.h === true) || ("help" in args && args.help === true) || args._.includes("h") || args._.includes("help")) {
+    man();
+
+    return;
+  }
 
   const fpReqLen = getArgsOptNumber(args, "fp-req-len") ?? 3_000;
   console.debug(`Foot paths query max len`, fpReqLen);
