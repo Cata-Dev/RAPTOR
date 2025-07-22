@@ -43,7 +43,7 @@ import { benchmark } from "./utils/benchmark";
             scheduledRoutePop._id = await TBMLinesRoutesModel.populate(scheduledRoutePop._id, { path: "rs_sv_ligne_a", options: { lean: true } });
 
             console.log(
-              `Route ${typeof scheduledRoutePop._id === "object" ? `${typeof scheduledRoutePop._id.rs_sv_ligne_a === "object" ? scheduledRoutePop._id.rs_sv_ligne_a.libelle : scheduledRoutePop._id.rs_sv_ligne_a} ${scheduledRoutePop._id.libelle} (${scheduledRoutePop._id._id})` : scheduledRoutePop._id}, trip idx ${tripIndex} (${trip.tripId}): at idx ${i}, schedule's stop ${typeof schedule === "object" ? (schedule.rs_sv_arret_p as number) : `${schedule} [NOT POPULATED]`} !== stop ${scheduledRoute.stops[i]}`,
+              `Route ${typeof scheduledRoutePop._id === "object" ? `${typeof scheduledRoutePop._id.rs_sv_ligne_a === "object" ? scheduledRoutePop._id.rs_sv_ligne_a.libelle : scheduledRoutePop._id.rs_sv_ligne_a} ${scheduledRoutePop._id.libelle} (${scheduledRoutePop._id._id})` : scheduledRoutePop._id}, trip idx ${tripIndex} (${trip.tripId}): at idx ${i}, schedule's stop ${typeof schedule === "object" ? `${schedule.rs_sv_arret_p as number} / ${schedule.hor_theo.toLocaleString()}` : `${schedule} [NOT POPULATED]`} !== stop ${scheduledRoute.stops[i]}`,
             );
           }
   }
