@@ -22,14 +22,12 @@ const bufferTime: Criterion<unknown, Id, Id, number, "bufferTime"> = {
 
     if (!isCriterionJourneyStepVehicle(newJourneyStep)) return lastJourneyStep.label.value("bufferTime");
 
-    return Math.max(
-      lastJourneyStep.label.value("bufferTime"),
-      -(
-        timeType.low(newJourneyStep.route.departureTime(newJourneyStep.tripIndex, newJourneyStep.route.stops.indexOf(newJourneyStep.boardedAt[0]))) -
-        timeType.up(lastJourneyStep.label.time)
-      ),
-      -(30 * 60 * 1000),
-    );
+    const diff =
+      timeType.low(newJourneyStep.route.departureTime(newJourneyStep.tripIndex, newJourneyStep.route.stops.indexOf(newJourneyStep.boardedAt[0]))) -
+      timeType.up(lastJourneyStep.label.time);
+    if (diff < 0) return 0;
+
+    return Math.max(lastJourneyStep.label.value("bufferTime"), -diff, -(30 * 60 * 1000));
   },
 };
 
