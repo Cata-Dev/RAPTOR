@@ -96,5 +96,7 @@ type UnpackRefs<D, K extends keyof D> = Omit<D, K> & {
       : never;
 };
 
-export { Deferred, unique, binarySearch, binaryFilter, mapAsync, wait };
-export type { ResolveCb, RejectCb, UnpackRefs };
+type Combinations<T> = T extends [infer E, ...infer R] ? [E, ...Combinations<R>] | Combinations<R> : T extends [] ? [] : never;
+
+export { binaryFilter, binarySearch, Deferred, mapAsync, unique, wait };
+export type { Combinations, RejectCb, ResolveCb, UnpackRefs };
