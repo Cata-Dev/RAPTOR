@@ -25,11 +25,7 @@ import { benchmark } from "./utils/benchmark";
     const TBMScheduledRoutesModel = TBMScheduledRoutesModelInit(sourceDB);
 
     return {
-      dbScheduledRoutes: (
-        TBMScheduledRoutesModel.find({}, dbScheduledRoutesProjection).populate("trips.schedules").lean() as ReturnType<
-          typeof TBMScheduledRoutesModel.find<ScheduledRoute>
-        >
-      ).cursor(),
+      dbScheduledRoutes: TBMScheduledRoutesModel.find({}, dbScheduledRoutesProjection).populate("trips.schedules").lean<ScheduledRoute>().cursor(),
       TBMScheduledRoutesModel,
       TBMLinesRoutesModel,
     };
