@@ -12,6 +12,7 @@ import {
   bufferTime,
   convertBackJourneyStep,
   convertJourneyStep,
+  Criterion,
   footDistance,
   InternalTimeInt,
   IRAPTORData,
@@ -49,7 +50,7 @@ import ResultModelInit, {
 import TBMSchedulesModelInit from "./models/TBM_schedules.model";
 import stopsModelInit, { dbTBM_Stops } from "./models/TBM_stops.model";
 import TBMScheduledRoutesModelInit, { dbTBM_ScheduledRoutes } from "./models/TBMScheduledRoutes.model";
-import { binarySearch, mapAsync, UnpackRefs } from "./utils";
+import { binarySearch, Combinations, mapAsync, UnpackRefs } from "./utils";
 import { benchmark } from "./utils/benchmark";
 
 async function queryData() {
@@ -232,42 +233,33 @@ function createMcSharedRAPTOR<TimeVal, V, CA extends [V, string][]>(
 
 type InstanceType = "RAPTOR" | "SharedRAPTOR" | "McRAPTOR" | "McSharedRAPTOR";
 
-function isTimeTypeInternalInt(timeType: unknown): timeType is Time<InternalTimeInt> {
-  return typeof timeType === "object" && timeType !== null && "MAX_SAFE" in timeType && timeType.MAX_SAFE === TimeInt.MAX_SAFE;
-}
-
-function postTreatment<TimeVal extends Timestamp | InternalTimeInt, V, CA extends [V, string][]>(
+function postTreatment<TimeVal extends Timestamp | InternalTimeInt, V1, CA1 extends [V1, string][], V2, CA2 extends [V2, string][]>(
+  postCriteria: Criterion<TimeVal, SharedID, number, V2, CA2[number][1]>[],
   data: IRAPTORData<TimeVal, SharedID, number, number>,
   instanceType: InstanceType,
-  results: ReturnType<BaseRAPTOR<TimeVal, SharedID, number, number, V, CA>["getBestJourneys"]>,
+  results: ReturnType<BaseRAPTOR<TimeVal, SharedID, number, number, V1, CA1>["getBestJourneys"]>,
   pt: SharedID,
 ) {
   const timeType = data.timeType;
 
-  if (isTimeTypeInternalInt(timeType)) {
-    if (instanceType === "McRAPTOR" || instanceType === "McSharedRAPTOR") {
-      // Add success proba as post treatment
-      results = results.map((journeys) =>
-        journeys.map((journey) => {
-          const measured = measureJourney(
-            successProbaInt,
-            timeType,
-            (instanceType === "McSharedRAPTOR"
-              ? journey.map((js) => convertJourneyStep<TimeVal, V, CA>(data as SharedRAPTORData<TimeVal>)(js))
-              : journey) as unknown as Journey<InternalTimeInt, SharedID, number, V, CA>,
-            pt,
-          );
+  for (const postCriterion of postCriteria) {
+    // Add success proba as post treatment
+    results = results.map((journeys) =>
+      journeys.map((journey) => {
+        const measured = measureJourney(
+          postCriterion,
+          timeType,
+          (instanceType === "McSharedRAPTOR"
+            ? journey.map((js) => convertJourneyStep<TimeVal, V1, CA1>(data as SharedRAPTORData<TimeVal>)(js))
+            : journey) as unknown as Journey<TimeVal, SharedID, number, V1, CA1>,
+          pt,
+        );
 
-          return instanceType === "McSharedRAPTOR"
-            ? measured.map((js) =>
-                convertBackJourneyStep<InternalTimeInt, number | V, [...CA, [number, "successProbaInt"]]>(
-                  data as unknown as SharedRAPTORData<InternalTimeInt>,
-                )(js),
-              )
-            : measured;
-        }),
-      ) as unknown as typeof results;
-    }
+        return instanceType === "McSharedRAPTOR"
+          ? measured.map((js) => convertBackJourneyStep<TimeVal, V1 | V2, [...CA1, [V2, CA2[number][1]]]>(data as SharedRAPTORData<TimeVal>)(js))
+          : measured;
+      }),
+    ) as unknown as typeof results;
   }
 
   return results;
@@ -407,13 +399,31 @@ async function insertResults<TimeVal extends Timestamp | InternalTimeInt, V, CA 
   const runTimes = getArgsOptNumber(args, "runTimes") ?? 1;
   const getResTimes = getArgsOptNumber(args, "getResTimes") ?? 1;
 
-  const criteria = [] as [] | [typeof footDistance] | [typeof bufferTime] | [typeof footDistance, typeof bufferTime];
-  if ("fd" in args && args.fd === true) (criteria as [typeof footDistance]).push(footDistance);
-  if ("bt" in args && args.bt === true) (criteria as [typeof bufferTime]).push(bufferTime);
+  const criteria = [] as Combinations<[typeof footDistance, typeof bufferTime, typeof successProbaInt]>;
+  const postCriteria: (typeof footDistance | typeof bufferTime | typeof successProbaInt)[] = [];
+  if ("fd" in args) {
+    if (args.fd === true) (criteria as [typeof footDistance]).push(footDistance);
+    else if (args.fd === "post") postCriteria.push(footDistance);
+  }
+  if ("bt" in args) {
+    if (args.bt === true) (criteria as [typeof bufferTime]).push(bufferTime);
+    else if (args.bt === "post") postCriteria.push(bufferTime);
+  }
+  if ("spi" in args) {
+    if (dataType !== "interval") console.warn(`Ignoring "${successProbaInt.name}" criterion because data type isn't interval`);
+    else {
+      if (args.spi === true) (criteria as [typeof successProbaInt]).push(successProbaInt);
+      else if (args.spi === "post") postCriteria.push(successProbaInt);
+    }
+  }
 
   console.debug(
     "Using criteria",
     criteria.map((c) => c.name),
+  );
+  console.debug(
+    "Using post-criteria (measurement)",
+    postCriteria.map((c) => c.name),
   );
   if (criteria.length && instanceType !== "McRAPTOR" && instanceType !== "McSharedRAPTOR")
     console.warn("Got some criteria but instance type is uni-criteria.");
@@ -471,6 +481,8 @@ async function insertResults<TimeVal extends Timestamp | InternalTimeInt, V, CA 
 
   // Create RAPTOR
 
+  type CA = Combinations<[[number, "footDistance"], [number, "bufferTime"], [number, "successProbaInt"]]>;
+
   const b4 = await (instanceType === "RAPTOR"
     ? benchmark(createRAPTOR<Timestamp | InternalTimeInt>, [rawRAPTORData], undefined, createTimes)
     : instanceType === "SharedRAPTOR"
@@ -478,40 +490,17 @@ async function insertResults<TimeVal extends Timestamp | InternalTimeInt, V, CA 
         benchmark(createSharedRAPTOR<Timestamp | InternalTimeInt>, [rawSharedRAPTORData!], undefined, createTimes)
       : instanceType === "McRAPTOR"
         ? benchmark(
-            createMcRAPTOR<
-              Timestamp | InternalTimeInt,
-              number,
-              [] | [[number, "footDistance"]] | [[number, "bufferTime"]] | [[number, "footDistance"], [number, "bufferTime"]]
-            >,
-            [
-              rawRAPTORData,
-              criteria as Parameters<
-                typeof createMcRAPTOR<
-                  Timestamp | InternalTimeInt,
-                  number,
-                  [] | [[number, "footDistance"]] | [[number, "bufferTime"]] | [[number, "footDistance"], [number, "bufferTime"]]
-                >
-              >[1],
-            ],
+            createMcRAPTOR<Timestamp | InternalTimeInt, number, CA>,
+            [rawRAPTORData, criteria as Parameters<typeof createMcRAPTOR<Timestamp | InternalTimeInt, number, CA>>[1]],
             undefined,
             createTimes,
           )
         : benchmark(
-            createMcSharedRAPTOR<
-              Timestamp | InternalTimeInt,
-              number,
-              [] | [[number, "footDistance"]] | [[number, "bufferTime"]] | [[number, "footDistance"], [number, "bufferTime"]]
-            >,
+            createMcSharedRAPTOR<Timestamp | InternalTimeInt, number, CA>,
             [
               // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
               rawSharedRAPTORData!,
-              criteria as Parameters<
-                typeof createMcSharedRAPTOR<
-                  Timestamp | InternalTimeInt,
-                  number,
-                  [] | [[number, "footDistance"]] | [[number, "bufferTime"]] | [[number, "footDistance"], [number, "bufferTime"]]
-                >
-              >[1],
+              criteria as Parameters<typeof createMcSharedRAPTOR<Timestamp | InternalTimeInt, number, CA>>[1],
             ],
             undefined,
             createTimes,
@@ -521,14 +510,7 @@ async function insertResults<TimeVal extends Timestamp | InternalTimeInt, V, CA 
     Omit<IRAPTORData<Timestamp | InternalTimeInt, SharedID, number, number>, "attachStops"> & {
       attachStops: SharedRAPTORData<Timestamp | InternalTimeInt>["attachStops"];
     },
-    BaseRAPTOR<
-      Timestamp | InternalTimeInt,
-      SharedID,
-      number,
-      number,
-      number,
-      [] | [[number, "footDistance"]] | [[number, "bufferTime"]] | [[number, "footDistance"], [number, "bufferTime"]]
-    >,
+    BaseRAPTOR<Timestamp | InternalTimeInt, SharedID, number, number, number, CA>,
   ];
 
   if (sharedSecure) (RAPTORDataInst as SharedRAPTORData<Timestamp | InternalTimeInt>).secure = true;
@@ -583,28 +565,28 @@ async function insertResults<TimeVal extends Timestamp | InternalTimeInt, V, CA 
   if (!b6.lastReturn) throw new Error(`No best journeys`);
   console.debug("Best journeys", inspect(b6.lastReturn, false, 6));
 
-  const b7 = await benchmark(
-    postTreatment<
-      Timestamp | InternalTimeInt,
-      number,
-      [] | [[number, "footDistance"]] | [[number, "bufferTime"]] | [[number, "footDistance"], [number, "bufferTime"]]
-    >,
-    [RAPTORDataInst, instanceType, b6.lastReturn, pt],
-  );
+  const b7 = await benchmark(postTreatment<Timestamp | InternalTimeInt, number, CA, number, CA>, [
+    postCriteria as Criterion<number | InternalTimeInt, SharedID, number, number, "footDistance" | "bufferTime" | "successProbaInt">[],
+    RAPTORDataInst,
+    instanceType,
+    b6.lastReturn,
+    pt,
+  ]);
   if (!b7.lastReturn) throw new Error(`No post treatment`);
   console.debug("Post treatment", inspect(b7.lastReturn, false, 6));
 
   if (saveResults) {
     // Save results
 
-    const b8 = await benchmark(
-      insertResults<
-        Timestamp | InternalTimeInt,
-        number,
-        [] | [[number, "footDistance"]] | [[number, "bufferTime"]] | [[number, "footDistance"], [number, "bufferTime"]]
-      >,
-      [queriedData.resultModel, RAPTORDataInst.timeType, from, { type: LocationType.TBM, id: pt }, departureTime, settings, b7.lastReturn],
-    );
+    const b8 = await benchmark(insertResults<Timestamp | InternalTimeInt, number, CA>, [
+      queriedData.resultModel,
+      RAPTORDataInst.timeType,
+      from,
+      { type: LocationType.TBM, id: pt },
+      departureTime,
+      settings,
+      b7.lastReturn,
+    ]);
     console.log("Saved result id", b8.lastReturn);
   }
 })()
