@@ -49,7 +49,7 @@ import ResultModelInit, {
 import TBMSchedulesModelInit from "./models/TBM_schedules.model";
 import stopsModelInit, { dbTBM_Stops } from "./models/TBM_stops.model";
 import TBMScheduledRoutesModelInit, { dbTBM_ScheduledRoutes } from "./models/TBMScheduledRoutes.model";
-import { binarySearch, mapAsync, unpackRefType } from "./utils";
+import { binarySearch, mapAsync, UnpackRefs } from "./utils";
 import { benchmark } from "./utils/benchmark";
 
 async function queryData() {
@@ -63,11 +63,9 @@ async function queryData() {
 
   const resultModel = ResultModelInit(computeDB);
 
-  const dbScheduledRoutesProjection: Partial<Record<keyof dbTBM_ScheduledRoutes, 1>> = { _id: 1, stops: 1, trips: 1 };
+  const dbScheduledRoutesProjection = { _id: 1, stops: 1, trips: 1 } satisfies Partial<Record<keyof dbTBM_ScheduledRoutes, 1>>;
   type dbScheduledRoute = Pick<dbTBM_ScheduledRoutes, keyof typeof dbScheduledRoutesProjection>;
-  interface ScheduledRoutesOverwritten {
-    stops: unpackRefType<dbScheduledRoute["stops"]>;
-  }
+  type ScheduledRoutesOverwritten = UnpackRefs<dbScheduledRoute, "_id" | "stops">;
   type ScheduledRoute = Omit<dbScheduledRoute, keyof ScheduledRoutesOverwritten> & ScheduledRoutesOverwritten;
 
   const dbScheduledRoutes = (await TBMScheduledRoutesModel.find<DocumentType<DocumentType<ScheduledRoute>>>({}, dbScheduledRoutesProjection)
@@ -75,7 +73,7 @@ async function queryData() {
     .lean()
     .exec()) as ScheduledRoute[];
 
-  const dbStopProjection = { _id: 1 } as const;
+  const dbStopProjection = { _id: 1 } satisfies Partial<Record<keyof dbTBM_Stops, 1>>;
   type Stop = Pick<dbTBM_Stops, keyof typeof dbStopProjection>;
 
   const stops = dbScheduledRoutes.reduce<{ id: ScheduledRoute["stops"][number]; connectedRoutes: ScheduledRoute["_id"][] }[]>(
@@ -105,12 +103,9 @@ async function queryData() {
     ).map(({ _id: id }) => ({ id, connectedRoutes: [] })),
   );
 
-  const dbNonScheduledRoutesProjection: Partial<Record<keyof dbFootPaths, 1>> = { from: 1, to: 1, distance: 1 };
+  const dbNonScheduledRoutesProjection = { from: 1, to: 1, distance: 1 } satisfies Partial<Record<keyof dbFootPaths, 1>>;
   type dbNonScheduledRoute = Pick<dbFootPaths, keyof typeof dbNonScheduledRoutesProjection>;
-  interface NonScheduledRoutesOverwritten {
-    from: unpackRefType<dbNonScheduledRoute["from"]>;
-    to: unpackRefType<dbNonScheduledRoute["to"]>;
-  }
+  type NonScheduledRoutesOverwritten = UnpackRefs<dbNonScheduledRoute, "from" | "to">;
   type NonScheduledRoute = Omit<dbNonScheduledRoute, keyof NonScheduledRoutesOverwritten> & NonScheduledRoutesOverwritten;
 
   //Query must associate (s, from) AND (from, s) forall s in stops !

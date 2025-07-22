@@ -80,20 +80,21 @@ function wait(ms = 1000): Promise<unknown> {
   return defP.promise;
 }
 
-export type unpackRefType<T> =
-  T extends Ref<infer D>
-    ? D extends {
+type UnpackRefs<D, K extends keyof D> = Omit<D, K> & {
+  [P in K]: D[P] extends Ref<infer T>
+    ? T extends {
         _id?: RefType;
       }
-      ? D["_id"]
+      ? T["_id"]
       : never
-    : T extends Ref<infer D>[]
-      ? D extends {
+    : D[P] extends Ref<infer T>[]
+      ? T extends {
           _id?: RefType;
         }
-        ? D["_id"][]
+        ? T["_id"][]
         : never
       : never;
+};
 
 export { Deferred, unique, binarySearch, binaryFilter, mapAsync, wait };
-export type { ResolveCb, RejectCb };
+export type { ResolveCb, RejectCb, UnpackRefs };
