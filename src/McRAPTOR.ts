@@ -139,6 +139,7 @@ export default class McRAPTOR<TimeVal, V, CA extends [V, string][], SI extends I
         (this.Bpt!.size == 0 || this.Bpt!.values().some((jsPt) => Bpi.values().some((jsPi) => (jsPi.compare(jsPt) ?? 1) > 0)))
       )
         this.marked.add(pi);
+      this.trace(`added ${added}, new sz=${this.bags[this.k].get(pi)!.size}`);
 
       // Step 3: populating route bag with previous round & update
       // Update current route bag with possible new earliest catchable trips thanks to this round
@@ -153,9 +154,13 @@ export default class McRAPTOR<TimeVal, V, CA extends [V, string][], SI extends I
         });
       RouteBag.prune();
     }
+
+    this.trace(`final route bag sz=${RouteBag.size}`);
   }
 
   protected traverseFootPaths(stopId: SI, stop: IStop<SI, RI>): void {
+    if (stop.transfers.length) this.trace("fp b sz", this.bags[this.k].get(stopId)!.size);
+
     for (const pJourneyStep of this.bags[this.k].get(stopId)!) {
       // Prevent chaining transfers
       if ("transfer" in pJourneyStep) continue;
