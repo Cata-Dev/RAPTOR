@@ -1,6 +1,6 @@
 #!/bin/sh
 
-RESULTS_FOLDER="results/"
+RESULTS_FOLDER="$(dirname "$(realpath "$0")")/results"
 
 TIMES=1
 while getopts 'gct:d:' ARG; do
@@ -14,13 +14,13 @@ while getopts 'gct:d:' ARG; do
     ;;
   t)
     TIMES="$OPTARG"
-    echo "$TIMES" | grep -E '^[0-9]+$' || {
+    echo "$TIMES" | grep -E '^[0-9]+$' >/dev/null || {
       echo "Invalid times to run: $TIMES"
       exit 1
     }
     ;;
   d)
-    echo "$OPTARG" | grep -E '^[0-9]+$' || {
+    echo "$OPTARG" | grep -E '^[0-9]+$' >/dev/null || {
       echo "Invalid run transfer max len: $OPTARG"
       exit 1
     }
@@ -38,7 +38,7 @@ shift $((OPTIND - 1))
 echo "Running $TIMES time(s)"
 
 pnpm run build
-mkdir bench 2>/dev/null || true
+mkdir "$RESULTS_FOLDER" 2>/dev/null || true
 
 if [ -n "$GLOBAL" ]; then
   for DTYPE in \
