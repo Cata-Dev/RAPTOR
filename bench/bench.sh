@@ -1,5 +1,7 @@
 #!/bin/sh
 
+RESULTS_FOLDER="results/"
+
 TIMES=1
 while getopts 'gct:d:' ARG; do
   case $ARG in
@@ -47,7 +49,7 @@ if [ -n "$GLOBAL" ]; then
       'sr' \
       'mcr' \
       'mcsr'; do
-      FOLDER="bench/$DTYPE-$INSTANCE"
+      FOLDER="$RESULTS_FOLDER/$DTYPE-$INSTANCE"
       mkdir "$FOLDER" 2>/dev/null || true
       echo "Bench data type $DTYPE with instance $INSTANCE"
       pnpm exec 0x -D "$FOLDER" lib/test/index.js -d "$DTYPE" -i "$INSTANCE" "$FOOT_DISTANCE" --runTimes "$TIMES" 1>"$FOLDER/out.txt" 2>"$FOLDER/err.txt"
@@ -75,7 +77,7 @@ if [ -n "$CRITERIA" ]; then
           '--delay-pos=1 --delay-neg=0' \
           '--delay-pos=2 --delay-neg=1' \
           '--delay-pos=3 --delay-neg=2'; do
-          FOLDER="bench/$DTYPE-$INSTANCE$(echo "$CRITERIA" | sed 's/ //g')$(echo "$DELAY" | sed -E 's/( ?--delay|=)//g')"
+          FOLDER="$RESULTS_FOLDER/$DTYPE-$INSTANCE$(echo "$CRITERIA" | sed 's/ //g')$(echo "$DELAY" | sed -E 's/( ?--delay|=)//g')"
           mkdir "$FOLDER" 2>/dev/null || true
           echo "Bench data type $DTYPE with instance $INSTANCE, criteria $CRITERIA and delays $DELAY"
           # shellcheck disable=SC2086
