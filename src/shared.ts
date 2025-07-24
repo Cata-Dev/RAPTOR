@@ -3,17 +3,17 @@ import RAPTOR from "./RAPTOR";
 import { Criterion, SharedID, SharedRAPTORData } from "./structures";
 
 const convertBackJourneyStep =
-  <TimeVal, V, CA extends [V, string][]>(stops: SharedRAPTORData<TimeVal>["stops"]) =>
+  <TimeVal, V, CA extends [V, string][]>(raptorData: SharedRAPTORData<TimeVal>) =>
   (js: NonNullable<ReturnType<McRAPTOR<TimeVal, V, CA, SharedID, SharedID, number>["getBestJourneys"]>[number]>[number][number]) => {
     return {
       ...js,
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      ...("boardedAt" in js ? { boardedAt: stops.get(js.boardedAt)!.id } : {}),
+      ...("boardedAt" in js ? { boardedAt: raptorData.stops.get(js.boardedAt)!.id } : {}),
       ...("transfer" in js
         ? {
             transfer: {
               // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-              to: stops.get(js.transfer.to)!.id,
+              to: raptorData.stops.get(js.transfer.to)!.id,
               length: js.transfer.length,
             },
           }
@@ -21,7 +21,24 @@ const convertBackJourneyStep =
     };
   };
 
-export class SharedRAPTOR<TimeVal> extends RAPTOR<TimeVal, SharedID, number, number> {
+const convertJourneyStep =
+  <TimeVal, V, CA extends [V, string][]>(raptorData: SharedRAPTORData<TimeVal>) =>
+  (js: NonNullable<ReturnType<McRAPTOR<TimeVal, V, CA, SharedID, SharedID, number>["getBestJourneys"]>[number]>[number][number]) => {
+    return {
+      ...js,
+      ...("boardedAt" in js ? { boardedAt: typeof js.boardedAt === "number" ? raptorData.stopPointerFromId(js.boardedAt) : js.boardedAt } : {}),
+      ...("transfer" in js
+        ? {
+            transfer: {
+              to: typeof js.transfer.to === "number" ? raptorData.stopPointerFromId(js.transfer.to) : js.transfer.to,
+              length: js.transfer.length,
+            },
+          }
+        : {}),
+    };
+  };
+
+class SharedRAPTOR<TimeVal> extends RAPTOR<TimeVal, SharedID, number, number> {
   constructor(protected readonly data: SharedRAPTORData<TimeVal>) {
     super(data);
   }
@@ -42,11 +59,11 @@ export class SharedRAPTOR<TimeVal> extends RAPTOR<TimeVal, SharedID, number, num
     const convertedPt = typeof pt === "string" ? pt : this.data.stopPointerFromId(pt);
     if (convertedPt === undefined) throw new Error(`Unable to retrieve target stop ${pt}`);
 
-    return super.getBestJourneys(convertedPt).map((journeys) => (journeys.length ? [journeys[0].map(convertBackJourneyStep(this.data.stops))] : []));
+    return super.getBestJourneys(convertedPt).map((journeys) => (journeys.length ? [journeys[0].map(convertBackJourneyStep(this.data))] : []));
   }
 }
 
-export class McSharedRAPTOR<TimeVal, V, CA extends [V, string][]> extends McRAPTOR<TimeVal, V, CA, SharedID, number, number> {
+class McSharedRAPTOR<TimeVal, V, CA extends [V, string][]> extends McRAPTOR<TimeVal, V, CA, SharedID, number, number> {
   constructor(
     protected readonly data: SharedRAPTORData<TimeVal>,
     criteria: { [K in keyof CA]: Criterion<TimeVal, SharedID, SharedID, CA[K][0], CA[K][1]> },
@@ -70,6 +87,8 @@ export class McSharedRAPTOR<TimeVal, V, CA extends [V, string][]> extends McRAPT
     const convertedPt = typeof pt === "string" ? pt : this.data.stopPointerFromId(pt);
     if (convertedPt === undefined) throw new Error(`Unable to retrieve target stop ${pt}`);
 
-    return super.getBestJourneys(convertedPt).map((journeys) => journeys.map((journey) => journey.map(convertBackJourneyStep(this.data.stops))));
+    return super.getBestJourneys(convertedPt).map((journeys) => journeys.map((journey) => journey.map(convertBackJourneyStep(this.data))));
   }
 }
+
+export { convertBackJourneyStep, convertJourneyStep, McSharedRAPTOR, SharedRAPTOR };

@@ -129,8 +129,7 @@ export default class BaseRAPTOR<TimeVal, SI extends Id = Id, RI extends Id = Id,
       for (const p of new Set(this.marked)) {
         const stop = this.stops.get(p)!;
 
-        // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
-        if (stop.transfers(this.runParams!.settings.maxTransferLength).next().done ?? true) continue;
+        if (stop.transfers(this.runParams.settings.maxTransferLength).next().done ?? true) continue;
 
         this.traverseFootPaths(p, stop);
       }
