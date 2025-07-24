@@ -139,6 +139,7 @@ export default class BaseRAPTOR<TimeVal, SI extends Id = Id, RI extends Id = Id,
         this.traverseRoute(this.routes.get(r)!, p);
       }
       this.trace(`end traverse route`);
+      this.trace(`marked size traverse route ${this.marked.size}`);
 
       // Look at foot-paths
       this.trace(`begin fp lookup`);
@@ -146,16 +147,20 @@ export default class BaseRAPTOR<TimeVal, SI extends Id = Id, RI extends Id = Id,
         // Mark source so foot paths from it are considered in first round
         this.marked.add(ps);
       // Copy current state of marked stops
+      let cnt = 0;
       for (const p of new Set(this.marked)) {
         const stop = this.stops.get(p)!;
 
         if (stop.transfers(this.runParams.settings.maxTransferLength).next().done ?? true) continue;
 
         this.traverseFootPaths(p, stop);
+        cnt += stop.transfers(this.runParams.settings.maxTransferLength).reduce((acc) => acc + 1, 0);
       }
       this.trace(`end fp lookup`);
+      this.trace(`scanned fp cnt ${cnt}`);
+      this.trace(`marked size fp lookup ${this.marked.size}`);
 
-      this.trace(`end round ${this.k}`)
+      this.trace(`end round ${this.k}`);
       // Stopping criterion
       if (this.marked.size === 0) break;
     }

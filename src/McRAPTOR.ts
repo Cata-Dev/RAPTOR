@@ -159,7 +159,7 @@ export default class McRAPTOR<TimeVal, V, CA extends [V, string][], SI extends I
   }
 
   protected traverseFootPaths(stopId: SI, stop: IStop<SI, RI>): void {
-    if (stop.transfers.length) this.trace("fp b sz", this.bags[this.k].get(stopId)!.size);
+    this.trace("fp b sz", this.bags[this.k].get(stopId)!.size);
 
     for (const pJourneyStep of this.bags[this.k].get(stopId)!) {
       // Prevent chaining transfers
