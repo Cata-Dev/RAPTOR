@@ -25,7 +25,7 @@
   "author": "Catatomik",
   "license": "MIT",
   "devDependencies": {
-    "@eslint/js": "^9.31.0",
+    "@eslint/js": "^9.33.0",
     "@jest/globals": "^30.0.4",
     "@tsconfig/node22": "^22.0.2",
     "@types/node": "^22",
