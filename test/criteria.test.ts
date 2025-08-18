@@ -244,7 +244,9 @@ describe("Success probability (interval)", () => {
       ),
     ).toBe(-0.5);
 
-    // Half => 75%
+    // [ ]
+    //  []
+    // 1 * 1/3 + 0.5 * 2/3
     expect(
       successProbaIntTyped.update(
         [
@@ -276,12 +278,84 @@ describe("Success probability (interval)", () => {
         [NaN, NaN],
         0,
       ),
-    ).toBe(-0.75);
+    ).toBe(-((1 + 0.5 * 2) / 3));
+
+    // |
+    // [ ]
+    // 0.5 * 1/3 + 1 * 2/3
+    expect(
+      successProbaIntTyped.update(
+        [
+          originJS,
+          makeJSComparable({
+            label: new Label<InternalTimeInt, number, number, number, [[number, "successProbaInt"]]>(TimeInt, [successProbaIntTyped], [4, 4]),
+          }),
+        ],
+        {
+          boardedAt: [0, originJS],
+          route: new Route(
+            1,
+            [0],
+            [
+              {
+                id: 0,
+                times: [
+                  [
+                    [NaN, NaN],
+                    [4, 6],
+                  ],
+                ],
+              },
+            ],
+          ),
+          tripIndex: 0,
+        },
+        TimeInt,
+        [NaN, NaN],
+        0,
+      ),
+    ).toBe(-((0.5 + 2) / 3));
+
+    //   |
+    // [ ]
+    // 0 * 2/3 + 0.5 * 1/3
+    expect(
+      successProbaIntTyped.update(
+        [
+          originJS,
+          makeJSComparable({
+            label: new Label<InternalTimeInt, number, number, number, [[number, "successProbaInt"]]>(TimeInt, [successProbaIntTyped], [6, 6]),
+          }),
+        ],
+        {
+          boardedAt: [0, originJS],
+          route: new Route(
+            1,
+            [0],
+            [
+              {
+                id: 0,
+                times: [
+                  [
+                    [NaN, NaN],
+                    [4, 6],
+                  ],
+                ],
+              },
+            ],
+          ),
+          tripIndex: 0,
+        },
+        TimeInt,
+        [NaN, NaN],
+        0,
+      ),
+    ).toBe(-(0.5 / 3));
   });
 
-  // [  ]
-  //  [  ]
-  // 1/3 + 0.5 * 1/3
+  // [ ]
+  //  [ ]
+  // 1 * 1/4 + 0.5 * 2/4 + 1 * 1/4
   expect(
     successProbaIntTyped.update(
       [
@@ -313,18 +387,18 @@ describe("Success probability (interval)", () => {
       [NaN, NaN],
       0,
     ),
-  ).toBe(-(1 / 3 + 0.5 / 3));
+  ).toBe(-((1 + 0.5 * 2 + 1) / 4));
 
   // Included:
   // [   ]
   //  [ ]
-  // 1/3 + 0.5 * 1/3
+  // 1/5 + 0.5 * 3/5
   expect(
     successProbaIntTyped.update(
       [
         originJS,
         makeJSComparable({
-          label: new Label<InternalTimeInt, number, number, number, [[number, "successProbaInt"]]>(TimeInt, [successProbaIntTyped], [4, 7]),
+          label: new Label<InternalTimeInt, number, number, number, [[number, "successProbaInt"]]>(TimeInt, [successProbaIntTyped], [4, 8]),
         }),
       ],
       {
@@ -338,7 +412,7 @@ describe("Success probability (interval)", () => {
               times: [
                 [
                   [NaN, NaN],
-                  [5, 6],
+                  [5, 7],
                 ],
               ],
             },
@@ -350,17 +424,17 @@ describe("Success probability (interval)", () => {
       [NaN, NaN],
       0,
     ),
-  ).toBe(-(1 / 3 + 0.5 / 3));
+  ).toBe(-((1 + 0.5 * 3) / 5));
 
   //  [  ]
   // [  ]
-  // 0.5 * 1/3
+  // 0 * 1/5 + 0.5 * 3/5 + 0 * 1/5
   expect(
     successProbaIntTyped.update(
       [
         originJS,
         makeJSComparable({
-          label: new Label<InternalTimeInt, number, number, number, [[number, "successProbaInt"]]>(TimeInt, [successProbaIntTyped], [5, 7]),
+          label: new Label<InternalTimeInt, number, number, number, [[number, "successProbaInt"]]>(TimeInt, [successProbaIntTyped], [5, 8]),
         }),
       ],
       {
@@ -374,7 +448,7 @@ describe("Success probability (interval)", () => {
               times: [
                 [
                   [NaN, NaN],
-                  [4, 6],
+                  [4, 7],
                 ],
               ],
             },
@@ -386,7 +460,7 @@ describe("Success probability (interval)", () => {
       [NaN, NaN],
       0,
     ),
-  ).toBe(-(0.5 / 3));
+  ).toBe(-((0.5 * 3) / 5));
 
   test("Wrong usage", () => {
     expect(() => successProbaIntTyped.update([], vehicleJourneyStep1, TimeInt, [NaN, NaN], 0)).toThrow(
