@@ -474,22 +474,5 @@ class RAPTORData<TimeVal, SI extends Id = Id, RI extends Id = Id, TI extends Id 
   }
 }
 
-export {
-  ArrayRead,
-  Bag,
-  Criterion,
-  FootPath,
-  Id,
-  IRAPTORData,
-  Journey,
-  JourneyStep,
-  Label,
-  LabelType,
-  makeJSComparable,
-  MapRead,
-  RAPTORData,
-  Route,
-  IStop,
-  Stop,
-  Trip,
-};
+export { Bag, Label, makeJSComparable, RAPTORData, Route, Stop };
+export type { ArrayRead, Criterion, FootPath, Id, IRAPTORData, Journey, JourneyStep, LabelType, MapRead, IStop, Trip };

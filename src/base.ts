@@ -201,4 +201,4 @@ export default class BaseRAPTOR<TimeVal, SI extends Id = Id, RI extends Id = Id,
   }
 }
 
-export { RAPTORRunSettings };
+export type { RAPTORRunSettings };
