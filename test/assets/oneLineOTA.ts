@@ -36,6 +36,15 @@ export default [
             });
           },
         },
+        {
+          params: [PARAMS[0], PARAMS[1], 4, PARAMS[3], PARAMS[4]],
+          validate: (_, rap) => {
+            oneLine[1].withSlowTransfers.tests[1].validate(rap.getBestJourneys(oneLine[1].withSlowTransfers.tests[1].params[1]), rap);
+            test("All stops have journeys", () => {
+              for (const [stopId] of oneLine[1].withSlowTransfers.data[1]) expect(rap.getBestJourneys(stopId).some((journeys) => journeys.length));
+            });
+          },
+        },
       ],
     },
     withFastTransfers: {

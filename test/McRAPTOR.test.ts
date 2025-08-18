@@ -8,9 +8,10 @@ import { McTestAsset, TestDataset } from "./assets/asset";
 import oneLine from "./assets/oneLine";
 import oneLineOTA from "./assets/oneLineOTA";
 import twoLines from "./assets/twoLines";
+import twoLinesOTA from "./assets/twoLinesOTA";
 
 // Same as RAPTOR
-for (const [datasetName, dataset] of [oneLine, twoLines, oneLineOTA as TestDataset<number>] as const) {
+for (const [datasetName, dataset] of [oneLine, twoLines, oneLineOTA as TestDataset<number>, twoLinesOTA] as const) {
   describe(datasetName, () => {
     for (const [assetName, asset] of Object.entries(dataset)) {
       describe(assetName, () => {
