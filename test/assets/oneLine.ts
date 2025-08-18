@@ -9,7 +9,7 @@ const baseValidate: TestAsset<number>["tests"][number]["validate"] = (res) => {
   test("Run result is exact (generic)", () => {
     expect(res[0]).toEqual([]);
     for (let i = 2; i < MAX_ROUNDS; ++i) expect(res[i]).toEqual([]);
-     
+
     const journey = res[1][0];
     expect(journey.length).toBe(2);
 
@@ -208,7 +208,7 @@ export default [
           validate: (res) => {
             test("Run result is exact", () => {
               expect(res[0]).toEqual([]);
-               
+
               footValidate(res[1][0]);
               for (let i = 2; i < MAX_ROUNDS; ++i) expect(res[i]).toEqual([]);
             });

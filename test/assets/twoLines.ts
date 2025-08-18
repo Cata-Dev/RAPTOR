@@ -1,5 +1,3 @@
- 
-
 import { describe, expect, test } from "@jest/globals";
 import { Journey, TimeScal } from "../../src";
 import { TestAsset, TestDataset } from "./asset";
