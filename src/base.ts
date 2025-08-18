@@ -15,7 +15,16 @@ interface RAPTORRunSettings {
 export default class BaseRAPTOR<TimeVal, SI extends Id = Id, RI extends Id = Id, TI extends Id = Id, V = never, CA extends [V, string][] = []> {
   static defaultRounds = 6;
 
-  protected runParams: { settings: RAPTORRunSettings; ps: SI; pt: SI; departureTime: TimeVal; rounds: number } | null = null;
+  protected runParams: {
+    settings: RAPTORRunSettings;
+    ps: SI;
+    /**
+     * `pt` is `null` if query type is one-to-all ; it disables target-oriented pruning, stopping criteria...
+     */
+    pt: SI | null;
+    departureTime: TimeVal;
+    rounds: number;
+  } | null = null;
 
   /** Round k <=> at most k transfers */
   protected k = 0;
@@ -106,7 +115,12 @@ export default class BaseRAPTOR<TimeVal, SI extends Id = Id, RI extends Id = Id,
     throw new Error("Not implemented");
   }
 
-  run(ps: SI, pt: SI, departureTime: TimeVal, settings: RAPTORRunSettings, rounds: number = BaseRAPTOR.defaultRounds) {
+  /**
+   * Run a RAPTOR query
+   * @param ps Query source
+   * @param pt Query target ; can be `null` to set query mode to "One-To-All".
+   */
+  run(ps: SI, pt: SI | null, departureTime: TimeVal, settings: RAPTORRunSettings, rounds: number = BaseRAPTOR.defaultRounds) {
     this.runParams = { ps, pt, departureTime, settings, rounds };
 
     this.init();

@@ -13,7 +13,10 @@ export default class McRAPTOR<TimeVal, V, CA extends [V, string][], SI extends I
   /** @description A {@link Label} Bags_i(SI) stores earliest known arrival times and best values for criteria at stop `SI` with up to `i` trips. */
   protected bags: Map<SI, Bag<JourneyStep<TimeVal, SI, RI, V, CA>>>[] = [];
 
-  // For target pruning
+  /**
+   * For target pruning
+   * Hence, it's `null` <=> {@link runParams}`.pt` is `null` (one-to-all request)
+   */
   protected Bpt: Bag<JourneyStep<TimeVal, SI, RI, V, CA>> | null = null;
 
   /**
@@ -99,7 +102,7 @@ export default class McRAPTOR<TimeVal, V, CA extends [V, string][], SI extends I
       const newBag = Bag.from(journeySteps);
       this.bags[this.k].set(stopId, newBag);
     }
-    this.Bpt = this.bags[this.k].get(this.runParams!.pt)!;
+    if (this.runParams!.pt !== null) this.Bpt = this.bags[this.k].get(this.runParams!.pt)!;
   }
 
   protected traverseRoute(route: Route<TimeVal, SI, RI, TI>, stop: SI): void {
@@ -136,7 +139,7 @@ export default class McRAPTOR<TimeVal, V, CA extends [V, string][], SI extends I
         added > 0 &&
         // Target pruning, don't mark if all labels are worse than any of the target
         // Otherwise, it might contribute to a new better (or incomparable) label (= journey)
-        (this.Bpt!.size == 0 || this.Bpt!.values().some((jsPt) => Bpi.values().some((jsPi) => (jsPi.compare(jsPt) ?? 1) > 0)))
+        (this.Bpt === null || this.Bpt.size == 0 || this.Bpt.values().some((jsPt) => Bpi.values().some((jsPi) => (jsPi.compare(jsPt) ?? 1) > 0)))
       )
         this.marked.add(pi);
 
@@ -184,7 +187,7 @@ export default class McRAPTOR<TimeVal, V, CA extends [V, string][], SI extends I
         if (
           added &&
           // Target pruning
-          (this.Bpt!.size == 0 || this.Bpt!.values().some((jsPt) => Bpto.values().some((jsPto) => (jsPto.compare(jsPt) ?? 1) > 0)))
+          (this.Bpt === null || this.Bpt.size == 0 || this.Bpt.values().some((jsPt) => Bpto.values().some((jsPto) => (jsPto.compare(jsPt) ?? 1) > 0)))
         )
           this.marked.add(transfer.to);
       }

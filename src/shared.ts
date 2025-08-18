@@ -49,7 +49,7 @@ class SharedRAPTOR<TimeVal> extends RAPTOR<TimeVal, SharedID, number, number> {
     const convertedPs = typeof ps === "string" ? ps : this.data.stopPointerFromId(ps);
     if (convertedPs === undefined) throw new Error(`Unable to retrieve source stop ${ps}`);
 
-    const convertedPt = typeof pt === "string" ? pt : this.data.stopPointerFromId(pt);
+    const convertedPt = pt === null ? null : typeof pt === "string" ? pt : this.data.stopPointerFromId(pt);
     if (convertedPt === undefined) throw new Error(`Unable to retrieve target stop ${pt}`);
 
     super.run(convertedPs, convertedPt, ...rem);
@@ -77,7 +77,7 @@ class McSharedRAPTOR<TimeVal, V, CA extends [V, string][]> extends McRAPTOR<Time
     const convertedPs = typeof ps === "string" ? ps : this.data.stopPointerFromId(ps);
     if (convertedPs === undefined) throw new Error(`Unable to retrieve source stop ${ps}`);
 
-    const convertedPt = typeof pt === "string" ? pt : this.data.stopPointerFromId(pt);
+    const convertedPt = pt === null ? null : typeof pt === "string" ? pt : this.data.stopPointerFromId(pt);
     if (convertedPt === undefined) throw new Error(`Unable to retrieve target stop ${pt}`);
 
     super.run(convertedPs, convertedPt, ...rem);

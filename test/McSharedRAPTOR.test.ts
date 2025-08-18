@@ -1,14 +1,17 @@
 import { describe, expect } from "@jest/globals";
 import { bufferTime, Criterion, footDistance, McRAPTOR, McSharedRAPTOR, SharedID, SharedRAPTORData, sharedTimeScal } from "../src";
+import BaseRAPTOR from "../src/base";
+import { TestDataset } from "./assets/asset";
 import BTOneLine from "./assets/BTOneLine";
 import BTTwoLines from "./assets/BTTwoLines";
 import FDOneLine from "./assets/FDOneLine";
 import FDTwoLines from "./assets/FDTwoLines";
 import oneLine from "./assets/oneLine";
+import oneLineOTA from "./assets/oneLineOTA";
 import twoLines from "./assets/twoLines";
 
 // Same as RAPTOR
-for (const [datasetName, dataset] of [oneLine, twoLines] as const) {
+for (const [datasetName, dataset] of [oneLine, twoLines, oneLineOTA as TestDataset<number>] as const) {
   describe(datasetName, () => {
     for (const [assetName, asset] of Object.entries(dataset)) {
       describe(assetName, () => {
@@ -17,9 +20,12 @@ for (const [datasetName, dataset] of [oneLine, twoLines] as const) {
 
         for (const test of asset.tests) {
           sharedRaptorInstance.run(...test.params);
-          const res = sharedRaptorInstance.getBestJourneys(test.params[1]);
+          const res = test.params[1] !== null ? sharedRaptorInstance.getBestJourneys(test.params[1]) : [];
           for (const journeys of res) expect(journeys.length || 1).toBe(1);
-          test.validate(res.map((journeys) => (journeys.length ? [journeys[0]] : [])));
+          test.validate(
+            res.map((journeys) => (journeys.length ? [journeys[0]] : [])),
+            sharedRaptorInstance as BaseRAPTOR<number, number, number, number>,
+          );
         }
       });
     }
@@ -38,8 +44,7 @@ for (const [datasetName, dataset] of [FDOneLine, FDTwoLines] as const) {
 
         for (const test of asset.tests) {
           sharedRaptorInstance.run(...test.params);
-          const res = sharedRaptorInstance.getBestJourneys(test.params[1]);
-          test.validate(res as ReturnType<McRAPTOR<number, number, [[number, "footDistance"]], number, number, number>["getBestJourneys"]>);
+          test.validate(sharedRaptorInstance as McRAPTOR<number, number, [[number, "footDistance"]], number, number, number>);
         }
       });
     }
@@ -58,8 +63,7 @@ for (const [datasetName, dataset] of [BTOneLine, BTTwoLines] as const) {
 
         for (const test of asset.tests) {
           sharedRaptorInstance.run(...test.params);
-          const res = sharedRaptorInstance.getBestJourneys(test.params[1]);
-          test.validate(res as ReturnType<McRAPTOR<number, number, [[number, "bufferTime"]], number, number, number>["getBestJourneys"]>);
+          test.validate(sharedRaptorInstance as McRAPTOR<number, number, [[number, "bufferTime"]], number, number, number>);
         }
       });
     }
