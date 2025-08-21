@@ -11,8 +11,13 @@ export default [
       tests: [
         {
           params: twoLines[1].withoutTransfers.tests[0].params,
-          validate: (res) => {
-            validateWithoutCriteria(twoLines[1].withoutTransfers.data[0], twoLines[1].withoutTransfers.tests[0].validate)(res);
+          validate: (rap) => {
+            const res = rap.getBestJourneys(twoLines[1].withoutTransfers.tests[0].params[1]);
+            validateWithoutCriteria(
+              twoLines[1].withoutTransfers.data[0],
+              twoLines[1].withoutTransfers.tests[0].validate,
+              twoLines[1].withoutTransfers.tests[0].params[1],
+            )(rap);
             for (const journeys of res) expect(journeys.length || 1).toBe(1);
             test("Label buffer times are exact", () => {
               expect(res[2]?.[0].at(-1)?.label.value("bufferTime")).toBe(-0);
@@ -26,11 +31,12 @@ export default [
       tests: [
         {
           params: twoLines[1].withSlowTransfers.tests[0].params,
-          validate: (res) => {
+          validate: (rap) => {
             const [journeysWithoutCriteria, journeysFromCriteria] = validateWithoutCriteria(
               twoLines[1].withSlowTransfers.data[0],
               twoLines[1].withSlowTransfers.tests[0].validate,
-            )(res);
+              twoLines[1].withSlowTransfers.tests[0].params[1],
+            )(rap);
             test("Label buffer times are exact (same results as RAPTOR)", () => {
               expect(journeysWithoutCriteria[1][0]?.at(-1)?.label.value("bufferTime")).toBe(-0);
               expect(journeysWithoutCriteria[2][0]?.at(-1)?.label.value("bufferTime")).toBe(-0);
@@ -52,11 +58,12 @@ export default [
       tests: [
         {
           params: twoLines[1].withFastTransfers.tests[0].params,
-          validate: (res) => {
+          validate: (rap) => {
             const [journeysWithoutCriteria, journeysFromCriteria] = validateWithoutCriteria(
               twoLines[1].withFastTransfers.data[0],
               twoLines[1].withFastTransfers.tests[0].validate,
-            )(res);
+              twoLines[1].withFastTransfers.tests[0].params[1],
+            )(rap);
             test("Label buffer times are exact (same results as RAPTOR)", () => {
               expect(journeysWithoutCriteria[1][0]?.at(-1)?.label.value("bufferTime")).toBe(-0);
               expect(journeysWithoutCriteria[2][0]?.at(-1)?.label.value("bufferTime")).toBe(-0);
@@ -77,8 +84,13 @@ export default [
         },
         {
           params: twoLines[1].withFastTransfers.tests[1].params,
-          validate: (res) => {
-            validateWithoutCriteria(twoLines[1].withFastTransfers.data[0], twoLines[1].withFastTransfers.tests[1].validate)(res);
+          validate: (rap) => {
+            const res = rap.getBestJourneys(twoLines[1].withFastTransfers.tests[1].params[1]);
+            validateWithoutCriteria(
+              twoLines[1].withFastTransfers.data[0],
+              twoLines[1].withFastTransfers.tests[1].validate,
+              twoLines[1].withFastTransfers.tests[1].params[1],
+            )(rap);
             test("Label buffer times are exact", () => {
               expect(res[1]?.[0].at(-1)?.label.value("bufferTime")).toBe(-0);
               expect(res[2]?.[0].at(-1)?.label.value("bufferTime")).toBe(-0);
@@ -92,11 +104,12 @@ export default [
       tests: [
         {
           params: twoLines[1].withMandatoryTransfer.tests[0].params,
-          validate: (res) => {
+          validate: (rap) => {
             const [journeysWithoutCriteria, journeysFromCriteria] = validateWithoutCriteria(
               twoLines[1].withMandatoryTransfer.data[0],
               twoLines[1].withMandatoryTransfer.tests[0].validate,
-            )(res);
+              twoLines[1].withMandatoryTransfer.tests[0].params[1],
+            )(rap);
             test("Label buffer times are exact (same results as RAPTOR)", () => {
               expect(journeysWithoutCriteria[2][0]?.[0].label.value("bufferTime")).toBe(-Infinity);
               expect(journeysWithoutCriteria[2][0]?.[1].label.value("bufferTime")).toBe(-1);

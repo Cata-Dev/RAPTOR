@@ -16,7 +16,7 @@
     "build": "tsc",
     "format": "prettier '**/*.ts' --write",
     "format-check": "prettier '**/*.ts' --check",
-    "type-check": "tsc -noEmit",
+    "type-check": "tsc -noEmit && tsc -noEmit -p tsconfig.jest.json",
     "lint": "eslint src test --fix",
     "full-lint": "pnpm run lint && pnpm run type-check",
     "test": "jest --coverage",
@@ -33,9 +33,9 @@
     "globals": "^16.3.0",
     "jest": "^30.0.5",
     "prettier": "^3.6.2",
-    "ts-jest": "^29.4.0",
-    "typedoc": "^0.28.7",
+    "ts-jest": "^29.4.1",
+    "typedoc": "^0.28.10",
     "typescript": "5.8.3",
-    "typescript-eslint": "^8.39.1"
+    "typescript-eslint": "^8.40.0"
   }
 }

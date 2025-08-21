@@ -1,11 +1,9 @@
-/* eslint-disable @typescript-eslint/no-non-null-assertion */
-
 import { describe, expect, test } from "@jest/globals";
 import { Journey, TimeScal } from "../../src";
 import { TestAsset, TestDataset } from "./asset";
 
 const MAX_ROUNDS = 6;
-const PARAMS: TestAsset<number>["tests"][number]["params"] = [1, 7, 0, { walkSpeed: 1 * 1_000, maxTransferLength: 100 }, MAX_ROUNDS];
+const PARAMS = [1, 7, 0, { walkSpeed: 1 * 1_000, maxTransferLength: 100 }, MAX_ROUNDS] satisfies TestAsset<number>["tests"][number]["params"];
 
 const baseValidateN = (journey: Journey<number, number, number, never, []> | undefined) => {
   test("Run result is exact (generic undefined)", () => {
@@ -153,7 +151,7 @@ export default [
           params: PARAMS,
           validate: (res) => {
             for (let i = 0; i < 2; ++i) baseValidateN(res[i][0]);
-            baseValidateVV(res[2][0]!);
+            baseValidateVV(res[2][0]);
             for (let i = 3; i < MAX_ROUNDS; ++i) baseValidateN(res[i][0]);
           },
         },
@@ -185,8 +183,8 @@ export default [
           params: PARAMS,
           validate: (res) => {
             for (let i = 0; i < 1; ++i) baseValidateN(res[i][0]);
-            baseValidateVF(res[1][0]!);
-            baseValidateVV(res[2][0]!);
+            baseValidateVF(res[1][0]);
+            baseValidateVV(res[2][0]);
             for (let i = 3; i < MAX_ROUNDS; ++i) baseValidateN(res[i][0]);
           },
         },
@@ -226,9 +224,9 @@ export default [
           validate: (res) => {
             for (let i = 0; i < 1; ++i) baseValidateN(res[i][0]);
             describe("Run result is exact, early departure", () => {
-              baseValidateVF(res[1][0]!);
+              baseValidateVF(res[1][0]);
               test("k=2", () => {
-                const journey = res[2][0]!;
+                const journey = res[2][0];
                 expect(journey.length).toBe(4);
 
                 const js0 = journey[0];
@@ -277,7 +275,7 @@ export default [
             for (let i = 0; i < 1; ++i) baseValidateN(res[i][0]);
             for (let i = 3; i < MAX_ROUNDS; ++i) baseValidateN(res[i][0]);
             test("Run result is exact, late departure", () => {
-              const j1 = res[1][0]!;
+              const j1 = res[1][0];
               expect(j1.length).toBe(3);
 
               const j1js0 = j1[0];
@@ -306,7 +304,7 @@ export default [
               expect(j1js2.transfer.to).toBe(7);
               expect(j1js2.transfer.length).toBe(5);
 
-              const j2 = res[2][0]!;
+              const j2 = res[2][0];
               expect(j2.length).toBe(3);
 
               const j2js0 = j2[0];
@@ -403,7 +401,7 @@ export default [
           validate: (res) => {
             for (let i = 0; i < 2; ++i) baseValidateN(res[i][0]);
             test("2 trips witch a mandatory foot transfer", () => {
-              const journey = res[2][0]!;
+              const journey = res[2][0];
 
               expect(journey.length).toBe(4);
 

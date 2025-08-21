@@ -48,7 +48,8 @@ export default class RAPTOR<TimeVal, SI extends Id = Id, RI extends Id = Id, TI 
         const arrivalTime: TimeVal = route.trips.at(t.tripIndex)!.times.at(i)![0];
         if (
           this.time.strict.order(arrivalTime, this.multiLabel[this.k].get(pi)?.label.time ?? this.time.MAX) < 0 &&
-          this.time.strict.order(arrivalTime, this.multiLabel[this.k].get(this.runParams!.pt)?.label.time ?? this.time.MAX) < 0
+          (this.runParams!.pt === null ||
+            this.time.strict.order(arrivalTime, this.multiLabel[this.k].get(this.runParams!.pt)?.label.time ?? this.time.MAX) < 0)
         ) {
           // local & target pruning
           this.multiLabel[this.k].set(

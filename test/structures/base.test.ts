@@ -92,6 +92,7 @@ describe("Label class", () => {
       const l = new Label(TimeInt, [], [-3, -1]);
       const l1 = new Label(TimeInt, [], [-2, 0]);
       const l2 = new Label(TimeInt, [], [2, 4]);
+      const l3 = new Label(TimeInt, [], [-2, -1.5]);
 
       test("Basic getters", () => {
         expect(l.time).toEqual([-3, -1]);
@@ -104,6 +105,9 @@ describe("Label class", () => {
         expect(l.compare(l2)).toBe(1);
         expect(l2.compare(l)).toBe(-1);
         expect(l.compare(l)).toBe(0);
+        // Included
+        expect(l.compare(l3)).toBe(null);
+        expect(l3.compare(l)).toBe(null);
       });
 
       test("Update", () => {
