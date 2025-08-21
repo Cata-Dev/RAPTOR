@@ -11,8 +11,13 @@ export default [
       tests: [
         {
           params: oneLine[1].withoutTransfers.tests[0].params,
-          validate: (res) => {
-            validateWithoutCriteria(oneLine[1].withoutTransfers.data[0], oneLine[1].withoutTransfers.tests[0].validate)(res);
+          validate: (rap) => {
+            const res = rap.getBestJourneys(oneLine[1].withoutTransfers.tests[0].params[1]);
+            validateWithoutCriteria(
+              oneLine[1].withoutTransfers.data[0],
+              oneLine[1].withoutTransfers.tests[0].validate,
+              oneLine[1].withoutTransfers.tests[0].params[1],
+            )(rap);
             for (const journeys of res) expect(journeys.length || 1).toBe(1);
             test("Label foot distances are exact", () => {
               for (const journeys of res) if (journeys[0]) expect(journeys[0].at(-1)?.label.value("footDistance")).toBe(0);
@@ -26,8 +31,13 @@ export default [
       tests: [
         {
           params: oneLine[1].withSlowTransfers.tests[0].params,
-          validate: (res) => {
-            validateWithoutCriteria(oneLine[1].withSlowTransfers.data[0], oneLine[1].withSlowTransfers.tests[0].validate);
+          validate: (rap) => {
+            const res = rap.getBestJourneys(oneLine[1].withSlowTransfers.tests[0].params[1]);
+            validateWithoutCriteria(
+              oneLine[1].withSlowTransfers.data[0],
+              oneLine[1].withSlowTransfers.tests[0].validate,
+              oneLine[1].withSlowTransfers.tests[0].params[1],
+            );
             for (const journeys of res) expect(journeys.length || 1).toBe(1);
             test("Label foot distances are exact", () => {
               for (const journeys of res) if (journeys[0]) expect(journeys[0].at(-1)?.label.value("footDistance")).toBe(0);
@@ -36,8 +46,13 @@ export default [
         },
         {
           params: oneLine[1].withSlowTransfers.tests[1].params,
-          validate: (res) => {
-            validateWithoutCriteria(oneLine[1].withSlowTransfers.data[0], oneLine[1].withSlowTransfers.tests[1].validate);
+          validate: (rap) => {
+            const res = rap.getBestJourneys(oneLine[1].withSlowTransfers.tests[1].params[1]);
+            validateWithoutCriteria(
+              oneLine[1].withSlowTransfers.data[0],
+              oneLine[1].withSlowTransfers.tests[1].validate,
+              oneLine[1].withSlowTransfers.tests[1].params[1],
+            );
             for (const journeys of res) expect(journeys.length || 1).toBe(1);
             test("Label foot distances are exact", () => {
               for (const journeys of res) if (journeys[0]) expect(journeys[0].at(-1)?.label.value("footDistance")).toBe(0);
@@ -51,11 +66,12 @@ export default [
       tests: [
         {
           params: oneLine[1].withFastTransfers.tests[0].params,
-          validate: (res) => {
+          validate: (rap) => {
             const [journeysWithoutCriteria, journeysFromCriteria] = validateWithoutCriteria(
               oneLine[1].withFastTransfers.data[0],
               oneLine[1].withFastTransfers.tests[0].validate,
-            )(res);
+              oneLine[1].withFastTransfers.tests[0].params[1],
+            )(rap);
 
             test("Label foot distances are exact (same results as RAPTOR)", () => {
               for (const [k, journey] of journeysWithoutCriteria.entries())

@@ -3,14 +3,14 @@ import { Journey, TimeScal } from "../../src";
 import { TestAsset, TestDataset } from "./asset";
 
 const MAX_ROUNDS = 6;
-const PARAMS: TestAsset<number>["tests"][number]["params"] = [1, 4, 0, { walkSpeed: 1 * 1_000, maxTransferLength: 100 }, MAX_ROUNDS];
+const PARAMS = [1, 4, 0, { walkSpeed: 1 * 1_000, maxTransferLength: 100 }, MAX_ROUNDS] satisfies TestAsset<number>["tests"][number]["params"];
 
 const baseValidate: TestAsset<number>["tests"][number]["validate"] = (res) => {
   test("Run result is exact (generic)", () => {
     expect(res[0]).toEqual([]);
     for (let i = 2; i < MAX_ROUNDS; ++i) expect(res[i]).toEqual([]);
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    const journey = res[1][0]!;
+
+    const journey = res[1][0];
     expect(journey.length).toBe(2);
 
     const js0 = journey[0];
@@ -208,8 +208,8 @@ export default [
           validate: (res) => {
             test("Run result is exact", () => {
               expect(res[0]).toEqual([]);
-              // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-              footValidate(res[1][0]!);
+
+              footValidate(res[1][0]);
               for (let i = 2; i < MAX_ROUNDS; ++i) expect(res[i]).toEqual([]);
             });
           },
