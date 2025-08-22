@@ -12,6 +12,11 @@ function isCriterionJourneyStepFoot<TimeVal, SI extends Id, RI extends Id, V, CA
   return "transfer" in js;
 }
 
+/**
+ * Buffer Time criterion as described in *Round-Based Public Transit Routing* (Daniel Delling, Thomas Pajor, Renato F. Werneck, 2015).
+ *
+ * It computes the minimum of the free times between connections (i.e. the time before taking a vehicle) of the whole journey.
+ */
 const bufferTime: Criterion<unknown, Id, Id, number, "bufferTime"> = {
   name: "bufferTime",
   initialValue: -Infinity,
@@ -31,6 +36,11 @@ const bufferTime: Criterion<unknown, Id, Id, number, "bufferTime"> = {
   },
 };
 
+/**
+ * Foot distance criterion.
+ *
+ * It simply accumulates foot distance over the whole journey.
+ */
 const footDistance: Criterion<unknown, Id, Id, number, "footDistance"> = {
   name: "footDistance",
   initialValue: 0,
@@ -43,6 +53,11 @@ const footDistance: Criterion<unknown, Id, Id, number, "footDistance"> = {
   },
 };
 
+/**
+ * Success probability criterion -- interval time only.
+ *
+ * It computes the minimum success probability of the connection during the journey.
+ */
 const successProbaInt: Criterion<InternalTimeInt, Id, Id, number, "successProbaInt"> = {
   name: "successProbaInt",
   initialValue: -1,
@@ -105,6 +120,32 @@ const successProbaInt: Criterion<InternalTimeInt, Id, Id, number, "successProbaI
   },
 };
 
+/**
+ * Parametrized criterion "Mean Risk" from *Practical Route Planning Under Delay Uncertainty: Stochastic Shortest Path Queries* (Sejoon Lim AND Christian Sommer AND Evdokia Nikolova AND Daniela Rus, 2012)
+ *
+ * Modification: it's not `mean + c * STD`, but `mean + c * radius` (`width / 2`)
+ * @param c Risk-aversion coefficient
+ * @returns Mean Risk criterion. The risk-aversion coefficient {@link c} is appended to the criterion name.
+ */
+const meanRiskInit = <C extends number>(c: C): Criterion<InternalTimeInt, Id, Id, number, `meanRisk-${C}`> => ({
+  initialValue: NaN,
+  name: `meanRisk-${c}`,
+  order: TimeScal.strict.order,
+  update: (_, __, timeType, time) => {
+    const timeRadius = (timeType.up(time) - timeType.low(time)) / 2;
+    const timeMean = timeType.low(time) + timeRadius;
+
+    return timeMean + c * timeRadius;
+  },
+});
+
+/**
+ * Run a criterion against an already computed journey.
+ * @param criterion Criterion to evaluate
+ * @param timeType Time type used to compute the journey
+ * @param journey Journey to measure
+ * @param pt Target stop
+ */
 function measureJourney<TimeVal, SI extends Id, RI extends Id, V, CA extends [V, string][], T, N extends string>(
   criterion: Criterion<TimeVal, SI, RI, T, N>,
   timeType: Time<TimeVal>,
@@ -170,4 +211,4 @@ function measureJourney<TimeVal, SI extends Id, RI extends Id, V, CA extends [V,
   );
 }
 
-export { bufferTime, footDistance, measureJourney, successProbaInt };
+export { bufferTime, footDistance, meanRiskInit, measureJourney, successProbaInt };

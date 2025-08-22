@@ -20,6 +20,7 @@
     "lint": "eslint src test --fix",
     "full-lint": "pnpm run lint && pnpm run type-check",
     "test": "jest --coverage",
+    "doc": "typedoc --out docs",
     "prepare": "pnpm run build"
   },
   "author": "Catatomik",
