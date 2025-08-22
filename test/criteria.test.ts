@@ -7,6 +7,7 @@ import {
   JourneyStep,
   Label,
   makeJSComparable,
+  meanRiskInit,
   measureJourney,
   Route,
   successProbaInt,
@@ -467,6 +468,177 @@ describe("Success probability (interval)", () => {
     expect(() => successProbaIntTyped.update([], vehicleJourneyStep1, TimeInt, [NaN, NaN], 0)).toThrow(
       "A journey should at least contain the DEPARTURE step.",
     );
+  });
+});
+
+describe("Mean Risk", () => {
+  describe("c=0", () => {
+    const meanRisk0 = meanRiskInit(0);
+    const meanRisk0Typed = meanRisk0 as Criterion<InternalTimeInt, number, number, number, `meanRisk-0`>;
+    test("Naming", () => {
+      expect(meanRisk0Typed.name).toBe("meanRisk-0");
+    });
+
+    const originJS: JourneyStep<InternalTimeInt, number, number, number, [[number, "meanRisk-0"]], "DEPARTURE"> = makeJSComparable({
+      label: new Label<InternalTimeInt, number, number, number, [[number, "meanRisk-0"]]>(TimeInt, [meanRisk0Typed], [0, 0]),
+    });
+
+    const vehicleJourneyStep = makeJSComparable<InternalTimeInt, number, number, number, [[number, "meanRisk-0"]], "VEHICLE">({
+      boardedAt: [0, originJS],
+      route: new Route(
+        0,
+        [0],
+        [
+          {
+            id: 0,
+            times: [
+              [
+                [3, 8],
+                [NaN, NaN],
+              ],
+            ],
+          },
+        ],
+      ),
+      tripIndex: 0,
+      label: new Label<InternalTimeInt, number, number, number, [[number, "meanRisk-0"]]>(TimeInt, [meanRisk0Typed], [NaN, NaN]),
+    });
+
+    const footJourneyStep1 = makeJSComparable<InternalTimeInt, number, number, number, [[number, "meanRisk-0"]], "FOOT">({
+      boardedAt: [0, originJS],
+      transfer: { to: 1, length: 3 },
+      label: setLabelValues(new Label<InternalTimeInt, number, number, number, [[number, "meanRisk-0"]]>(TimeInt, [meanRisk0Typed], [NaN, NaN]), [4]),
+    });
+
+    const footJourneyStep2 = makeJSComparable<InternalTimeInt, number, number, number, [[number, "meanRisk-0"]], "FOOT">({
+      boardedAt: [0, footJourneyStep1],
+      transfer: { to: 0, length: 5 },
+      label: setLabelValues(new Label<InternalTimeInt, number, number, number, [[number, "meanRisk-0"]]>(TimeInt, [meanRisk0Typed], [NaN, NaN]), [6]),
+    });
+
+    test("Update with vehicle", () => {
+      expect(meanRisk0Typed.update([originJS], vehicleJourneyStep, TimeInt, [3, 8], 0)).toBe(5.5);
+      expect(meanRisk0Typed.update([originJS, footJourneyStep1], vehicleJourneyStep, TimeInt, [3, 8], 0)).toBe(5.5);
+    });
+
+    test("Update with foot transfer", () => {
+      expect(meanRisk0Typed.update([originJS], footJourneyStep1, TimeInt, [3, 7], 0)).toBe(5);
+      expect(meanRisk0Typed.update([originJS, footJourneyStep1], footJourneyStep2, TimeInt, [8, 12], 0)).toBe(10);
+    });
+  });
+
+  describe("c=0.5", () => {
+    const meanRisk05 = meanRiskInit(0.5);
+    const meanRisk05Typed = meanRisk05 as Criterion<InternalTimeInt, number, number, number, `meanRisk-0.5`>;
+    test("Naming", () => {
+      expect(meanRisk05Typed.name).toBe("meanRisk-0.5");
+    });
+
+    const originJS: JourneyStep<InternalTimeInt, number, number, number, [[number, "meanRisk-0.5"]], "DEPARTURE"> = makeJSComparable({
+      label: new Label<InternalTimeInt, number, number, number, [[number, "meanRisk-0.5"]]>(TimeInt, [meanRisk05Typed], [0, 0]),
+    });
+
+    const vehicleJourneyStep = makeJSComparable<InternalTimeInt, number, number, number, [[number, "meanRisk-0.5"]], "VEHICLE">({
+      boardedAt: [0, originJS],
+      route: new Route(
+        0,
+        [0],
+        [
+          {
+            id: 0,
+            times: [
+              [
+                [3, 8],
+                [NaN, NaN],
+              ],
+            ],
+          },
+        ],
+      ),
+      tripIndex: 0,
+      label: new Label<InternalTimeInt, number, number, number, [[number, "meanRisk-0.5"]]>(TimeInt, [meanRisk05Typed], [NaN, NaN]),
+    });
+
+    const footJourneyStep1 = makeJSComparable<InternalTimeInt, number, number, number, [[number, "meanRisk-0.5"]], "FOOT">({
+      boardedAt: [0, originJS],
+      transfer: { to: 1, length: 3 },
+      label: setLabelValues(new Label<InternalTimeInt, number, number, number, [[number, "meanRisk-0.5"]]>(TimeInt, [meanRisk05Typed], [NaN, NaN]), [
+        4,
+      ]),
+    });
+
+    const footJourneyStep2 = makeJSComparable<InternalTimeInt, number, number, number, [[number, "meanRisk-0.5"]], "FOOT">({
+      boardedAt: [0, footJourneyStep1],
+      transfer: { to: 0, length: 5 },
+      label: setLabelValues(new Label<InternalTimeInt, number, number, number, [[number, "meanRisk-0.5"]]>(TimeInt, [meanRisk05Typed], [NaN, NaN]), [
+        6,
+      ]),
+    });
+
+    test("Update with vehicle", () => {
+      expect(meanRisk05Typed.update([originJS], vehicleJourneyStep, TimeInt, [3, 8], 0)).toBe(6.75);
+      expect(meanRisk05Typed.update([originJS, footJourneyStep1], vehicleJourneyStep, TimeInt, [3, 8], 0)).toBe(6.75);
+    });
+
+    test("Update with foot transfer", () => {
+      expect(meanRisk05Typed.update([originJS], footJourneyStep1, TimeInt, [3, 7], 0)).toBe(6);
+      expect(meanRisk05Typed.update([originJS, footJourneyStep1], footJourneyStep2, TimeInt, [8, 12], 0)).toBe(11);
+    });
+  });
+
+  describe("c=1", () => {
+    const meanRisk1 = meanRiskInit(1);
+    const meanRisk1Typed = meanRisk1 as Criterion<InternalTimeInt, number, number, number, `meanRisk-1`>;
+    test("Naming", () => {
+      expect(meanRisk1Typed.name).toBe("meanRisk-1");
+    });
+
+    const originJS: JourneyStep<InternalTimeInt, number, number, number, [[number, "meanRisk-1"]], "DEPARTURE"> = makeJSComparable({
+      label: new Label<InternalTimeInt, number, number, number, [[number, "meanRisk-1"]]>(TimeInt, [meanRisk1Typed], [0, 0]),
+    });
+
+    const vehicleJourneyStep = makeJSComparable<InternalTimeInt, number, number, number, [[number, "meanRisk-1"]], "VEHICLE">({
+      boardedAt: [0, originJS],
+      route: new Route(
+        0,
+        [0],
+        [
+          {
+            id: 0,
+            times: [
+              [
+                [3, 8],
+                [NaN, NaN],
+              ],
+            ],
+          },
+        ],
+      ),
+      tripIndex: 0,
+      label: new Label<InternalTimeInt, number, number, number, [[number, "meanRisk-1"]]>(TimeInt, [meanRisk1Typed], [NaN, NaN]),
+    });
+
+    const footJourneyStep1 = makeJSComparable<InternalTimeInt, number, number, number, [[number, "meanRisk-1"]], "FOOT">({
+      boardedAt: [0, originJS],
+      transfer: { to: 1, length: 3 },
+      label: setLabelValues(new Label<InternalTimeInt, number, number, number, [[number, "meanRisk-1"]]>(TimeInt, [meanRisk1Typed], [NaN, NaN]), [4]),
+    });
+
+    const footJourneyStep2 = makeJSComparable<InternalTimeInt, number, number, number, [[number, "meanRisk-1"]], "FOOT">({
+      boardedAt: [0, footJourneyStep1],
+      transfer: { to: 0, length: 5 },
+      label: setLabelValues(new Label<InternalTimeInt, number, number, number, [[number, "meanRisk-1"]]>(TimeInt, [meanRisk1Typed], [NaN, NaN]), [6]),
+    });
+
+    test("Update with vehicle", () => {
+      expect(meanRisk1Typed.update([originJS], vehicleJourneyStep, TimeInt, [3, 8], 0)).toBe(8);
+      expect(meanRisk1Typed.update([originJS, footJourneyStep1], vehicleJourneyStep, TimeInt, [3, 8], 0)).toBe(8);
+    });
+
+    test("Update with foot transfer", () => {
+      expect(meanRisk1Typed.update([originJS], footJourneyStep1, TimeInt, [3, 7], 0)).toBe(7);
+      expect(meanRisk1Typed.update([originJS, footJourneyStep1], footJourneyStep2, TimeInt, [8, 12], 0)).toBe(12);
+    });
   });
 });
 
