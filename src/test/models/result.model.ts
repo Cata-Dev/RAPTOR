@@ -17,7 +17,7 @@ import { deleteModelWithClass, getModelForClass, prop, type Ref } from "@typegoo
 import { TimeStamps } from "@typegoose/typegoose/lib/defaultClasses";
 import { modelOptions } from "@typegoose/typegoose/lib/modelOptions";
 import { Connection } from "mongoose";
-import { InternalTimeInt, RAPTORRunSettings } from "../../";
+import type { InternalTimeInt, RAPTORRunSettings } from "../../";
 import { dbAddresses } from "./addresses.model";
 import { dbTBM_Stops } from "./TBM_stops.model";
 import { dbTBM_ScheduledRoutes } from "./TBMScheduledRoutes.model";
