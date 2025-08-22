@@ -48,7 +48,7 @@ jobs:
         run: pnpm install
 
       - name: Build with TypeDoc
-        run: pnpm exec typedoc --out docs
+        run: pnpm run doc
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
