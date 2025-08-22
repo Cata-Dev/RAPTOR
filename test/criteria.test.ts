@@ -112,8 +112,9 @@ describe("Buffer time", () => {
   });
 });
 
-const successProbaIntTyped = successProbaInt as Criterion<InternalTimeInt, number, number, number, "successProbaInt">;
 describe("Success probability (interval)", () => {
+  const successProbaIntTyped = successProbaInt as Criterion<InternalTimeInt, number, number, number, "successProbaInt">;
+
   test("Naming", () => {
     expect(successProbaIntTyped.name).toBe("successProbaInt");
   });
