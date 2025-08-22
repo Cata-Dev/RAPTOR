@@ -125,7 +125,7 @@ const successProbaInt: Criterion<InternalTimeInt, Id, Id, number, "successProbaI
  * @param c Risk-aversion coefficient
  * @returns Mean Risk criterion. The risk-aversion coefficient {@link c} is appended to the criterion name.
  */
-const meanRiskInit = (c: number): Criterion<InternalTimeInt, Id, Id, number, `meanRisk-${number}`> => ({
+const meanRiskInit = <C extends number>(c: C): Criterion<InternalTimeInt, Id, Id, number, `meanRisk-${C}`> => ({
   initialValue: NaN,
   name: `meanRisk-${c}`,
   order: TimeScal.strict.order,
