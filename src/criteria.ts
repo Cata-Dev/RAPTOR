@@ -122,6 +122,8 @@ const successProbaInt: Criterion<InternalTimeInt, Id, Id, number, "successProbaI
 
 /**
  * Parametrized criterion "Mean Risk" from *Practical Route Planning Under Delay Uncertainty: Stochastic Shortest Path Queries* (Sejoon Lim AND Christian Sommer AND Evdokia Nikolova AND Daniela Rus, 2012)
+ *
+ * Modification: it's not `mean + c * STD`, but `mean + c * radius` (`width / 2`)
  * @param c Risk-aversion coefficient
  * @returns Mean Risk criterion. The risk-aversion coefficient {@link c} is appended to the criterion name.
  */
@@ -130,10 +132,10 @@ const meanRiskInit = <C extends number>(c: C): Criterion<InternalTimeInt, Id, Id
   name: `meanRisk-${c}`,
   order: TimeScal.strict.order,
   update: (_, __, timeType, time) => {
-    const timeWidth = timeType.up(time) - timeType.low(time);
-    const timeMean = timeWidth / 2;
+    const timeRadius = (timeType.up(time) - timeType.low(time)) / 2;
+    const timeMean = timeType.low(time) + timeRadius;
 
-    return timeMean + c * timeWidth;
+    return timeMean + c * timeRadius;
   },
 });
 
