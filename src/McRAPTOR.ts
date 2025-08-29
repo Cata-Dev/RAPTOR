@@ -203,7 +203,7 @@ export default class McRAPTOR<TimeVal, V, CA extends [V, string][], SI extends I
           const journey = this.traceBackFromStep(js, k);
           const tripsCount = journey.reduce((acc, js) => acc + ("route" in js ? 1 : 0), 0);
           if (
-            !acc[tripsCount]?.some(
+            !acc[tripsCount].some(
               (alrJourney) =>
                 alrJourney.length === journey.length &&
                 alrJourney.every((js, i) =>

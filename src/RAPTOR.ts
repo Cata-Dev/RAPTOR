@@ -108,7 +108,7 @@ export default class RAPTOR<TimeVal, SI extends Id = Id, RI extends Id = Id> ext
         try {
           const journey = this.traceBackFromStep(ptJourneyStep, k);
           const tripsCount = journey.reduce((acc, js) => acc + ("route" in js ? 1 : 0), 0);
-          if (this.time.strict.order(acc[tripsCount]?.[0]?.at(-1)?.label.time ?? this.time.MAX, journey.at(-1)!.label.time) > 0)
+          if (this.time.strict.order(acc[tripsCount][0]?.at(-1)?.label.time ?? this.time.MAX, journey.at(-1)!.label.time) > 0)
             acc[tripsCount] = [journey];
           // eslint-disable-next-line no-empty
         } catch (_) {}
