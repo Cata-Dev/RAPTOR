@@ -26,14 +26,9 @@ interface MapRead<K, V> {
 
 /**
  * @description A Trip, i.e. a succession of stop times.
+ * Stop times: time of arrival & departure.
  */
-interface Trip<TimeVal, TI extends Id = Id> {
-  id: TI;
-  /**
-   * @param times Time of arrival & departure at each stop.
-   */
-  times: ArrayRead<[TimeVal, TimeVal]>;
-}
+type Trip<TimeVal> = ArrayRead<[TimeVal, TimeVal]>;
 
 interface FootPath<SI extends Id> {
   to: SI;
@@ -75,14 +70,14 @@ class Stop<SI extends Id, RI extends Id> implements IStop<SI, RI> {
 /**
  * @description A Route, i.e. a succession of geographical specific points (stops) alongside with their corresponding operated trips.
  */
-class Route<TimeVal, SI extends Id, RI extends Id, TI extends Id = Id> {
+class Route<TimeVal, SI extends Id, RI extends Id> {
   /**
    * @description Creates a new Route. Note that stops and trips are linked : they are cross-connected.
    */
   constructor(
     readonly id: RI,
     readonly stops: ArrayRead<SI>,
-    readonly trips: ArrayRead<Trip<TimeVal, TI>>,
+    readonly trips: ArrayRead<Trip<TimeVal>>,
   ) {}
 
   /**
@@ -91,7 +86,7 @@ class Route<TimeVal, SI extends Id, RI extends Id, TI extends Id = Id> {
    * @param p Stop index in route (trip).
    */
   departureTime(t: number, p: number): TimeVal {
-    const time = this.trips.at(t)?.times.at(p)?.[1];
+    const time = this.trips.at(t)?.at(p)?.[1];
     if (time === undefined) throw new Error(`No departure time for stop at index ${p} in trip at index ${t} (indexes out of bounds?).`);
 
     return time;
@@ -406,17 +401,17 @@ class Bag<T extends Comparable<T>> {
   }
 }
 
-interface IRAPTORData<TimeVal, SI extends Id = Id, RI extends Id = Id, TI extends Id = Id> {
+interface IRAPTORData<TimeVal, SI extends Id = Id, RI extends Id = Id> {
   readonly timeType: Time<TimeVal>;
   readonly stops: MapRead<SI, IStop<SI, RI>>;
-  readonly routes: MapRead<RI, Route<TimeVal, SI, RI, TI>>;
+  readonly routes: MapRead<RI, Route<TimeVal, SI, RI>>;
   attachStops: (...args: never[]) => void;
 }
 
-class RAPTORData<TimeVal, SI extends Id = Id, RI extends Id = Id, TI extends Id = Id> implements IRAPTORData<TimeVal, SI, RI, TI> {
+class RAPTORData<TimeVal, SI extends Id = Id, RI extends Id = Id> implements IRAPTORData<TimeVal, SI, RI> {
   protected readonly baseStops: Map<SI, Stop<SI, RI>>;
   protected _stops: Map<SI, Stop<SI, RI>>;
-  protected _routes: Map<RI, Route<TimeVal, SI, RI, TI>>;
+  protected _routes: Map<RI, Route<TimeVal, SI, RI>>;
 
   /**
    * @description Creates a new RAPTORData instance for a defined network.
@@ -424,7 +419,7 @@ class RAPTORData<TimeVal, SI extends Id = Id, RI extends Id = Id, TI extends Id 
   constructor(
     readonly timeType: Time<TimeVal>,
     stops: ConstructorParameters<typeof Stop<SI, RI>>[],
-    routes: ConstructorParameters<typeof Route<TimeVal, SI, RI, TI>>[],
+    routes: ConstructorParameters<typeof Route<TimeVal, SI, RI>>[],
   ) {
     this.baseStops = new Map(stops.map(([id, connectedRoutes, transfers]) => [id, new Stop(id, connectedRoutes, transfers)]));
     this._stops = this.baseStops;

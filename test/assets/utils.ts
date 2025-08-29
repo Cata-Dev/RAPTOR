@@ -26,7 +26,7 @@ const validateWithoutCriteria =
     });
     validate(
       journeysWithoutCriteria as Parameters<TestAsset<TimeVal>["tests"][number]["validate"]>[0],
-      rap as unknown as BaseRAPTOR<TimeVal, number, number, number>,
+      rap as unknown as BaseRAPTOR<TimeVal, number, number>,
     );
 
     return [journeysWithoutCriteria, res.map((journeys, k) => journeys.filter((j) => j !== journeysWithoutCriteria[k][0]))];

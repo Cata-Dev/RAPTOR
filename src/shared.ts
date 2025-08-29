@@ -4,7 +4,7 @@ import { Criterion, SharedID, SharedRAPTORData } from "./structures";
 
 const convertBackJourneyStep =
   <TimeVal, V, CA extends [V, string][]>(raptorData: SharedRAPTORData<TimeVal>) =>
-  (js: NonNullable<ReturnType<McRAPTOR<TimeVal, V, CA, SharedID, SharedID, number>["getBestJourneys"]>[number]>[number][number]) => {
+  (js: NonNullable<ReturnType<McRAPTOR<TimeVal, V, CA, SharedID, SharedID>["getBestJourneys"]>[number]>[number][number]) => {
     return {
       ...js,
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
@@ -23,7 +23,7 @@ const convertBackJourneyStep =
 
 const convertJourneyStep =
   <TimeVal, V, CA extends [V, string][]>(raptorData: SharedRAPTORData<TimeVal>) =>
-  (js: NonNullable<ReturnType<McRAPTOR<TimeVal, V, CA, SharedID, SharedID, number>["getBestJourneys"]>[number]>[number][number]) => {
+  (js: NonNullable<ReturnType<McRAPTOR<TimeVal, V, CA, SharedID, SharedID>["getBestJourneys"]>[number]>[number][number]) => {
     return {
       ...js,
       ...("boardedAt" in js ? { boardedAt: typeof js.boardedAt === "number" ? raptorData.stopPointerFromId(js.boardedAt) : js.boardedAt } : {}),
@@ -38,12 +38,12 @@ const convertJourneyStep =
     };
   };
 
-class SharedRAPTOR<TimeVal> extends RAPTOR<TimeVal, SharedID, number, number> {
+class SharedRAPTOR<TimeVal> extends RAPTOR<TimeVal, SharedID, number> {
   constructor(protected readonly data: SharedRAPTORData<TimeVal>) {
     super(data);
   }
 
-  run(...params: Parameters<RAPTOR<TimeVal, SharedID, SharedID, SharedID>["run"]>) {
+  run(...params: Parameters<RAPTOR<TimeVal, SharedID, SharedID>["run"]>) {
     const [ps, pt, ...rem] = params;
 
     const convertedPs = typeof ps === "string" ? ps : this.data.stopPointerFromId(ps);
@@ -55,7 +55,7 @@ class SharedRAPTOR<TimeVal> extends RAPTOR<TimeVal, SharedID, number, number> {
     super.run(convertedPs, convertedPt, ...rem);
   }
 
-  getBestJourneys(pt: SharedID): ReturnType<RAPTOR<TimeVal, SharedID, SharedID, number>["getBestJourneys"]> {
+  getBestJourneys(pt: SharedID): ReturnType<RAPTOR<TimeVal, SharedID, SharedID>["getBestJourneys"]> {
     const convertedPt = typeof pt === "string" ? pt : this.data.stopPointerFromId(pt);
     if (convertedPt === undefined) throw new Error(`Unable to retrieve target stop ${pt}`);
 
@@ -63,7 +63,7 @@ class SharedRAPTOR<TimeVal> extends RAPTOR<TimeVal, SharedID, number, number> {
   }
 }
 
-class McSharedRAPTOR<TimeVal, V, CA extends [V, string][]> extends McRAPTOR<TimeVal, V, CA, SharedID, number, number> {
+class McSharedRAPTOR<TimeVal, V, CA extends [V, string][]> extends McRAPTOR<TimeVal, V, CA, SharedID, number> {
   constructor(
     protected readonly data: SharedRAPTORData<TimeVal>,
     criteria: { [K in keyof CA]: Criterion<TimeVal, SharedID, SharedID, CA[K][0], CA[K][1]> },
@@ -71,7 +71,7 @@ class McSharedRAPTOR<TimeVal, V, CA extends [V, string][]> extends McRAPTOR<Time
     super(data, criteria);
   }
 
-  run(...params: Parameters<McRAPTOR<TimeVal, V, CA, SharedID, SharedID, number>["run"]>) {
+  run(...params: Parameters<McRAPTOR<TimeVal, V, CA, SharedID, SharedID>["run"]>) {
     const [ps, pt, ...rem] = params;
 
     const convertedPs = typeof ps === "string" ? ps : this.data.stopPointerFromId(ps);
@@ -83,7 +83,7 @@ class McSharedRAPTOR<TimeVal, V, CA extends [V, string][]> extends McRAPTOR<Time
     super.run(convertedPs, convertedPt, ...rem);
   }
 
-  getBestJourneys(pt: SharedID): ReturnType<McRAPTOR<TimeVal, V, CA, SharedID, SharedID, number>["getBestJourneys"]> {
+  getBestJourneys(pt: SharedID): ReturnType<McRAPTOR<TimeVal, V, CA, SharedID, SharedID>["getBestJourneys"]> {
     const convertedPt = typeof pt === "string" ? pt : this.data.stopPointerFromId(pt);
     if (convertedPt === undefined) throw new Error(`Unable to retrieve target stop ${pt}`);
 

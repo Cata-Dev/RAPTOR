@@ -25,7 +25,7 @@ for (const [datasetName, dataset] of [oneLine, twoLines, oneLineOTA as TestDatas
           for (const journeys of res) expect(journeys.length || 1).toBe(1);
           test.validate(
             res.map((journeys) => (journeys.length ? [journeys[0]] : [])),
-            sharedRaptorInstance as BaseRAPTOR<number, number, number, number>,
+            sharedRaptorInstance as BaseRAPTOR<number, number, number>,
           );
         }
       });
@@ -45,7 +45,7 @@ for (const [datasetName, dataset] of [FDOneLine, FDTwoLines] as const) {
 
         for (const test of asset.tests) {
           sharedRaptorInstance.run(...test.params);
-          test.validate(sharedRaptorInstance as McRAPTOR<number, number, [[number, "footDistance"]], number, number, number>);
+          test.validate(sharedRaptorInstance as McRAPTOR<number, number, [[number, "footDistance"]], number, number>);
         }
       });
     }
@@ -64,7 +64,7 @@ for (const [datasetName, dataset] of [BTOneLine, BTTwoLines] as const) {
 
         for (const test of asset.tests) {
           sharedRaptorInstance.run(...test.params);
-          test.validate(sharedRaptorInstance as McRAPTOR<number, number, [[number, "bufferTime"]], number, number, number>);
+          test.validate(sharedRaptorInstance as McRAPTOR<number, number, [[number, "bufferTime"]], number, number>);
         }
       });
     }
