@@ -47,7 +47,7 @@ export default class McRAPTOR<TimeVal, V, CA extends [V, string][], SI extends I
     let t = this.et(route, stop, fromJourneyStep.label.time);
     const previousLabels: Label<TimeVal, SI, RI, V, CA>[] = [];
     while (t) {
-      const tArr = route.trips.at(t.tripIndex)!.times.at(stopIndex)![0];
+      const tArr = route.trips.at(t.tripIndex)!.at(stopIndex)![0];
       const partialJourneyStep = {
         boardedAt: [stop, fromJourneyStep] satisfies [SI, unknown],
         route,
@@ -114,7 +114,7 @@ export default class McRAPTOR<TimeVal, V, CA extends [V, string][], SI extends I
       // Need to use a temporary bag, otherwise updating makes the bag incoherent and comparison occurs on incomparable journey steps (they are not at the same stop)
       const RouteBagPi = new Bag<JourneyStep<TimeVal, SI, RI, V, CA, "VEHICLE">>();
       for (const journeyStep of RouteBag) {
-        const tArr = route.trips.at(journeyStep.tripIndex)!.times.at(i)![0];
+        const tArr = route.trips.at(journeyStep.tripIndex)!.at(i)![0];
         RouteBagPi.addOnly(
           makeJSComparable({
             ...journeyStep,

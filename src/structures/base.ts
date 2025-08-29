@@ -26,13 +26,9 @@ interface MapRead<K, V> {
 
 /**
  * @description A Trip, i.e. a succession of stop times.
+ * Stop times: time of arrival & departure.
  */
-interface Trip<TimeVal> {
-  /**
-   * @param times Time of arrival & departure at each stop.
-   */
-  times: ArrayRead<[TimeVal, TimeVal]>;
-}
+type Trip<TimeVal> = ArrayRead<[TimeVal, TimeVal]>;
 
 interface FootPath<SI extends Id> {
   to: SI;
@@ -90,7 +86,7 @@ class Route<TimeVal, SI extends Id, RI extends Id> {
    * @param p Stop index in route (trip).
    */
   departureTime(t: number, p: number): TimeVal {
-    const time = this.trips.at(t)?.times.at(p)?.[1];
+    const time = this.trips.at(t)?.at(p)?.[1];
     if (time === undefined) throw new Error(`No departure time for stop at index ${p} in trip at index ${t} (indexes out of bounds?).`);
 
     return time;

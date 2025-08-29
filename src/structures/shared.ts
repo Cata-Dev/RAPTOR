@@ -216,50 +216,6 @@ class StopRetriever extends Retriever<PtrType.Stop, IStop<SharedID, number>> imp
 }
 
 //
-// Trip
-//
-
-class TripRetriever<TimeVal> extends Retriever<PtrType.Route, void> implements Trip<TimeVal> {
-  constructor(
-    readonly timeType: SharedTime<TimeVal>,
-    ...params: ConstructorParameters<typeof Retriever<PtrType.Route, void>>
-  ) {
-    super(...params);
-  }
-
-  protected get timesChunkSize() {
-    return this.rDataView[this.ptr];
-  }
-
-  get times() {
-    return new ArrayView(
-      // 2 data cells per array element
-      () => this.timesChunkSize / 2,
-      (idx) =>
-        [
-          this.timeType.sharedDeserialize(
-            this.rDataView.subarray(
-              this.ptr + 1 + idx * 2 * this.timeType.sharedSerializedLen,
-              this.ptr + 1 + idx * 2 * this.timeType.sharedSerializedLen + this.timeType.sharedSerializedLen,
-            ),
-          ),
-          this.timeType.sharedDeserialize(
-            this.rDataView.subarray(
-              this.ptr + 1 + idx * 2 * this.timeType.sharedSerializedLen + this.timeType.sharedSerializedLen,
-              this.ptr + 1 + (idx + 1) * 2 * this.timeType.sharedSerializedLen,
-            ),
-          ),
-        ] satisfies [unknown, unknown],
-      (a, b) => a === b,
-    );
-  }
-
-  get chunkSize() {
-    return 1 + this.timesChunkSize;
-  }
-}
-
-//
 // Route
 //
 
@@ -299,11 +255,12 @@ class RouteRetriever<TimeVal> extends Retriever<PtrType.Route, void> implements 
   }
 
   get tripsChunkSizes(): number[] {
-    const tripRetriever = new TripRetriever(this.timeType, this.sDataView, this.rDataView, 0, PtrType.Route);
     const chunkSizes = [];
-    // Compute number of trips
-    for (let ptr = this.ptrTripsChunkSize + 1; ptr < this.ptr + this.chunkSize; ptr += tripRetriever.chunkSize)
-      chunkSizes.push(tripRetriever.point(ptr).chunkSize);
+    for (let ptr = this.ptrTripsChunkSize + 1; ptr < this.ptr + this.chunkSize; ptr += 1 + this.rDataView[ptr])
+      chunkSizes.push(
+        // ptr of times chunk size + times chunk size
+        1 + this.rDataView[ptr],
+      );
 
     return chunkSizes;
   }
@@ -313,13 +270,26 @@ class RouteRetriever<TimeVal> extends Retriever<PtrType.Route, void> implements 
       () => (this._tripsChunkSizes ??= this.tripsChunkSizes).length,
       (idx) => {
         this._tripsChunkSizes ??= this.tripsChunkSizes;
+        const tripTimesPtr = this.ptrTripsChunkSize + 1 + this._tripsChunkSizes.reduce((acc, v, i) => (i < idx ? acc + v : acc), 0);
 
-        return new TripRetriever(
-          this.timeType,
-          this.sDataView,
-          this.rDataView,
-          this.ptrTripsChunkSize + 1 + this._tripsChunkSizes.reduce((acc, v, i) => (i < idx ? acc + v : acc), 0),
-          PtrType.Route,
+        return new ArrayView(
+          () => this.rDataView[tripTimesPtr] / 2,
+          (idx) =>
+            [
+              this.timeType.sharedDeserialize(
+                this.rDataView.subarray(
+                  tripTimesPtr + 1 + idx * 2 * this.timeType.sharedSerializedLen,
+                  tripTimesPtr + 1 + idx * 2 * this.timeType.sharedSerializedLen + this.timeType.sharedSerializedLen,
+                ),
+              ),
+              this.timeType.sharedDeserialize(
+                this.rDataView.subarray(
+                  tripTimesPtr + 1 + idx * 2 * this.timeType.sharedSerializedLen + this.timeType.sharedSerializedLen,
+                  tripTimesPtr + 1 + (idx + 1) * 2 * this.timeType.sharedSerializedLen,
+                ),
+              ),
+            ] satisfies [unknown, unknown],
+          (a, b) => a === b,
         );
       },
       (a, b) => a === b,
@@ -416,7 +386,7 @@ class SharedRAPTORData<TimeVal> implements IRAPTORData<TimeVal, SharedID, number
                         // length of trip times chunk
                         1 +
                         // trip times chunk
-                        v.times.length * 2 * timeType.sharedSerializedLen,
+                        v.length * 2 * timeType.sharedSerializedLen,
                       0,
                     )),
                 0,
@@ -499,8 +469,8 @@ class SharedRAPTORData<TimeVal> implements IRAPTORData<TimeVal, SharedID, number
         const tripsChunkLengthIdx = idx++;
         for (const trip of trips) {
           // Trip times length
-          this.rDataView[idx++] = trip.times.length * 2 * timeType.sharedSerializedLen;
-          for (const timePair of trip.times)
+          this.rDataView[idx++] = trip.length * 2 * timeType.sharedSerializedLen;
+          for (const timePair of trip)
             for (const time of timePair) {
               this.rDataView.set(timeType.sharedSerialize(time), idx);
               idx += timeType.sharedSerializedLen;

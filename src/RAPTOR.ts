@@ -45,7 +45,7 @@ export default class RAPTOR<TimeVal, SI extends Id = Id, RI extends Id = Id> ext
 
       // Improve periods, local & target pruning
       if (t !== null) {
-        const arrivalTime: TimeVal = route.trips.at(t.tripIndex)!.times.at(i)![0];
+        const arrivalTime: TimeVal = route.trips.at(t.tripIndex)!.at(i)![0];
         if (
           this.time.strict.order(arrivalTime, this.multiLabel[this.k].get(pi)?.label.time ?? this.time.MAX) < 0 &&
           (this.runParams!.pt === null ||
