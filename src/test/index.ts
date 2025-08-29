@@ -160,9 +160,8 @@ async function computeRAPTORData(
         [
           _id,
           stops,
-          trips.map(({ tripId, schedules }) => ({
-            id: tripId,
-            times: schedules
+          trips.map(({ schedules }) =>
+            schedules
               .map<[(typeof schedules)[number], [number, number]]>((schedule) => [
                 schedule,
                 typeof schedule === "object" && "hor_estime" in schedule
@@ -193,7 +192,7 @@ async function computeRAPTORData(
                   }
                 } else return [arr, dep] satisfies [unknown, unknown];
               }),
-          })),
+          ),
         ] satisfies [unknown, unknown, unknown],
     ),
   ] as ConstructorParameters<typeof RAPTORData<Timestamp | InternalTimeInt>>;
@@ -235,9 +234,9 @@ type InstanceType = "RAPTOR" | "SharedRAPTOR" | "McRAPTOR" | "McSharedRAPTOR";
 
 function postTreatment<TimeVal extends Timestamp | InternalTimeInt, V1, CA1 extends [V1, string][], V2, CA2 extends [V2, string][]>(
   postCriteria: Criterion<TimeVal, SharedID, number, V2, CA2[number][1]>[],
-  data: IRAPTORData<TimeVal, SharedID, number, number>,
+  data: IRAPTORData<TimeVal, SharedID, number>,
   instanceType: InstanceType,
-  results: ReturnType<BaseRAPTOR<TimeVal, SharedID, number, number, V1, CA1>["getBestJourneys"]>,
+  results: ReturnType<BaseRAPTOR<TimeVal, SharedID, number, V1, CA1>["getBestJourneys"]>,
   pt: SharedID,
 ) {
   const timeType = data.timeType;
@@ -269,7 +268,7 @@ type DBJourneyReal = Omit<DBJourney, "steps"> & {
   steps: (JourneyStepBase | JourneyStepFoot | JourneyStepVehicle)[];
 };
 function journeyDBFormatter<TimeVal extends Timestamp | InternalTimeInt, V, CA extends [V, string][]>(
-  journey: NonNullable<ReturnType<BaseRAPTOR<TimeVal, SharedID, number, number, V, CA>["getBestJourneys"]>[number][number]>,
+  journey: NonNullable<ReturnType<BaseRAPTOR<TimeVal, SharedID, number, V, CA>["getBestJourneys"]>[number][number]>,
 ): DBJourneyReal {
   return {
     steps: journey.map<JourneyStepFoot | JourneyStepVehicle | JourneyStepBase>((js) => ({
@@ -298,7 +297,7 @@ async function insertResults<TimeVal extends Timestamp | InternalTimeInt, V, CA 
   to: LocationAddress | LocationTBM,
   departureTime: TimeVal,
   settings: RAPTORRunSettings,
-  results: ReturnType<BaseRAPTOR<TimeVal, SharedID, number, number, V, CA>["getBestJourneys"]>,
+  results: ReturnType<BaseRAPTOR<TimeVal, SharedID, number, V, CA>["getBestJourneys"]>,
 ) {
   if (!results.length) throw new Error("No journey found");
 
@@ -535,10 +534,10 @@ Command-line interface:
           ));
   if (!b4.lastReturn) throw new Error("No RAPTOR instance");
   const [RAPTORDataInst, RAPTORInstance] = b4.lastReturn as readonly [
-    Omit<IRAPTORData<Timestamp | InternalTimeInt, SharedID, number, number>, "attachStops"> & {
+    Omit<IRAPTORData<Timestamp | InternalTimeInt, SharedID, number>, "attachStops"> & {
       attachStops: SharedRAPTORData<Timestamp | InternalTimeInt>["attachStops"];
     },
-    BaseRAPTOR<Timestamp | InternalTimeInt, SharedID, number, number, number, CA>,
+    BaseRAPTOR<Timestamp | InternalTimeInt, SharedID, number, number, CA>,
   ];
 
   if (sharedSecure) (RAPTORDataInst as SharedRAPTORData<Timestamp | InternalTimeInt>).secure = true;
