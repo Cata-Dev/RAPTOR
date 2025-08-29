@@ -35,7 +35,7 @@ describe("Foot distance", () => {
 
   const vehicleJourneyStep = makeJSComparable<Timestamp, number, number, number, [[number, "footDistance"]], "VEHICLE">({
     boardedAt: [0, originJS],
-    route: new Route(0, [0], [{ id: 0, times: [[NaN, NaN]] }]),
+    route: new Route(0, [0], [[[NaN, NaN]]]),
     tripIndex: 0,
     label: new Label<Timestamp, number, number, number, [[number, "footDistance"]]>(TimeScal, [footDistanceTyped], NaN),
   });
@@ -85,14 +85,14 @@ describe("Buffer time", () => {
 
   const vehicleJourneyStep1 = makeJSComparable<Timestamp, number, number, number, [[number, "bufferTime"]], "VEHICLE">({
     boardedAt: [0, originJS],
-    route: new Route(0, [0], [{ id: 0, times: [[NaN, 5]] }]),
+    route: new Route(0, [0], [[[NaN, 5]]]),
     tripIndex: 0,
     label: setLabelValues(new Label<Timestamp, number, number, number, [[number, "bufferTime"]]>(TimeScal, [bufferTimeTyped], 4), [-5]),
   });
 
   const vehicleJourneyStep2 = makeJSComparable<Timestamp, number, number, number, [[number, "bufferTime"]], "VEHICLE">({
     boardedAt: [0, vehicleJourneyStep1],
-    route: new Route(1, [0], [{ id: 0, times: [[NaN, 8]] }]),
+    route: new Route(1, [0], [[[NaN, 8]]]),
     tripIndex: 0,
     label: setLabelValues(new Label<Timestamp, number, number, number, [[number, "bufferTime"]]>(TimeScal, [bufferTimeTyped], 8), [NaN]),
   });
@@ -135,15 +135,12 @@ describe("Success probability (interval)", () => {
       0,
       [0],
       [
-        {
-          id: 0,
-          times: [
-            [
-              [NaN, NaN],
-              [5, 5],
-            ],
+        [
+          [
+            [NaN, NaN],
+            [5, 5],
           ],
-        },
+        ],
       ],
     ),
     tripIndex: 0,
@@ -156,15 +153,12 @@ describe("Success probability (interval)", () => {
       1,
       [0],
       [
-        {
-          id: 0,
-          times: [
-            [
-              [NaN, NaN],
-              [8, 8],
-            ],
+        [
+          [
+            [NaN, NaN],
+            [8, 8],
           ],
-        },
+        ],
       ],
     ),
     tripIndex: 0,
@@ -192,15 +186,12 @@ describe("Success probability (interval)", () => {
             1,
             [0],
             [
-              {
-                id: 0,
-                times: [
-                  [
-                    [NaN, NaN],
-                    [4, 5],
-                  ],
+              [
+                [
+                  [NaN, NaN],
+                  [4, 5],
                 ],
-              },
+              ],
             ],
           ),
           tripIndex: 0,
@@ -227,15 +218,12 @@ describe("Success probability (interval)", () => {
             1,
             [0],
             [
-              {
-                id: 0,
-                times: [
-                  [
-                    [NaN, NaN],
-                    [4, 5],
-                  ],
+              [
+                [
+                  [NaN, NaN],
+                  [4, 5],
                 ],
-              },
+              ],
             ],
           ),
           tripIndex: 0,
@@ -263,15 +251,12 @@ describe("Success probability (interval)", () => {
             1,
             [0],
             [
-              {
-                id: 0,
-                times: [
-                  [
-                    [NaN, NaN],
-                    [5, 6],
-                  ],
+              [
+                [
+                  [NaN, NaN],
+                  [5, 6],
                 ],
-              },
+              ],
             ],
           ),
           tripIndex: 0,
@@ -299,15 +284,12 @@ describe("Success probability (interval)", () => {
             1,
             [0],
             [
-              {
-                id: 0,
-                times: [
-                  [
-                    [NaN, NaN],
-                    [4, 6],
-                  ],
+              [
+                [
+                  [NaN, NaN],
+                  [4, 6],
                 ],
-              },
+              ],
             ],
           ),
           tripIndex: 0,
@@ -335,15 +317,12 @@ describe("Success probability (interval)", () => {
             1,
             [0],
             [
-              {
-                id: 0,
-                times: [
-                  [
-                    [NaN, NaN],
-                    [4, 6],
-                  ],
+              [
+                [
+                  [NaN, NaN],
+                  [4, 6],
                 ],
-              },
+              ],
             ],
           ),
           tripIndex: 0,
@@ -372,15 +351,12 @@ describe("Success probability (interval)", () => {
           1,
           [0],
           [
-            {
-              id: 0,
-              times: [
-                [
-                  [NaN, NaN],
-                  [5, 7],
-                ],
+            [
+              [
+                [NaN, NaN],
+                [5, 7],
               ],
-            },
+            ],
           ],
         ),
         tripIndex: 0,
@@ -409,15 +385,12 @@ describe("Success probability (interval)", () => {
           1,
           [0],
           [
-            {
-              id: 0,
-              times: [
-                [
-                  [NaN, NaN],
-                  [5, 7],
-                ],
+            [
+              [
+                [NaN, NaN],
+                [5, 7],
               ],
-            },
+            ],
           ],
         ),
         tripIndex: 0,
@@ -445,15 +418,12 @@ describe("Success probability (interval)", () => {
           1,
           [0],
           [
-            {
-              id: 0,
-              times: [
-                [
-                  [NaN, NaN],
-                  [4, 7],
-                ],
+            [
+              [
+                [NaN, NaN],
+                [4, 7],
               ],
-            },
+            ],
           ],
         ),
         tripIndex: 0,
@@ -489,15 +459,12 @@ describe("Mean Risk", () => {
         0,
         [0],
         [
-          {
-            id: 0,
-            times: [
-              [
-                [3, 8],
-                [NaN, NaN],
-              ],
+          [
+            [
+              [3, 8],
+              [NaN, NaN],
             ],
-          },
+          ],
         ],
       ),
       tripIndex: 0,
@@ -544,15 +511,12 @@ describe("Mean Risk", () => {
         0,
         [0],
         [
-          {
-            id: 0,
-            times: [
-              [
-                [3, 8],
-                [NaN, NaN],
-              ],
+          [
+            [
+              [3, 8],
+              [NaN, NaN],
             ],
-          },
+          ],
         ],
       ),
       tripIndex: 0,
@@ -603,15 +567,12 @@ describe("Mean Risk", () => {
         0,
         [0],
         [
-          {
-            id: 0,
-            times: [
-              [
-                [3, 8],
-                [NaN, NaN],
-              ],
+          [
+            [
+              [3, 8],
+              [NaN, NaN],
             ],
-          },
+          ],
         ],
       ),
       tripIndex: 0,
@@ -650,16 +611,7 @@ describe("Measuring journey", () => {
   const vehicleJourneyStep = makeJSComparable<Timestamp, number, number, number, [[number, "bufferTime"]], "VEHICLE">({
     label: setLabelValues(new Label<Timestamp, number, number, number, [[number, "bufferTime"]]>(TimeScal, [bufferTimeTyped], 0), [7]),
     boardedAt: [0, originJS],
-    route: new Route(
-      1,
-      [0],
-      [
-        {
-          id: 0,
-          times: [[4, 6]],
-        },
-      ],
-    ),
+    route: new Route(1, [0], [[[4, 6]]]),
     tripIndex: 0,
   });
 

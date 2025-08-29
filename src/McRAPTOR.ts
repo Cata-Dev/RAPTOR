@@ -2,11 +2,10 @@
 import BaseRAPTOR from "./base";
 import { Bag, Criterion, Id, IRAPTORData, IStop, Journey, JourneyStep, Label, makeJSComparable, Route } from "./structures";
 
-export default class McRAPTOR<TimeVal, V, CA extends [V, string][], SI extends Id = Id, RI extends Id = Id, TI extends Id = Id> extends BaseRAPTOR<
+export default class McRAPTOR<TimeVal, V, CA extends [V, string][], SI extends Id = Id, RI extends Id = Id> extends BaseRAPTOR<
   TimeVal,
   SI,
   RI,
-  TI,
   V,
   CA
 > {
@@ -23,7 +22,7 @@ export default class McRAPTOR<TimeVal, V, CA extends [V, string][], SI extends I
    * @description Creates a new McRAPTOR instance for a defined network and a set of {@link criteria}.
    */
   constructor(
-    data: IRAPTORData<TimeVal, SI, RI, TI>,
+    data: IRAPTORData<TimeVal, SI, RI>,
     protected readonly criteria: { [K in keyof CA]: Criterion<TimeVal, SI, RI, CA[K][0], CA[K][1]> },
   ) {
     super(data);
@@ -38,7 +37,7 @@ export default class McRAPTOR<TimeVal, V, CA extends [V, string][], SI extends I
    * @param cb A callback taking any new feasible journey step
    */
   protected forEachNDEt(
-    route: Route<TimeVal, SI, RI, TI>,
+    route: Route<TimeVal, SI, RI>,
     stop: SI,
     stopIndex: number,
     fromJourneyStep: JourneyStep<TimeVal, SI, RI, V, CA>,
@@ -48,7 +47,7 @@ export default class McRAPTOR<TimeVal, V, CA extends [V, string][], SI extends I
     let t = this.et(route, stop, fromJourneyStep.label.time);
     const previousLabels: Label<TimeVal, SI, RI, V, CA>[] = [];
     while (t) {
-      const tArr = route.trips.at(t.tripIndex)!.times.at(stopIndex)![0];
+      const tArr = route.trips.at(t.tripIndex)!.at(stopIndex)![0];
       const partialJourneyStep = {
         boardedAt: [stop, fromJourneyStep] satisfies [SI, unknown],
         route,
@@ -105,7 +104,7 @@ export default class McRAPTOR<TimeVal, V, CA extends [V, string][], SI extends I
     if (this.runParams!.pt !== null) this.Bpt = this.bags[this.k].get(this.runParams!.pt)!;
   }
 
-  protected traverseRoute(route: Route<TimeVal, SI, RI, TI>, stop: SI): void {
+  protected traverseRoute(route: Route<TimeVal, SI, RI>, stop: SI): void {
     let RouteBag = new Bag<JourneyStep<TimeVal, SI, RI, V, CA, "VEHICLE">>();
 
     for (let i = route.stops.indexOf(stop); i < route.stops.length; i++) {
@@ -115,7 +114,7 @@ export default class McRAPTOR<TimeVal, V, CA extends [V, string][], SI extends I
       // Need to use a temporary bag, otherwise updating makes the bag incoherent and comparison occurs on incomparable journey steps (they are not at the same stop)
       const RouteBagPi = new Bag<JourneyStep<TimeVal, SI, RI, V, CA, "VEHICLE">>();
       for (const journeyStep of RouteBag) {
-        const tArr = route.trips.at(journeyStep.tripIndex)!.times.at(i)![0];
+        const tArr = route.trips.at(journeyStep.tripIndex)!.at(i)![0];
         RouteBagPi.addOnly(
           makeJSComparable({
             ...journeyStep,
@@ -204,7 +203,7 @@ export default class McRAPTOR<TimeVal, V, CA extends [V, string][], SI extends I
           const journey = this.traceBackFromStep(js, k);
           const tripsCount = journey.reduce((acc, js) => acc + ("route" in js ? 1 : 0), 0);
           if (
-            !acc[tripsCount]?.some(
+            !acc[tripsCount].some(
               (alrJourney) =>
                 alrJourney.length === journey.length &&
                 alrJourney.every((js, i) =>

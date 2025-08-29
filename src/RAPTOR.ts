@@ -5,7 +5,7 @@ import { Id, IStop, Journey, JourneyStep, Label, makeJSComparable, Route } from 
 /**
  * @description A RAPTOR instance
  */
-export default class RAPTOR<TimeVal, SI extends Id = Id, RI extends Id = Id, TI extends Id = Id> extends BaseRAPTOR<TimeVal, SI, RI, TI> {
+export default class RAPTOR<TimeVal, SI extends Id = Id, RI extends Id = Id> extends BaseRAPTOR<TimeVal, SI, RI> {
   /** @description A {@link Label} Ti(SI) represents the earliest known arrival time at stop SI with up to i trips. */
   protected multiLabel: Map<SI, JourneyStep<TimeVal, SI, RI, never, []>>[] = [];
 
@@ -37,7 +37,7 @@ export default class RAPTOR<TimeVal, SI extends Id = Id, RI extends Id = Id, TI 
     }
   }
 
-  protected traverseRoute(route: Route<TimeVal, SI, RI, TI>, stop: SI): void {
+  protected traverseRoute(route: Route<TimeVal, SI, RI>, stop: SI): void {
     let t: ReturnType<typeof this.et> | null = null;
 
     for (let i = route.stops.indexOf(stop); i < route.stops.length; i++) {
@@ -45,7 +45,7 @@ export default class RAPTOR<TimeVal, SI extends Id = Id, RI extends Id = Id, TI 
 
       // Improve periods, local & target pruning
       if (t !== null) {
-        const arrivalTime: TimeVal = route.trips.at(t.tripIndex)!.times.at(i)![0];
+        const arrivalTime: TimeVal = route.trips.at(t.tripIndex)!.at(i)![0];
         if (
           this.time.strict.order(arrivalTime, this.multiLabel[this.k].get(pi)?.label.time ?? this.time.MAX) < 0 &&
           (this.runParams!.pt === null ||
@@ -108,7 +108,7 @@ export default class RAPTOR<TimeVal, SI extends Id = Id, RI extends Id = Id, TI 
         try {
           const journey = this.traceBackFromStep(ptJourneyStep, k);
           const tripsCount = journey.reduce((acc, js) => acc + ("route" in js ? 1 : 0), 0);
-          if (this.time.strict.order(acc[tripsCount]?.[0]?.at(-1)?.label.time ?? this.time.MAX, journey.at(-1)!.label.time) > 0)
+          if (this.time.strict.order(acc[tripsCount][0]?.at(-1)?.label.time ?? this.time.MAX, journey.at(-1)!.label.time) > 0)
             acc[tripsCount] = [journey];
           // eslint-disable-next-line no-empty
         } catch (_) {}
