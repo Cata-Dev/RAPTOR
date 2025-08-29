@@ -2,11 +2,10 @@
 import BaseRAPTOR from "./base";
 import { Bag, Criterion, Id, IRAPTORData, IStop, Journey, JourneyStep, Label, makeJSComparable, Route } from "./structures";
 
-export default class McRAPTOR<TimeVal, V, CA extends [V, string][], SI extends Id = Id, RI extends Id = Id, TI extends Id = Id> extends BaseRAPTOR<
+export default class McRAPTOR<TimeVal, V, CA extends [V, string][], SI extends Id = Id, RI extends Id = Id> extends BaseRAPTOR<
   TimeVal,
   SI,
   RI,
-  TI,
   V,
   CA
 > {
@@ -23,7 +22,7 @@ export default class McRAPTOR<TimeVal, V, CA extends [V, string][], SI extends I
    * @description Creates a new McRAPTOR instance for a defined network and a set of {@link criteria}.
    */
   constructor(
-    data: IRAPTORData<TimeVal, SI, RI, TI>,
+    data: IRAPTORData<TimeVal, SI, RI>,
     protected readonly criteria: { [K in keyof CA]: Criterion<TimeVal, SI, RI, CA[K][0], CA[K][1]> },
   ) {
     super(data);
@@ -38,7 +37,7 @@ export default class McRAPTOR<TimeVal, V, CA extends [V, string][], SI extends I
    * @param cb A callback taking any new feasible journey step
    */
   protected forEachNDEt(
-    route: Route<TimeVal, SI, RI, TI>,
+    route: Route<TimeVal, SI, RI>,
     stop: SI,
     stopIndex: number,
     fromJourneyStep: JourneyStep<TimeVal, SI, RI, V, CA>,
@@ -105,7 +104,7 @@ export default class McRAPTOR<TimeVal, V, CA extends [V, string][], SI extends I
     if (this.runParams!.pt !== null) this.Bpt = this.bags[this.k].get(this.runParams!.pt)!;
   }
 
-  protected traverseRoute(route: Route<TimeVal, SI, RI, TI>, stop: SI): void {
+  protected traverseRoute(route: Route<TimeVal, SI, RI>, stop: SI): void {
     let RouteBag = new Bag<JourneyStep<TimeVal, SI, RI, V, CA, "VEHICLE">>();
 
     for (let i = route.stops.indexOf(stop); i < route.stops.length; i++) {

@@ -5,7 +5,7 @@ import { Id, IStop, Journey, JourneyStep, Label, makeJSComparable, Route } from 
 /**
  * @description A RAPTOR instance
  */
-export default class RAPTOR<TimeVal, SI extends Id = Id, RI extends Id = Id, TI extends Id = Id> extends BaseRAPTOR<TimeVal, SI, RI, TI> {
+export default class RAPTOR<TimeVal, SI extends Id = Id, RI extends Id = Id> extends BaseRAPTOR<TimeVal, SI, RI> {
   /** @description A {@link Label} Ti(SI) represents the earliest known arrival time at stop SI with up to i trips. */
   protected multiLabel: Map<SI, JourneyStep<TimeVal, SI, RI, never, []>>[] = [];
 
@@ -37,7 +37,7 @@ export default class RAPTOR<TimeVal, SI extends Id = Id, RI extends Id = Id, TI 
     }
   }
 
-  protected traverseRoute(route: Route<TimeVal, SI, RI, TI>, stop: SI): void {
+  protected traverseRoute(route: Route<TimeVal, SI, RI>, stop: SI): void {
     let t: ReturnType<typeof this.et> | null = null;
 
     for (let i = route.stops.indexOf(stop); i < route.stops.length; i++) {

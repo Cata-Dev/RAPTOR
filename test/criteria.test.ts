@@ -35,7 +35,7 @@ describe("Foot distance", () => {
 
   const vehicleJourneyStep = makeJSComparable<Timestamp, number, number, number, [[number, "footDistance"]], "VEHICLE">({
     boardedAt: [0, originJS],
-    route: new Route(0, [0], [{ id: 0, times: [[NaN, NaN]] }]),
+    route: new Route(0, [0], [{ times: [[NaN, NaN]] }]),
     tripIndex: 0,
     label: new Label<Timestamp, number, number, number, [[number, "footDistance"]]>(TimeScal, [footDistanceTyped], NaN),
   });
@@ -85,14 +85,14 @@ describe("Buffer time", () => {
 
   const vehicleJourneyStep1 = makeJSComparable<Timestamp, number, number, number, [[number, "bufferTime"]], "VEHICLE">({
     boardedAt: [0, originJS],
-    route: new Route(0, [0], [{ id: 0, times: [[NaN, 5]] }]),
+    route: new Route(0, [0], [{ times: [[NaN, 5]] }]),
     tripIndex: 0,
     label: setLabelValues(new Label<Timestamp, number, number, number, [[number, "bufferTime"]]>(TimeScal, [bufferTimeTyped], 4), [-5]),
   });
 
   const vehicleJourneyStep2 = makeJSComparable<Timestamp, number, number, number, [[number, "bufferTime"]], "VEHICLE">({
     boardedAt: [0, vehicleJourneyStep1],
-    route: new Route(1, [0], [{ id: 0, times: [[NaN, 8]] }]),
+    route: new Route(1, [0], [{ times: [[NaN, 8]] }]),
     tripIndex: 0,
     label: setLabelValues(new Label<Timestamp, number, number, number, [[number, "bufferTime"]]>(TimeScal, [bufferTimeTyped], 8), [NaN]),
   });
@@ -136,7 +136,6 @@ describe("Success probability (interval)", () => {
       [0],
       [
         {
-          id: 0,
           times: [
             [
               [NaN, NaN],
@@ -157,7 +156,6 @@ describe("Success probability (interval)", () => {
       [0],
       [
         {
-          id: 0,
           times: [
             [
               [NaN, NaN],
@@ -193,7 +191,6 @@ describe("Success probability (interval)", () => {
             [0],
             [
               {
-                id: 0,
                 times: [
                   [
                     [NaN, NaN],
@@ -228,7 +225,6 @@ describe("Success probability (interval)", () => {
             [0],
             [
               {
-                id: 0,
                 times: [
                   [
                     [NaN, NaN],
@@ -264,7 +260,6 @@ describe("Success probability (interval)", () => {
             [0],
             [
               {
-                id: 0,
                 times: [
                   [
                     [NaN, NaN],
@@ -300,7 +295,6 @@ describe("Success probability (interval)", () => {
             [0],
             [
               {
-                id: 0,
                 times: [
                   [
                     [NaN, NaN],
@@ -336,7 +330,6 @@ describe("Success probability (interval)", () => {
             [0],
             [
               {
-                id: 0,
                 times: [
                   [
                     [NaN, NaN],
@@ -373,7 +366,6 @@ describe("Success probability (interval)", () => {
           [0],
           [
             {
-              id: 0,
               times: [
                 [
                   [NaN, NaN],
@@ -410,7 +402,6 @@ describe("Success probability (interval)", () => {
           [0],
           [
             {
-              id: 0,
               times: [
                 [
                   [NaN, NaN],
@@ -446,7 +437,6 @@ describe("Success probability (interval)", () => {
           [0],
           [
             {
-              id: 0,
               times: [
                 [
                   [NaN, NaN],
@@ -490,7 +480,6 @@ describe("Mean Risk", () => {
         [0],
         [
           {
-            id: 0,
             times: [
               [
                 [3, 8],
@@ -545,7 +534,6 @@ describe("Mean Risk", () => {
         [0],
         [
           {
-            id: 0,
             times: [
               [
                 [3, 8],
@@ -604,7 +592,6 @@ describe("Mean Risk", () => {
         [0],
         [
           {
-            id: 0,
             times: [
               [
                 [3, 8],
@@ -655,7 +642,6 @@ describe("Measuring journey", () => {
       [0],
       [
         {
-          id: 0,
           times: [[4, 6]],
         },
       ],

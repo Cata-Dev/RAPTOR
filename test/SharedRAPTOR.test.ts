@@ -17,7 +17,7 @@ for (const [datasetName, dataset] of [oneLine, twoLines, oneLineOTA as TestDatas
         for (const test of asset.tests) {
           sharedRaptorInstance.run(...test.params);
           const res = test.params[1] !== null ? sharedRaptorInstance.getBestJourneys(test.params[1]) : [];
-          test.validate(res, sharedRaptorInstance as BaseRAPTOR<number, number, number, number>);
+          test.validate(res, sharedRaptorInstance as BaseRAPTOR<number, number, number>);
         }
       });
     }

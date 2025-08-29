@@ -67,7 +67,6 @@ const routes: TestAsset<number>["data"][2] = [
     [1, 2, 3, 4],
     [
       {
-        id: 1,
         times: [
           [0, 0],
           [2, 2],
@@ -76,7 +75,6 @@ const routes: TestAsset<number>["data"][2] = [
         ],
       },
       {
-        id: 2,
         times: [
           [3, 3],
           [5, 5],

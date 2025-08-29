@@ -33,7 +33,7 @@ describe("Base RAPTOR should not be usable", () => {
 
 describe("et", () => {
   test("with interval time", () => {
-    const raptorData = new RAPTORData<InternalTimeInt, number, number, number>(
+    const raptorData = new RAPTORData<InternalTimeInt, number, number>(
       TimeInt,
       [],
       [
@@ -42,7 +42,6 @@ describe("et", () => {
           [0],
           [
             {
-              id: 0,
               times: [
                 [
                   [0, 0],

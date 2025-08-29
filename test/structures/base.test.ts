@@ -8,7 +8,6 @@ describe("Route class", () => {
     [1, 2, 3],
     [
       {
-        id: 1,
         times: [
           [0, 1],
           [2, 3],
@@ -16,7 +15,6 @@ describe("Route class", () => {
         ],
       },
       {
-        id: 2,
         times: [
           [2, 4],
           [6, 8],

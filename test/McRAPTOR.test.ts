@@ -38,7 +38,7 @@ for (const [datasetName, dataset] of [FDOneLine, FDTwoLines] as const) {
     for (const [assetName, asset] of Object.entries(dataset)) {
       describe(assetName, () => {
         const raptorData = new RAPTORData(...(asset.data as McTestAsset<number, number, [[number, "footDistance"]]>["data"]));
-        const raptorInstance = new McRAPTOR<number, number, [[number, "footDistance"]], number, number, number>(raptorData, [
+        const raptorInstance = new McRAPTOR<number, number, [[number, "footDistance"]], number, number>(raptorData, [
           footDistance as Criterion<number, number, number, number, "footDistance">,
         ]);
 
@@ -57,7 +57,7 @@ for (const [datasetName, dataset] of [BTOneLine, BTTwoLines] as const) {
     for (const [assetName, asset] of Object.entries(dataset)) {
       describe(assetName, () => {
         const raptorData = new RAPTORData(...(asset.data as McTestAsset<number, number, [[number, "bufferTime"]]>["data"]));
-        const raptorInstance = new McRAPTOR<number, number, [[number, "bufferTime"]], number, number, number>(raptorData, [
+        const raptorInstance = new McRAPTOR<number, number, [[number, "bufferTime"]], number, number>(raptorData, [
           bufferTime as Criterion<number, number, number, number, "bufferTime">,
         ]);
 

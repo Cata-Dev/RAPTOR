@@ -65,7 +65,6 @@ function testRoutes<TimeVal>(timeType: Time<TimeVal>, routes: TestAsset<TimeVal>
       // Order is important here
       const sharedTrip = sharedRoute.trips.at(i);
       expect(sharedTrip).not.toBe(undefined);
-      expect(sharedTrip?.id).toBe(trip.id);
 
       for (const [i, time] of Array.from(trip.times).entries()) {
         // Order is important here

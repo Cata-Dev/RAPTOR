@@ -227,12 +227,8 @@ class TripRetriever<TimeVal> extends Retriever<PtrType.Route, void> implements T
     super(...params);
   }
 
-  get id() {
-    return this.rDataView[this.ptr];
-  }
-
   protected get timesChunkSize() {
-    return this.rDataView[this.ptr + 1];
+    return this.rDataView[this.ptr];
   }
 
   get times() {
@@ -243,14 +239,14 @@ class TripRetriever<TimeVal> extends Retriever<PtrType.Route, void> implements T
         [
           this.timeType.sharedDeserialize(
             this.rDataView.subarray(
-              this.ptr + 2 + idx * 2 * this.timeType.sharedSerializedLen,
-              this.ptr + 2 + idx * 2 * this.timeType.sharedSerializedLen + this.timeType.sharedSerializedLen,
+              this.ptr + 1 + idx * 2 * this.timeType.sharedSerializedLen,
+              this.ptr + 1 + idx * 2 * this.timeType.sharedSerializedLen + this.timeType.sharedSerializedLen,
             ),
           ),
           this.timeType.sharedDeserialize(
             this.rDataView.subarray(
-              this.ptr + 2 + idx * 2 * this.timeType.sharedSerializedLen + this.timeType.sharedSerializedLen,
-              this.ptr + 2 + (idx + 1) * 2 * this.timeType.sharedSerializedLen,
+              this.ptr + 1 + idx * 2 * this.timeType.sharedSerializedLen + this.timeType.sharedSerializedLen,
+              this.ptr + 1 + (idx + 1) * 2 * this.timeType.sharedSerializedLen,
             ),
           ),
         ] satisfies [unknown, unknown],
@@ -259,7 +255,7 @@ class TripRetriever<TimeVal> extends Retriever<PtrType.Route, void> implements T
   }
 
   get chunkSize() {
-    return 1 + 1 + this.timesChunkSize;
+    return 1 + this.timesChunkSize;
   }
 }
 
@@ -267,7 +263,7 @@ class TripRetriever<TimeVal> extends Retriever<PtrType.Route, void> implements T
 // Route
 //
 
-class RouteRetriever<TimeVal> extends Retriever<PtrType.Route, void> implements Route<TimeVal, SharedID, number, number> {
+class RouteRetriever<TimeVal> extends Retriever<PtrType.Route, void> implements Route<TimeVal, SharedID, number> {
   constructor(
     readonly timeType: SharedTime<TimeVal>,
     ...params: ConstructorParameters<typeof Retriever<PtrType.Route, void>>
@@ -313,7 +309,7 @@ class RouteRetriever<TimeVal> extends Retriever<PtrType.Route, void> implements 
   }
 
   get trips() {
-    return new ArrayView<Trip<TimeVal, number>>(
+    return new ArrayView<Trip<TimeVal>>(
       () => (this._tripsChunkSizes ??= this.tripsChunkSizes).length,
       (idx) => {
         this._tripsChunkSizes ??= this.tripsChunkSizes;
@@ -326,12 +322,12 @@ class RouteRetriever<TimeVal> extends Retriever<PtrType.Route, void> implements 
           PtrType.Route,
         );
       },
-      (a, b) => a.id === b.id,
+      (a, b) => a === b,
     );
   }
 
   departureTime(t: number, p: number): TimeVal {
-    return (Route.prototype as Route<TimeVal, SharedID, number, number>).departureTime.apply(this, [t, p]);
+    return (Route.prototype as Route<TimeVal, SharedID, number>).departureTime.apply(this, [t, p]);
   }
 
   get chunkSize() {
@@ -342,7 +338,7 @@ class RouteRetriever<TimeVal> extends Retriever<PtrType.Route, void> implements 
 /**
  * Memory-shared RAPTOR data
  */
-class SharedRAPTORData<TimeVal> implements IRAPTORData<TimeVal, SharedID, number, number> {
+class SharedRAPTORData<TimeVal> implements IRAPTORData<TimeVal, SharedID, number> {
   /**
    * Internal data (shared) buffer
    */
@@ -368,13 +364,13 @@ class SharedRAPTORData<TimeVal> implements IRAPTORData<TimeVal, SharedID, number
   protected constructor(timeType: SharedTime<TimeVal>, data: typeof SharedRAPTORData.prototype.internalData);
   protected constructor(
     timeType: SharedTime<TimeVal>,
-    stops: ConstructorParameters<typeof RAPTORData<TimeVal, number, number, number>>[1],
-    routes: ConstructorParameters<typeof RAPTORData<TimeVal, number, number, number>>[2],
+    stops: ConstructorParameters<typeof RAPTORData<TimeVal, number, number>>[1],
+    routes: ConstructorParameters<typeof RAPTORData<TimeVal, number, number>>[2],
   );
   protected constructor(
     readonly timeType: SharedTime<TimeVal>,
-    dataOrStops: typeof SharedRAPTORData.prototype.internalData | ConstructorParameters<typeof RAPTORData<TimeVal, number, number, number>>[1],
-    routes?: ConstructorParameters<typeof RAPTORData<TimeVal, number, number, number>>[2],
+    dataOrStops: typeof SharedRAPTORData.prototype.internalData | ConstructorParameters<typeof RAPTORData<TimeVal, number, number>>[1],
+    routes?: ConstructorParameters<typeof RAPTORData<TimeVal, number, number>>[2],
   ) {
     let stopsChunkSize: number | null = null;
 
@@ -417,8 +413,6 @@ class SharedRAPTORData<TimeVal> implements IRAPTORData<TimeVal, SharedID, number
                     trips.reduce<number>(
                       (acc, v) =>
                         acc +
-                        // trip id
-                        1 +
                         // length of trip times chunk
                         1 +
                         // trip times chunk
@@ -504,8 +498,6 @@ class SharedRAPTORData<TimeVal> implements IRAPTORData<TimeVal, SharedID, number
         // Length of trips chunk
         const tripsChunkLengthIdx = idx++;
         for (const trip of trips) {
-          this.rDataView[idx++] = trip.id;
-
           // Trip times length
           this.rDataView[idx++] = trip.times.length * 2 * timeType.sharedSerializedLen;
           for (const timePair of trip.times)
@@ -554,8 +546,8 @@ class SharedRAPTORData<TimeVal> implements IRAPTORData<TimeVal, SharedID, number
 
   static makeFromRawData<TimeVal>(
     timeType: SharedTime<TimeVal>,
-    stops: ConstructorParameters<typeof RAPTORData<TimeVal, number, number, number>>[1],
-    routes: ConstructorParameters<typeof RAPTORData<TimeVal, number, number, number>>[2],
+    stops: ConstructorParameters<typeof RAPTORData<TimeVal, number, number>>[1],
+    routes: ConstructorParameters<typeof RAPTORData<TimeVal, number, number>>[2],
   ) {
     return new SharedRAPTORData(timeType, stops, routes);
   }
@@ -668,7 +660,7 @@ class SharedRAPTORData<TimeVal> implements IRAPTORData<TimeVal, SharedID, number
 
         return new RouteRetriever(this.timeType, this.sDataView, this.rDataView, ptr, PtrType.Route);
       },
-    } as MapRead<number, Route<TimeVal, SharedID, number, number>>;
+    } as MapRead<number, Route<TimeVal, SharedID, number>>;
   }
 
   /**

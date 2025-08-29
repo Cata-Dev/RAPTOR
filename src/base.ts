@@ -12,7 +12,7 @@ interface RAPTORRunSettings {
  * @description A RAPTOR instance
  * @template TimeVal Time representation internal type, its full type is {@link Time<TimeVal>}.
  */
-export default class BaseRAPTOR<TimeVal, SI extends Id = Id, RI extends Id = Id, TI extends Id = Id, V = never, CA extends [V, string][] = []> {
+export default class BaseRAPTOR<TimeVal, SI extends Id = Id, RI extends Id = Id, V = never, CA extends [V, string][] = []> {
   static defaultRounds = 6;
 
   protected runParams: {
@@ -33,7 +33,7 @@ export default class BaseRAPTOR<TimeVal, SI extends Id = Id, RI extends Id = Id,
   /**
    * @description Creates a new RAPTOR instance for a defined network.
    */
-  constructor(protected readonly data: IRAPTORData<TimeVal, SI, RI, TI>) {}
+  constructor(protected readonly data: IRAPTORData<TimeVal, SI, RI>) {}
 
   /**
    * Getter on stops from {@link data}
@@ -106,7 +106,7 @@ export default class BaseRAPTOR<TimeVal, SI extends Id = Id, RI extends Id = Id,
   }
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  protected traverseRoute(route: Route<TimeVal, SI, RI, TI>, stop: SI) {
+  protected traverseRoute(route: Route<TimeVal, SI, RI>, stop: SI) {
     throw new Error("Not implemented");
   }
 

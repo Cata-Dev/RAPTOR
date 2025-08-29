@@ -81,7 +81,6 @@ const routes: TestAsset<number>["data"][2] = [
     [1, 2, 3, 4],
     [
       {
-        id: 1,
         times: [
           [0, 0],
           [2, 2],
@@ -90,7 +89,6 @@ const routes: TestAsset<number>["data"][2] = [
         ],
       },
       {
-        id: 2,
         times: [
           [2, 2],
           [4, 4],
@@ -105,7 +103,6 @@ const routes: TestAsset<number>["data"][2] = [
     [5, 3, 6, 7],
     [
       {
-        id: 1,
         times: [
           [1, 1],
           [3, 3],
@@ -114,7 +111,6 @@ const routes: TestAsset<number>["data"][2] = [
         ],
       },
       {
-        id: 2,
         times: [
           [4, 4],
           [6, 6],
@@ -354,7 +350,6 @@ export default [
             [1, 2, 3],
             [
               {
-                id: 1,
                 times: [
                   [1, 1],
                   [3, 3],
@@ -362,7 +357,6 @@ export default [
                 ],
               },
               {
-                id: 2,
                 times: [
                   [4, 4],
                   [6, 6],
@@ -376,7 +370,6 @@ export default [
             [4, 5, 6],
             [
               {
-                id: 1,
                 times: [
                   [11, 11],
                   [13, 13],
@@ -384,7 +377,6 @@ export default [
                 ],
               },
               {
-                id: 2,
                 times: [
                   [15, 15],
                   [17, 17],
