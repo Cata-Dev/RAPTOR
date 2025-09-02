@@ -560,6 +560,8 @@ class SharedRAPTORData<TimeVal> implements IRAPTORData<TimeVal, SharedID, number
   get stops() {
     return {
       [Symbol.iterator]: function* (this: SharedRAPTORData<TimeVal>) {
+        if (this.sDataView.length === 0) return undefined;
+
         const seen = new Set<SharedID>();
 
         const stopRetriever = new StopRetriever(this.sDataView, this.rDataView, 0, PtrType.Stop, null);
@@ -611,6 +613,8 @@ class SharedRAPTORData<TimeVal> implements IRAPTORData<TimeVal, SharedID, number
   get routes() {
     return {
       [Symbol.iterator]: function* (this: SharedRAPTORData<TimeVal>) {
+        if (this.rDataView.length === 0) return undefined;
+
         const routeRetriever = new RouteRetriever(this.timeType, this.sDataView, this.rDataView, 0, PtrType.Route, null);
         for (let ptr = 0; ptr < this.rDataView.length; ptr += routeRetriever.point(ptr).chunkSize) {
           /**
