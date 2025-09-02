@@ -87,6 +87,18 @@ describe("SharedRAPTORData class", () => {
     test("All routes are present", () => {
       testRoutes(timeType, routes, SharedRAPTORDataInst);
     });
+
+    test("With empty stops or routes", () => {
+      const emptySharedRAPTORDataInst = SharedRAPTORData.makeFromRawData(sharedTimeScal, [], []);
+
+      expect(() => {
+        for (const [_, stop] of emptySharedRAPTORDataInst.stops) void stop.id;
+      }).not.toThrow();
+
+      expect(() => {
+        for (const [_, route] of emptySharedRAPTORDataInst.routes) void route.id;
+      }).not.toThrow();
+    });
   });
 
   describe("From internal data instantiation", () => {
