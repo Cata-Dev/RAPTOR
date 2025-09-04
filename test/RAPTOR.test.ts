@@ -1,12 +1,13 @@
 import { describe } from "@jest/globals";
-import { RAPTOR, RAPTORData } from "../src";
+import { InternalTimeInt, RAPTOR, RAPTORData, Timestamp } from "../src";
 import { TestDataset } from "./assets/asset";
 import oneLine from "./assets/oneLine";
 import oneLineOTA from "./assets/oneLineOTA";
 import twoLines from "./assets/twoLines";
 import twoLinesOTA from "./assets/twoLinesOTA";
+import specialCases from "./assets/specialCases";
 
-for (const [datasetName, dataset] of [oneLine, twoLines, oneLineOTA as TestDataset<number>, twoLinesOTA] as const) {
+for (const [datasetName, dataset] of [oneLine, twoLines, oneLineOTA, twoLinesOTA, specialCases] as TestDataset<Timestamp | InternalTimeInt>[]) {
   describe(datasetName, () => {
     for (const [assetName, asset] of Object.entries(dataset)) {
       describe(assetName, () => {
