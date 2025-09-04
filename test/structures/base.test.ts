@@ -1,9 +1,9 @@
-import { describe, expect, test, jest } from "@jest/globals";
-import { Bag, Criterion, Label, Route, TimeInt, TimeScal } from "../../src";
+import { describe, expect, jest, test } from "@jest/globals";
+import { Bag, Criterion, InternalTimeInt, Label, Route, TimeInt, TimeScal } from "../../src";
 import { setLabelValues } from "./utils";
 
 describe("Route class", () => {
-  const data: ConstructorParameters<typeof Route<number, number, number>> = [
+  const data = [
     1,
     [1, 2, 3],
     [
@@ -18,14 +18,14 @@ describe("Route class", () => {
         [10, 12],
       ],
     ],
-  ];
+  ] satisfies ConstructorParameters<typeof Route<number, number, number>>;
 
   test("Basic props", () => {
     const route = new Route(...data);
 
     expect(route.id).toBe(data[0]);
-    expect(route.stops.reduce((acc, s, i) => acc && s === data[1].at(i), true)).toBe(true);
-    expect(route.trips.reduce((acc, t, i) => acc && t === data[2].at(i), true)).toBe(true);
+    expect(route.stops.reduce((acc, s, i) => acc && s === data[1][i], true)).toBe(true);
+    expect(route.trips.reduce((acc, t, i) => acc && t === data[2][i], true)).toBe(true);
   });
 
   test("departureTime", () => {
@@ -39,6 +39,73 @@ describe("Route class", () => {
     expect(() => route.departureTime(10, 3)).toThrow("No departure time");
     expect(() => route.departureTime(0, 3)).toThrow("No departure time");
     expect(() => route.departureTime(0, 10)).toThrow("No departure time");
+  });
+
+  const dataInt = [
+    1,
+    [1, 2, 3],
+    [
+      [
+        [
+          [0, 1],
+          [1, 2],
+        ],
+        [
+          [3, 4],
+          [4, 5],
+        ],
+        [
+          [6, 7],
+          [7, 8],
+        ],
+      ],
+      [
+        [
+          [2, 4],
+          [4, 6],
+        ],
+        [
+          [8, 10],
+          [10, 12],
+        ],
+        [
+          [14, 16],
+          [16, 17],
+        ],
+      ],
+    ],
+  ] satisfies ConstructorParameters<typeof Route<InternalTimeInt, number, number>>;
+
+  describe("actualArrivalTime", () => {
+    test("Scalar time", () => {
+      const route = new Route(...data);
+
+      expect(route.actualArrivalTime(0, 0, TimeScal, 0)).toBe(data[2][0][0][0]);
+      expect(route.actualArrivalTime(0, 2, TimeScal, 3)).toBe(data[2][0][2][0]);
+      expect(route.actualArrivalTime(0, 2, TimeScal, 8)).toBe(8);
+      expect(route.actualArrivalTime(1, 0, TimeScal, 2)).toBe(data[2][1][0][0]);
+      expect(route.actualArrivalTime(1, 0, TimeScal, 3)).toBe(3);
+      expect(route.actualArrivalTime(1, 2, TimeScal, 16)).toBe(16);
+      expect(() => route.actualArrivalTime(2, 0, TimeScal, 0)).toThrow("No arrival time");
+      expect(() => route.actualArrivalTime(10, 3, TimeScal, -5)).toThrow("No arrival time");
+      expect(() => route.actualArrivalTime(0, 3, TimeScal, 42)).toThrow("No arrival time");
+      expect(() => route.actualArrivalTime(0, 10, TimeScal, 0)).toThrow("No arrival time");
+    });
+
+    test("Interval time", () => {
+      const routeInt = new Route<InternalTimeInt, number, number>(...dataInt);
+
+      expect(routeInt.actualArrivalTime(0, 0, TimeInt, 0)).toEqual(dataInt[2][0][0][0]);
+      expect(routeInt.actualArrivalTime(0, 2, TimeInt, 3)).toEqual(dataInt[2][0][2][0]);
+      expect(routeInt.actualArrivalTime(0, 2, TimeInt, 8)).toEqual([7, 7]);
+      expect(routeInt.actualArrivalTime(1, 0, TimeInt, 2)).toEqual(dataInt[2][1][0][0]);
+      expect(routeInt.actualArrivalTime(1, 0, TimeInt, 3)).toEqual([3, dataInt[2][1][0][0][1]]);
+      expect(routeInt.actualArrivalTime(1, 2, TimeInt, 16)).toEqual([16, dataInt[2][1][2][0][1]]);
+      expect(() => routeInt.actualArrivalTime(2, 0, TimeInt, 0)).toThrow("No arrival time");
+      expect(() => routeInt.actualArrivalTime(10, 3, TimeInt, -5)).toThrow("No arrival time");
+      expect(() => routeInt.actualArrivalTime(0, 3, TimeInt, 42)).toThrow("No arrival time");
+      expect(() => routeInt.actualArrivalTime(0, 10, TimeInt, 0)).toThrow("No arrival time");
+    });
   });
 });
 

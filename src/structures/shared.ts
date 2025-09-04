@@ -1,5 +1,5 @@
 import { ArrayRead, FootPath, IRAPTORData, IStop, MapRead, RAPTORData, Route, Stop, Trip } from "./base";
-import { Time, TimeInt, TimeScal } from "./time";
+import { Time, TimeInt, TimeScal, Timestamp } from "./time";
 
 //
 // Time
@@ -298,6 +298,10 @@ class RouteRetriever<TimeVal> extends Retriever<PtrType.Route, void> implements 
 
   departureTime(t: number, p: number): TimeVal {
     return (Route.prototype as Route<TimeVal, SharedID, number>).departureTime.apply(this, [t, p]);
+  }
+
+  actualArrivalTime(t: number, p: number, timeType: Time<TimeVal>, departureTimeLow: Timestamp): TimeVal {
+    return (Route.prototype as Route<TimeVal, SharedID, number>).actualArrivalTime.apply(this, [t, p, timeType, departureTimeLow]);
   }
 
   get chunkSize() {

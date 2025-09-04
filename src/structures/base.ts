@@ -1,4 +1,4 @@
-import { Ordered, Time } from "./time";
+import { Ordered, Time, Timestamp } from "./time";
 
 type Id = number | string;
 type LabelType = "DEFAULT" | "DEPARTURE" | "FOOT" | "VEHICLE";
@@ -90,6 +90,13 @@ class Route<TimeVal, SI extends Id, RI extends Id> {
     if (time === undefined) throw new Error(`No departure time for stop at index ${p} in trip at index ${t} (indexes out of bounds?).`);
 
     return time;
+  }
+
+  actualArrivalTime(t: number, p: number, timeType: Time<TimeVal>, departureTimeLow: Timestamp): TimeVal {
+    const arrivalTime = this.trips.at(t)?.at(p)?.[0];
+    if (arrivalTime === undefined) throw new Error(`No arrival time for stop at index ${p} in trip at index ${t} (indexes out of bounds?).`);
+
+    return timeType.setLow(arrivalTime, departureTimeLow);
   }
 }
 
