@@ -215,7 +215,11 @@ type JourneyStep<
   label: Label<TimeVal, SI, RI, V, CA>;
 } & (T extends "VEHICLE"
     ? {
-        /** @param boardedAt {@link SI} in {@link RAPTOR.stops} */
+        /**
+         * @param boardedAt {@link SI} in {@link RAPTOR.stops}
+         * This property should maintain the follow invariant during computation: the journey step should point to data in round {round of this journey step} - 1
+         * Indeed, if it's a route, previous step would be FOOT or VEHICLE (or base) -- at previous round anyway
+         */
         boardedAt: F extends true ? SI : [SI, JourneyStep<TimeVal, SI, RI, V, CA>];
         /** @param route {@link Route} in {@link RAPTOR.routes} */
         route: Route<TimeVal, SI, RI>;
@@ -223,7 +227,11 @@ type JourneyStep<
       }
     : T extends "FOOT"
       ? {
-          /** @param boardedAt {@link SI} in {@link RAPTOR.stops} */
+          /**
+           * @param boardedAt {@link SI} in {@link RAPTOR.stops}
+           * This property should maintain the follow invariant during computation: the journey step should point to data in round {round of this journey step}
+           * Indeed, if it's a foot transfer, it must come after a VEHICLE (or base) -- at same round anyway
+           */
           boardedAt: F extends true ? SI : [SI, JourneyStep<TimeVal, SI, RI, V, CA>];
           /** @param transfer {@link FootPath<SI>} in {@link RAPTOR.stops} */
           transfer: FootPath<SI>;
@@ -477,4 +485,4 @@ class RAPTORData<TimeVal, SI extends Id = Id, RI extends Id = Id> implements IRA
 }
 
 export { Bag, Label, makeJSComparable, RAPTORData, Route, Stop };
-export type { ArrayRead, Criterion, FootPath, Id, IRAPTORData, Journey, JourneyStep, LabelType, MapRead, IStop, Trip };
+export type { ArrayRead, Criterion, FootPath, Id, IRAPTORData, IStop, Journey, JourneyStep, LabelType, MapRead, Trip };
