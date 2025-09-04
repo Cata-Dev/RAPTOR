@@ -47,6 +47,7 @@ interface Time<T> {
 
   /** Lower bound */
   low(this: void, timeVal: T): Timestamp;
+  setLow(this: void, timeVal: T, low: Timestamp): T;
   /** Upper bound */
   up(this: void, timeVal: T): Timestamp;
 
@@ -54,7 +55,15 @@ interface Time<T> {
   large: OrderedWithMethods<T>;
 }
 
-function makeTime<T>(MAX_SAFE: T, MAX: T, MIN: T, low: Time<T>["low"], up: Time<T>["up"], plusScal: Time<T>["plusScal"]): Time<T> {
+function makeTime<T>(
+  MAX_SAFE: T,
+  MAX: T,
+  MIN: T,
+  low: Time<T>["low"],
+  setLow: Time<T>["setLow"],
+  up: Time<T>["up"],
+  plusScal: Time<T>["plusScal"],
+): Time<T> {
   return {
     MAX_SAFE,
     MAX,
@@ -63,6 +72,7 @@ function makeTime<T>(MAX_SAFE: T, MAX: T, MIN: T, low: Time<T>["low"], up: Time<
     plusScal,
 
     low,
+    setLow,
     up,
 
     strict: makeOrderWithMethods((a, b) => (low(a) > up(b) ? 1 : up(a) < low(b) ? -1 : 0), MIN, MAX),
@@ -78,6 +88,7 @@ const TimeScal: Time<Timestamp> = makeTime(
   Infinity,
   -Infinity,
   (timeVal) => timeVal,
+  (timeVal, low) => (low > timeVal ? low : timeVal),
   (timeVal) => timeVal,
   (timeVal, timeScal) => timeVal + timeScal,
 );
@@ -93,6 +104,7 @@ const TimeInt = makeTime<InternalTimeInt>(
   [Infinity, Infinity],
   [-Infinity, -Infinity],
   (timeVal) => timeVal[0],
+  (timeVal, low) => (low > timeVal[0] ? ([Math.min(low, timeVal[1]), timeVal[1]] as const) : timeVal),
   (timeVal) => timeVal[1],
   ([low, high], timeScal) => [low + timeScal, high + timeScal],
 );

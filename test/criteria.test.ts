@@ -131,36 +131,14 @@ describe("Success probability (interval)", () => {
 
   const vehicleJourneyStep1 = makeJSComparable<InternalTimeInt, number, number, number, [[number, "successProbaInt"]], "VEHICLE">({
     boardedAt: [0, originJS],
-    route: new Route(
-      0,
-      [0],
-      [
-        [
-          [
-            [NaN, NaN],
-            [5, 5],
-          ],
-        ],
-      ],
-    ),
+    route: new Route(0, [0], [[[[NaN, NaN] as const, [5, 5]]]]),
     tripIndex: 0,
     label: new Label<InternalTimeInt, number, number, number, [[number, "successProbaInt"]]>(TimeInt, [successProbaIntTyped], [6, 6]),
   });
 
   const vehicleJourneyStep2 = makeJSComparable<InternalTimeInt, number, number, number, [[number, "successProbaInt"]], "VEHICLE">({
     boardedAt: [0, originJS],
-    route: new Route(
-      1,
-      [0],
-      [
-        [
-          [
-            [NaN, NaN],
-            [8, 8],
-          ],
-        ],
-      ],
-    ),
+    route: new Route(1, [0], [[[[NaN, NaN] as const, [8, 8]]]]),
     tripIndex: 0,
     label: new Label<InternalTimeInt, number, number, number, [[number, "successProbaInt"]]>(TimeInt, [successProbaIntTyped], [NaN, NaN]),
   });
@@ -455,18 +433,7 @@ describe("Mean Risk", () => {
 
     const vehicleJourneyStep = makeJSComparable<InternalTimeInt, number, number, number, [[number, "meanRisk-0"]], "VEHICLE">({
       boardedAt: [0, originJS],
-      route: new Route(
-        0,
-        [0],
-        [
-          [
-            [
-              [3, 8],
-              [NaN, NaN],
-            ],
-          ],
-        ],
-      ),
+      route: new Route(0, [0], [[[[3, 8], [NaN, NaN] as const]]]),
       tripIndex: 0,
       label: new Label<InternalTimeInt, number, number, number, [[number, "meanRisk-0"]]>(TimeInt, [meanRisk0Typed], [NaN, NaN]),
     });
@@ -507,18 +474,7 @@ describe("Mean Risk", () => {
 
     const vehicleJourneyStep = makeJSComparable<InternalTimeInt, number, number, number, [[number, "meanRisk-0.5"]], "VEHICLE">({
       boardedAt: [0, originJS],
-      route: new Route(
-        0,
-        [0],
-        [
-          [
-            [
-              [3, 8],
-              [NaN, NaN],
-            ],
-          ],
-        ],
-      ),
+      route: new Route(0, [0], [[[[3, 8], [NaN, NaN] as const]]]),
       tripIndex: 0,
       label: new Label<InternalTimeInt, number, number, number, [[number, "meanRisk-0.5"]]>(TimeInt, [meanRisk05Typed], [NaN, NaN]),
     });
@@ -563,18 +519,7 @@ describe("Mean Risk", () => {
 
     const vehicleJourneyStep = makeJSComparable<InternalTimeInt, number, number, number, [[number, "meanRisk-1"]], "VEHICLE">({
       boardedAt: [0, originJS],
-      route: new Route(
-        0,
-        [0],
-        [
-          [
-            [
-              [3, 8],
-              [NaN, NaN],
-            ],
-          ],
-        ],
-      ),
+      route: new Route(0, [0], [[[[3, 8], [NaN, NaN] as const]]]),
       tripIndex: 0,
       label: new Label<InternalTimeInt, number, number, number, [[number, "meanRisk-1"]]>(TimeInt, [meanRisk1Typed], [NaN, NaN]),
     });

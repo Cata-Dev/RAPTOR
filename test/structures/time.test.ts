@@ -13,6 +13,12 @@ function testTimeIntMethods(TimeInt: Time<InternalTimeInt>) {
   expect(TimeInt.low([3, 5])).toBe(3);
   expect(TimeInt.low([Infinity, Infinity + 1])).toBe(Infinity);
 
+  expect(TimeInt.setLow([0, 3], -2)).toEqual([0, 3]);
+  expect(TimeInt.setLow([0, 3], 0)).toEqual([0, 3]);
+  expect(TimeInt.setLow([0, 3], 1)).toEqual([1, 3]);
+  expect(TimeInt.setLow([0, 3], 5)).toEqual([3, 3]);
+  expect(TimeInt.setLow([-Infinity, 3], -5)).toEqual([-5, 3]);
+
   expect(TimeInt.up([-Infinity, 5])).toBe(5);
   expect(TimeInt.up([-3, 0])).toBe(0);
   expect(TimeInt.up([0, 5])).toBe(5);
@@ -109,6 +115,11 @@ describe("Scalar time", () => {
     expect(TimeScal.low(3)).toBe(3);
     expect(TimeScal.low(Infinity)).toBe(Infinity);
 
+    expect(TimeScal.setLow(15, -Infinity)).toBe(15);
+    expect(TimeScal.setLow(15, 0)).toBe(15);
+    expect(TimeScal.setLow(15, 18)).toBe(18);
+    expect(TimeScal.setLow(-Infinity, 3)).toBe(3);
+
     expect(TimeScal.up(-Infinity)).toBe(-Infinity);
     expect(TimeScal.up(0)).toBe(0);
     expect(TimeScal.up(3)).toBe(3);
@@ -142,7 +153,7 @@ describe("Scalar time", () => {
 
 describe("Making time", () => {
   describe("with interval time", () => {
-    const timeMade = makeTime(TimeInt.MAX_SAFE, TimeInt.MAX, TimeInt.MIN, TimeInt.low, TimeInt.up, TimeInt.plusScal);
+    const timeMade = makeTime(TimeInt.MAX_SAFE, TimeInt.MAX, TimeInt.MIN, TimeInt.low, TimeInt.setLow, TimeInt.up, TimeInt.plusScal);
 
     test("Props are correct", () => {
       testTimeIntProps(timeMade);
