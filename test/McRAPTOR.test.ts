@@ -1,5 +1,5 @@
 import { describe, expect } from "@jest/globals";
-import { bufferTime, Criterion, footDistance, McRAPTOR, RAPTORData } from "../src";
+import { bufferTime, Criterion, footDistance, InternalTimeInt, McRAPTOR, RAPTORData, Timestamp } from "../src";
 import BTOneLine from "./assets/BTOneLine";
 import BTTwoLines from "./assets/BTTwoLines";
 import FDOneLine from "./assets/FDOneLine";
@@ -9,9 +9,10 @@ import oneLine from "./assets/oneLine";
 import oneLineOTA from "./assets/oneLineOTA";
 import twoLines from "./assets/twoLines";
 import twoLinesOTA from "./assets/twoLinesOTA";
+import specialCases from "./assets/specialCases";
 
 // Same as RAPTOR
-for (const [datasetName, dataset] of [oneLine, twoLines, oneLineOTA as TestDataset<number>, twoLinesOTA] as const) {
+for (const [datasetName, dataset] of [oneLine, twoLines, oneLineOTA, twoLinesOTA, specialCases] as TestDataset<Timestamp | InternalTimeInt>[]) {
   describe(datasetName, () => {
     for (const [assetName, asset] of Object.entries(dataset)) {
       describe(assetName, () => {
