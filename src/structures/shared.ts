@@ -686,4 +686,4 @@ class SharedRAPTORData<TimeVal> implements IRAPTORData<TimeVal, SharedID, number
 }
 
 export { ArrayView, SharedRAPTORData, sharedTimeIntOrderLow, sharedTimeScal };
-export type { SerializedId, SharedID };
+export type { SerializedId, SharedID, SharedTime };
