@@ -1,5 +1,19 @@
 import { describe, expect } from "@jest/globals";
-import { bufferTime, Criterion, footDistance, McRAPTOR, McSharedRAPTOR, SharedID, SharedRAPTORData, sharedTimeScal } from "../src";
+import {
+  bufferTime,
+  Criterion,
+  footDistance,
+  InternalTimeInt,
+  McRAPTOR,
+  McSharedRAPTOR,
+  SharedID,
+  SharedRAPTORData,
+  SharedTime,
+  sharedTimeIntOrderLow,
+  sharedTimeScal,
+  TimeScal,
+  Timestamp,
+} from "../src";
 import BaseRAPTOR from "../src/base";
 import { TestDataset } from "./assets/asset";
 import BTOneLine from "./assets/BTOneLine";
@@ -10,13 +24,19 @@ import oneLine from "./assets/oneLine";
 import oneLineOTA from "./assets/oneLineOTA";
 import twoLines from "./assets/twoLines";
 import twoLinesOTA from "./assets/twoLinesOTA";
+import specialCases from "./assets/specialCases";
 
 // Same as RAPTOR
-for (const [datasetName, dataset] of [oneLine, twoLines, oneLineOTA as TestDataset<number>, twoLinesOTA] as const) {
+for (const [datasetName, dataset] of [oneLine, twoLines, oneLineOTA, twoLinesOTA, specialCases] as TestDataset<Timestamp | InternalTimeInt>[]) {
   describe(datasetName, () => {
     for (const [assetName, asset] of Object.entries(dataset)) {
       describe(assetName, () => {
-        const sharedRaptorData = SharedRAPTORData.makeFromRawData(sharedTimeScal, asset.data[1], asset.data[2]);
+        const sharedRaptorData = SharedRAPTORData.makeFromRawData(
+          (asset.data[0] === TimeScal ? sharedTimeScal : sharedTimeIntOrderLow) as SharedTime<Timestamp | InternalTimeInt>,
+
+          asset.data[1],
+          asset.data[2],
+        );
         const sharedRaptorInstance = new McSharedRAPTOR(sharedRaptorData, []);
 
         for (const test of asset.tests) {
@@ -25,7 +45,7 @@ for (const [datasetName, dataset] of [oneLine, twoLines, oneLineOTA as TestDatas
           for (const journeys of res) expect(journeys.length || 1).toBe(1);
           test.validate(
             res.map((journeys) => (journeys.length ? [journeys[0]] : [])),
-            sharedRaptorInstance as BaseRAPTOR<number, number, number>,
+            sharedRaptorInstance as BaseRAPTOR<Timestamp | InternalTimeInt, number, number>,
           );
         }
       });
