@@ -26,12 +26,15 @@
   "author": "Catatomik",
   "license": "MIT",
   "dependencies": {
+    "@bibm/common": "link:bibm/Common",
+    "@bibm/compute": "link:bibm/Compute",
+    "@bibm/data": "link:bibm/Data",
     "@catatomik/dijkstra": "github:catatomik/dijkstra",
-    "@typegoose/typegoose": "^12.17.0",
+    "@typegoose/typegoose": "^12.19.0",
     "core-js": "^3.44.0",
     "minimist": "^1.2.8",
-    "mongodb": "^6.17.0",
-    "mongoose": "^8.16.2"
+    "mongodb": "^6.19.0",
+    "mongoose": "^8.18.0"
   },
   "devDependencies": {
     "0x": "^6.0.0",
