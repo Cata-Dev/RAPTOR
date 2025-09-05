@@ -461,6 +461,7 @@ Command-line interface:
   h, help, -h, --h, --help: see this message
   --fp-req-len=<int>: maximum foot paths' length to retrieve and store un RAPTOR data
   --fp-run-len=<int>: maximum foot paths' length to consider during itineraries search
+  --rounds=<int>: (max) number of RAPTOR rounds to perform
   (-d[ ] | --d=)<scal | int>: time data type, scalar or interval
   --delay-pos=<int>: positive delay (in sec), interval time only
   --delay-neg=<int>: negative delay (in sec), interval time only
@@ -493,6 +494,9 @@ Command-line interface:
   console.debug(`Foot paths query max len`, fpReqLen);
   const fpRunLen = getArgsOptNumber(args, "fp-run-len") ?? 2_000;
   console.debug(`Foot paths run max len`, fpRunLen);
+
+  const maxRounds = getArgsOptNumber(args, "rounds") ?? undefined;
+  console.debug(`Performing maximal rounds of`, maxRounds);
 
   let dataType: DataType;
   if ("d" in args) {
@@ -723,7 +727,7 @@ Command-line interface:
   // Run
 
   function runRAPTOR() {
-    RAPTORInstance.run(psId, pt, departureTime, settings);
+    RAPTORInstance.run(psId, pt, departureTime, settings, maxRounds);
   }
   console.log(
     `Running with: ps=${psId}, pt=${pt}, departure time=${new Date(typeof departureTime === "number" ? departureTime : departureTime[0]).toLocaleString()}, settings=${JSON.stringify(settings)}`,
