@@ -3,9 +3,9 @@ import initDB from "./utils/mongoose";
 // Needed to solve "Reflect.getMetadata is not a function" error of typegoose
 import "core-js/features/reflect";
 
-import TBMScheduledRoutesModelInit, { dbTBM_ScheduledRoutes } from "./models/TBMScheduledRoutes.model";
-import TBMLinesRoutesModelInit from "./models/TBM_lines.model";
-import TBMLinesModelInit from "./models/TBM_lines_routes.model";
+import TBMScheduledRoutesModelInit, { dbTBM_ScheduledRoutes } from "@bibm/data/models/TBM/TBMScheduledRoutes.model";
+import TBMLinesRoutesModelInit from "@bibm/data/models/TBM/TBM_lines.model";
+import TBMLinesModelInit from "@bibm/data/models/TBM/TBM_lines_routes.model";
 
 import { UnpackRefs } from "./utils";
 import { benchmark } from "./utils/benchmark";

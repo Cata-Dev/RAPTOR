@@ -14,6 +14,10 @@ export enum RtScheduleType {
   Deviation = "DEVIATION",
 }
 
+import { Schedule } from "@bibm/data/models/Compute/types";
+import { TBMEndpoints } from "@bibm/data/models/TBM/index";
+import { dbTBM_Stops } from "@bibm/data/models/TBM/TBM_stops.model";
+import { dbTBM_Trips } from "@bibm/data/models/TBM/TBM_trips.model";
 import {
   deleteModelWithClass,
   getDiscriminatorModelForClass,
@@ -26,9 +30,6 @@ import {
 import { TimeStamps } from "@typegoose/typegoose/lib/defaultClasses";
 import { modelOptions } from "@typegoose/typegoose/lib/modelOptions";
 import { Connection } from "mongoose";
-import { TBMEndpoints } from ".";
-import { dbTBM_Stops } from "./TBM_stops.model";
-import { dbTBM_Trips } from "./TBM_trips.model";
 
 @index({ _id: 1, realtime: 1 }, { unique: true })
 @modelOptions({ options: { customName: TBMEndpoints.Schedules } })
@@ -43,19 +44,25 @@ export class dbTBM_Schedules extends TimeStamps {
   public realtime!: boolean;
 
   @prop({ required: true, ref: () => dbTBM_Stops, type: () => Number })
-  public rs_sv_arret_p!: Ref<dbTBM_Stops, number>;
+  public rs_sv_arret_p!: Ref<dbTBM_Stops>;
 
   @prop({ required: true, ref: () => dbTBM_Trips, type: () => Number, index: true })
-  public rs_sv_cours_a!: Ref<dbTBM_Trips, number>;
+  public rs_sv_cours_a!: Ref<dbTBM_Trips>;
 }
 
 @modelOptions({ options: { customName: TBMEndpoints.Schedules_rt } })
-export class dbTBM_Schedules_rt extends dbTBM_Schedules {
+export class dbTBM_Schedules_rt extends dbTBM_Schedules implements Schedule {
   @prop({ required: true })
   public hor_app!: Date;
 
   @prop({ required: true })
   public hor_estime!: Date;
+
+  @prop({ required: true })
+  public arr_int_hor!: [Date, Date];
+
+  @prop({ required: true })
+  public dep_int_hor!: [Date, Date];
 
   @prop({ required: true, enum: RtScheduleState })
   public etat!: RtScheduleState;

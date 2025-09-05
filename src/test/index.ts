@@ -3,9 +3,22 @@ import initDB from "./utils/mongoose";
 // Needed to solve "Reflect.getMetadata is not a function" error of typegoose
 import "core-js/features/reflect";
 
+import { Override, UnpackRefType } from "@bibm/common/types";
+import { journeyDBFormatter } from "@bibm/compute/jobs/compute";
+import { makeMapId, Providers } from "@bibm/compute/jobs/preCompute/utils";
+import NonScheduledRoutesModelInit, { dbFootPaths } from "@bibm/data/models/Compute/NonScheduledRoutes.model";
+import ResultModelInit, { LocationAddress, LocationTBM, PointType } from "@bibm/data/models/Compute/result.model";
+import { Schedule } from "@bibm/data/models/Compute/types";
+import SNCFScheduledRoutesModelInit, { dbSNCF_ScheduledRoutes } from "@bibm/data/models/SNCF/SNCFScheduledRoutes.model";
+import { dbSNCF_Schedules } from "@bibm/data/models/SNCF/SNCF_schedules.model";
+import SNCFStopsModelInit, { dbSNCF_Stops } from "@bibm/data/models/SNCF/SNCF_stops.model";
+// Those 2 are local because of conflicting Mongoose instances between BIBM and here
+// Otherwise, we get NotValidModelError [TypeError]: Expected "getDiscriminatorModelForClass.from" to be a valid mongoose.Model! (got: "function model(doc, fields, skipId) ...") [E205]
+import TBMScheduledRoutesModelInit, { dbTBM_ScheduledRoutes } from "./models/TBMScheduledRoutes.model";
+import TBMSchedulesModelInit, { dbTBM_Schedules_rt } from "./models/TBM_schedules.model";
+import TBMStopsModelInit, { dbTBM_Stops } from "@bibm/data/models/TBM/TBM_stops.model";
 import { DocumentType } from "@typegoose/typegoose";
 import minimist from "minimist";
-import { FilterQuery } from "mongoose";
 import { exit } from "process";
 import { inspect } from "util";
 import {
@@ -34,93 +47,221 @@ import {
   TimeInt,
   TimeScal,
   Timestamp,
+  Trip,
 } from "../";
 import BaseRAPTOR from "../base";
-import NonScheduledRoutesModelInit, { dbFootPaths } from "./models/NonScheduledRoutes.model";
-import ResultModelInit, {
-  Journey as DBJourney,
-  JourneyStepBase,
-  JourneyStepFoot,
-  JourneyStepType,
-  JourneyStepVehicle,
-  LocationAddress,
-  LocationTBM,
-  LocationType,
-} from "./models/result.model";
-import TBMSchedulesModelInit from "./models/TBM_schedules.model";
-import stopsModelInit, { dbTBM_Stops } from "./models/TBM_stops.model";
-import TBMScheduledRoutesModelInit, { dbTBM_ScheduledRoutes } from "./models/TBMScheduledRoutes.model";
-import { binarySearch, Combinations, mapAsync, UnpackRefs } from "./utils";
+import { Combinations } from "./utils";
 import { benchmark } from "./utils/benchmark";
 
-async function queryData() {
+async function queryData(fpReqLen: number) {
   console.debug("Querying data...");
   const sourceDB = await initDB("bibm");
   const computeDB = await initDB("bibm-compute");
-  const stopsModel = stopsModelInit(sourceDB);
+  const TBMStopsModel = TBMStopsModelInit(sourceDB);
+  const SNCFStopsModel = SNCFStopsModelInit(sourceDB);
   const TBMSchedulesModel = TBMSchedulesModelInit(sourceDB)[1];
   const TBMScheduledRoutesModel = TBMScheduledRoutesModelInit(sourceDB);
+  const SNCFScheduledRoutesModel = SNCFScheduledRoutesModelInit(sourceDB);
   const NonScheduledRoutesModel = NonScheduledRoutesModelInit(sourceDB);
 
   const resultModel = ResultModelInit(computeDB);
 
-  const dbScheduledRoutesProjection = { _id: 1, stops: 1, trips: 1 } satisfies Partial<Record<keyof dbTBM_ScheduledRoutes, 1>>;
-  type dbScheduledRoute = Pick<dbTBM_ScheduledRoutes, keyof typeof dbScheduledRoutesProjection>;
-  type ScheduledRoutesOverwritten = UnpackRefs<dbScheduledRoute, "_id" | "stops">;
-  type ScheduledRoute = Omit<dbScheduledRoute, keyof ScheduledRoutesOverwritten> & ScheduledRoutesOverwritten;
+  /** DB Types */
 
-  const dbScheduledRoutes = (await TBMScheduledRoutesModel.find<DocumentType<DocumentType<ScheduledRoute>>>({}, dbScheduledRoutesProjection)
-    .populate("trips.schedules")
-    .lean()
-    .exec()) as ScheduledRoute[];
+  // Stops
+  // TBM
+  const dbTBMStopProjection = { _id: 1 } satisfies Partial<Record<keyof dbTBM_Stops, 1>>;
+  type TBMStop = Pick<dbTBM_Stops, keyof typeof dbTBMStopProjection>;
 
-  const dbStopProjection = { _id: 1 } satisfies Partial<Record<keyof dbTBM_Stops, 1>>;
-  type Stop = Pick<dbTBM_Stops, keyof typeof dbStopProjection>;
+  // SNCF
+  const dbSNCFStopProjection = { _id: 1 } satisfies Partial<Record<keyof dbSNCF_Stops, 1>>;
+  type SNCFStop = Pick<dbSNCF_Stops, keyof typeof dbSNCFStopProjection>;
 
-  const stops = dbScheduledRoutes.reduce<{ id: ScheduledRoute["stops"][number]; connectedRoutes: ScheduledRoute["_id"][] }[]>(
-    (acc, { _id, stops }) => {
-      for (const stop of stops) {
-        let pos = binarySearch(acc, stop, (a, b) => a - b.id);
-        if (pos < 0) {
-          pos = -pos - 1;
-          acc.splice(pos, 0, { id: stop, connectedRoutes: [] });
+  // Schedules
+  const schedulesProjection = { arr_int_hor: 1, dep_int_hor: 1 } satisfies Partial<Record<keyof Schedule, 1>>;
+  type dbSchedule = Pick<Schedule, keyof typeof schedulesProjection>;
+
+  // Scheduled Routes
+  // TBM
+  const dbTBMSchedulesProjection = { hor_theo: 1 } satisfies Partial<Record<keyof dbTBM_Schedules_rt, 1>>;
+  const dbTBMScheduledRoutesProjection = { _id: 1, stops: 1, trips: 1 } satisfies Partial<Record<keyof dbTBM_ScheduledRoutes, 1>>;
+  type dbTBMScheduledRoute = Pick<dbTBM_ScheduledRoutes, keyof typeof dbTBMScheduledRoutesProjection>;
+  interface TBMScheduledRoutesOverwritten /* extends dbTBM_ScheduledRoutes */ {
+    _id: UnpackRefType<dbTBMScheduledRoute["_id"]>;
+    stops: UnpackRefType<dbTBMScheduledRoute["stops"]>;
+    trips: {
+      // Not a Document because of lean
+      schedules: (Pick<dbTBM_Schedules_rt, keyof typeof dbTBMSchedulesProjection> & dbSchedule)[];
+    }[];
+  }
+  type TBMScheduledRoute = Override<dbTBMScheduledRoute, TBMScheduledRoutesOverwritten>;
+
+  // SNCF
+  const dbSNCFSchedulesProjection = { baseArrival: 1, baseDeparture: 1 } satisfies Partial<Record<keyof dbSNCF_Schedules, 1>>;
+  const dbSNCFScheduledRoutesProjection = { _id: 1, stops: 1, trips: 1 } satisfies Partial<Record<keyof dbSNCF_ScheduledRoutes, 1>>;
+  type dbSNCFScheduledRoute = Pick<dbSNCF_ScheduledRoutes, keyof typeof dbSNCFScheduledRoutesProjection>;
+  interface SNCFScheduledRoutesOverwritten /* extends dbSNCF_ScheduledRoutes */ {
+    stops: UnpackRefType<dbSNCFScheduledRoute["stops"]>;
+    trips: {
+      // Not a Document because of lean
+      schedules: (Pick<dbSNCF_Schedules, keyof typeof dbSNCFSchedulesProjection> & dbSchedule)[];
+    }[];
+  }
+  type SNCFScheduledRoute = Omit<dbSNCFScheduledRoute, keyof SNCFScheduledRoutesOverwritten> & SNCFScheduledRoutesOverwritten;
+
+  type ProviderRouteId = TBMScheduledRoute["_id"] | SNCFScheduledRoute["_id"];
+  // eslint-disable-next-line @typescript-eslint/no-duplicate-type-constituents
+  type ProviderStopId = TBMStop["_id"] | SNCFStop["_id"];
+
+  // Non Schedules Routes
+  const dbNonScheduledRoutesProjection = { from: 1, to: 1, distance: 1 } satisfies Partial<Record<keyof dbFootPaths, 1>>;
+  type dbNonScheduledRoute = Pick<dbFootPaths, keyof typeof dbNonScheduledRoutesProjection>;
+
+  // Virtual IDs (stops routes) management
+
+  const stopIdsMappingF = new Map<`${Providers}-${ProviderStopId}`, number>();
+  const stopIdsMappingB = new Map<number, [ProviderStopId, Providers]>();
+  const TBMStopsCount = (await TBMStopsModel.estimatedDocumentCount()) * 1.5;
+  const SNCFStopsCount = (await SNCFStopsModel.estimatedDocumentCount()) * 1.5;
+  const stopIdsRanges = {
+    [Providers.TBM]: [0, TBMStopsCount, -1],
+    [Providers.SNCF]: [TBMStopsCount + 1, TBMStopsCount + 1 + SNCFStopsCount, -1],
+  } satisfies Record<string, [number, number, number]>;
+  const [mapStopId, unmapStopId] = makeMapId(stopIdsRanges, stopIdsMappingF, stopIdsMappingB);
+
+  const routeIdsMappingF = new Map<`${Providers}-${ProviderRouteId}`, number>();
+  const routeIdsMappingB = new Map<number, [ProviderRouteId, Providers]>();
+  // Memoizing allows us to only remember backward mapping, forward mapping is stored inside memoize
+  const TBMSRCount = (await TBMScheduledRoutesModel.estimatedDocumentCount()) * 1.5;
+  const SNCFSRCount = (await SNCFScheduledRoutesModel.estimatedDocumentCount()) * 1.5;
+  const routeIdsRanges = {
+    [Providers.TBM]: [0, TBMSRCount, -1],
+    [Providers.SNCF]: [TBMSRCount + 1, TBMSRCount + 1 + SNCFSRCount, -1],
+  } satisfies Record<string, [number, number, number]>;
+  const [mapRouteId, unmapRouteId] = makeMapId(routeIdsRanges, routeIdsMappingF, routeIdsMappingB);
+
+  // Non scheduled routes
+
+  // Query must associate (s, from) AND (from, s) forall s in stops !
+  const dbNonScheduledRoutes = (
+    (await NonScheduledRoutesModel.find<DocumentType<dbNonScheduledRoute>>(
+      { distance: { $lte: fpReqLen } },
+      { ...dbNonScheduledRoutesProjection, _id: 0 },
+    )
+      .lean()
+      .exec()) as dbNonScheduledRoute[]
+  ).reduce<Map<number, ConstructorParameters<typeof RAPTORData<unknown, number, number>>[1][number][2]>>((acc, { from, to, distance }) => {
+    const mappedFrom = mapStopId(parseInt(from.substring(3).split("-")[0]), parseInt(from.split("-")[1]));
+    const mappedTo = mapStopId(parseInt(to.substring(3).split("-")[0]), parseInt(to.split("-")[1]));
+
+    for (const [from, to] of [
+      [mappedFrom, mappedTo],
+      [mappedTo, mappedFrom],
+    ]) {
+      let stopNonScheduledRoutes = acc.get(from);
+      if (!stopNonScheduledRoutes) {
+        stopNonScheduledRoutes = [];
+        acc.set(from, stopNonScheduledRoutes);
+      }
+
+      stopNonScheduledRoutes.push({ length: distance, to });
+    }
+
+    return acc;
+  }, new Map());
+
+  // TBM stops & routes
+
+  const dbTBMScheduledRoutes = (
+    (await TBMScheduledRoutesModel.find<DocumentType<TBMScheduledRoute>>({}, dbTBMScheduledRoutesProjection)
+      .populate("trips.schedules", { ...schedulesProjection, ...dbTBMSchedulesProjection, _id: 0, __t: 0 })
+      .lean()
+      .exec()) as TBMScheduledRoute[]
+  ).map(({ _id, stops, trips }) => ({
+    _id,
+    stops: stops.map((stop) => mapStopId(Providers.TBM, stop)),
+    trips,
+  }));
+
+  const TBMStops = dbTBMScheduledRoutes.reduce<Map<number, [number[], Exclude<ReturnType<(typeof dbNonScheduledRoutes)["get"]>, undefined>]>>(
+    (acc, { _id: routeId, stops }) => {
+      for (const stopId of stops) {
+        let stop = acc.get(stopId);
+        if (!stop) {
+          stop = [[], dbNonScheduledRoutes.get(stopId) ?? []];
+          acc.set(stopId, stop);
         }
-        acc[pos].connectedRoutes.push(_id);
+
+        stop[0].push(mapRouteId(Providers.TBM, routeId));
       }
 
       return acc;
     },
-    (
-      (await stopsModel
-        .find<DocumentType<DocumentType<Stop>>>(
-          {
-            $and: [{ coords: { $not: { $elemMatch: { $eq: Infinity } } } }],
-          },
-          dbStopProjection,
-        )
-        .sort({ _id: 1 })
-        .lean()
-        .exec()) as Stop[]
-    ).map(({ _id: id }) => ({ id, connectedRoutes: [] })),
+    new Map(
+      (
+        (await TBMStopsModel.find<DocumentType<TBMStop>>({ coords: { $not: { $elemMatch: { $eq: Infinity } } } }, dbTBMStopProjection)
+          .lean()
+          .exec()) as TBMStop[]
+      ).map(({ _id }) => {
+        const mappedId = mapStopId(Providers.TBM, _id);
+
+        return [mappedId, [[], dbNonScheduledRoutes.get(mappedId) ?? []]];
+      }),
+    ),
   );
 
-  const dbNonScheduledRoutesProjection = { from: 1, to: 1, distance: 1 } satisfies Partial<Record<keyof dbFootPaths, 1>>;
-  type dbNonScheduledRoute = Pick<dbFootPaths, keyof typeof dbNonScheduledRoutesProjection>;
-  type NonScheduledRoutesOverwritten = UnpackRefs<dbNonScheduledRoute, "from" | "to">;
-  type NonScheduledRoute = Omit<dbNonScheduledRoute, keyof NonScheduledRoutesOverwritten> & NonScheduledRoutesOverwritten;
+  // SNCF stops & routes
 
-  //Query must associate (s, from) AND (from, s) forall s in stops !
-  const dbNonScheduledRoutes = async (stopId: NonScheduledRoutesOverwritten["from"], additionalQuery: FilterQuery<dbNonScheduledRoute> = {}) =>
-    (
-      (await NonScheduledRoutesModel.find<DocumentType<DocumentType<NonScheduledRoute>>>(
-        { $and: [{ $or: [{ from: stopId }, { to: stopId }] }, additionalQuery] },
-        dbNonScheduledRoutesProjection,
-      )
-        .lean()
-        .exec()) as NonScheduledRoute[]
-    ).map(({ from, to, distance }) => ({ distance, ...(to === stopId ? { to: from } : { to }) }));
+  const dbSNCFScheduledRoutes = (
+    (await SNCFScheduledRoutesModel.find<DocumentType<SNCFScheduledRoute>>({}, dbSNCFScheduledRoutesProjection)
+      .populate("trips.schedules", { ...schedulesProjection, ...dbSNCFSchedulesProjection, _id: 0 })
+      .lean()
+      .exec()) as SNCFScheduledRoute[]
+  ).map(({ _id, stops, trips }) => ({
+    _id,
+    stops: stops.map((stop) => mapStopId(Providers.SNCF, stop)),
+    trips,
+  }));
 
-  return { dbScheduledRoutes, stops, dbNonScheduledRoutes, TBMSchedulesModel, resultModel };
+  const SNCFStops = dbSNCFScheduledRoutes.reduce<Map<number, [number[], Exclude<ReturnType<(typeof dbNonScheduledRoutes)["get"]>, undefined>]>>(
+    (acc, { _id: routeId, stops }) => {
+      for (const stopId of stops) {
+        let stop = acc.get(stopId);
+        if (!stop) {
+          stop = [[], dbNonScheduledRoutes.get(stopId) ?? []];
+          acc.set(stopId, stop);
+        }
+
+        stop[0].push(mapRouteId(Providers.SNCF, routeId));
+      }
+
+      return acc;
+    },
+    new Map(
+      (
+        (await SNCFStopsModel.find<DocumentType<SNCFStop>>({ coords: { $not: { $elemMatch: { $eq: Infinity } } } }, dbSNCFStopProjection)
+          .lean()
+          .exec()) as SNCFStop[]
+      ).map(({ _id }) => {
+        const mappedId = mapStopId(Providers.SNCF, _id);
+
+        return [mappedId, [[], dbNonScheduledRoutes.get(mappedId) ?? []]];
+      }),
+    ),
+  );
+  return {
+    TBMStops,
+    SNCFStops,
+    dbTBMScheduledRoutes,
+    dbSNCFScheduledRoutes,
+    dbNonScheduledRoutes,
+    TBMSchedulesModel,
+    resultModel,
+    mapStopId,
+    unmapStopId,
+    mapRouteId,
+    unmapRouteId,
+  };
 }
 
 function getArgsOptNumber(args: ReturnType<typeof minimist>, opt: string): number | null {
@@ -135,66 +276,77 @@ function getArgsOptNumber(args: ReturnType<typeof minimist>, opt: string): numbe
 
 type DataType = "scalar" | "interval";
 
-async function computeRAPTORData(
-  { stops, dbNonScheduledRoutes, dbScheduledRoutes }: Awaited<ReturnType<typeof queryData>>,
-  fpReqLen: number,
+function computeRAPTORData(
+  { TBMStops, SNCFStops, dbTBMScheduledRoutes, dbSNCFScheduledRoutes, mapRouteId }: Awaited<ReturnType<typeof queryData>>,
   dataType: DataType,
   /** In ms, [neg, pos] */
   delay: [number, number] | null,
 ) {
+  const scheduleMapperInt =
+    <T extends Schedule>(getBaseArr: (schedule: T) => Timestamp, getBaseDep: (schedule: T) => Timestamp) =>
+    (schedule: T): NonNullable<ReturnType<Trip<InternalTimeInt>["at"]>> => {
+      if (delay)
+        return [
+          [getBaseArr(schedule) - delay[0], getBaseArr(schedule) + delay[1]] satisfies InternalTimeInt,
+          [getBaseDep(schedule) - delay[0], getBaseDep(schedule) + delay[1]] satisfies InternalTimeInt,
+        ];
+      else {
+        return [
+          schedule.arr_int_hor.map((date) => date.getTime()) as [number, number],
+          schedule.dep_int_hor.map((date) => date.getTime()) as [number, number],
+        ];
+      }
+    };
+
   return [
     dataType === "scalar" ? TimeScal : TimeInt,
-    await mapAsync<(typeof stops)[number], ConstructorParameters<typeof RAPTORData<Timestamp | InternalTimeInt>>[1][number]>(
-      stops,
-      async ({ id, connectedRoutes }) => [
-        id,
-        connectedRoutes,
-        (await dbNonScheduledRoutes(id, { distance: { $lte: fpReqLen } })).map(({ to, distance }) => ({
-          to,
-          length: distance,
-        })),
-      ],
-    ),
-    dbScheduledRoutes.map(
-      ({ _id, stops, trips }) =>
-        [
-          _id,
-          stops,
-          trips.map(({ schedules }) =>
-            schedules
-              .map<[(typeof schedules)[number], [number, number]]>((schedule) => [
-                schedule,
-                typeof schedule === "object" && "hor_estime" in schedule
-                  ? [schedule.hor_estime.getTime() || TimeScal.MAX_SAFE, schedule.hor_estime.getTime() || TimeScal.MAX_SAFE]
-                  : [TimeScal.MAX, TimeScal.MAX],
-              ])
-              // Transform to interval
-              .map(([schedule, [arr, dep]]) => {
-                if (dataType === "interval") {
-                  if (delay)
-                    return [[arr - delay[0], arr + delay[1]] satisfies InternalTimeInt, [dep - delay[0], dep + delay[1]] satisfies InternalTimeInt];
-                  else {
-                    if (typeof schedule !== "object")
-                      return [
-                        [arr, arr],
-                        [dep, dep],
-                      ] satisfies [InternalTimeInt, InternalTimeInt];
-
-                    let theo = schedule.hor_theo.getTime() || TimeScal.MAX_SAFE;
-                    let estime = schedule.hor_estime.getTime() || schedule.hor_app.getTime() || TimeScal.MAX_SAFE;
-
-                    // Prevent upper bound to be MAX_SAFE
-                    if (theo < TimeScal.MAX_SAFE && estime === TimeScal.MAX_SAFE) estime = theo;
-                    if (estime < TimeScal.MAX_SAFE && theo === TimeScal.MAX_SAFE) theo = estime;
-
-                    const int = theo < estime ? [theo, estime] : [estime, theo];
-                    return [[int[0], int[1]] as const, [int[0], int[1]] as const] satisfies [unknown, unknown];
-                  }
-                } else return [arr, dep] satisfies [unknown, unknown];
-              }),
-          ),
-        ] satisfies [unknown, unknown, unknown],
-    ),
+    [
+      ...TBMStops.entries().map(
+        ([id, [connectedRoutes, nonScheduledRoutes]]) => [id, connectedRoutes, nonScheduledRoutes] satisfies [unknown, unknown, unknown],
+      ),
+      ...SNCFStops.entries().map(
+        ([id, [connectedRoutes, nonScheduledRoutes]]) => [id, connectedRoutes, nonScheduledRoutes] satisfies [unknown, unknown, unknown],
+      ),
+    ],
+    [
+      ...dbTBMScheduledRoutes.map(
+        ({ _id, stops, trips }) =>
+          [
+            // Don't forget to finally map route ID!
+            mapRouteId(Providers.TBM, _id),
+            stops,
+            trips.map(({ schedules }) =>
+              // Make schedules intervals
+              schedules.map<NonNullable<ReturnType<Trip<Timestamp | InternalTimeInt>["at"]>>>(
+                dataType === "interval"
+                  ? scheduleMapperInt(
+                      (schedule) => schedule.hor_theo.getTime(),
+                      (schedule) => schedule.hor_theo.getTime(),
+                    )
+                  : (schedule) => [schedule.hor_theo.getTime(), schedule.hor_theo.getTime()] as [number, number],
+              ),
+            ),
+          ] satisfies [unknown, unknown, unknown],
+      ),
+      ...dbSNCFScheduledRoutes.map(
+        ({ _id, stops, trips }) =>
+          [
+            // Don't forget to finally map route ID!
+            mapRouteId(Providers.SNCF, _id),
+            stops,
+            trips.map(({ schedules }) =>
+              schedules.map<NonNullable<ReturnType<Trip<Timestamp | InternalTimeInt>["at"]>>>(
+                dataType === "interval"
+                  ? scheduleMapperInt(
+                      (schedule) => schedule.baseArrival.getTime(),
+                      (schedule) => schedule.baseDeparture.getTime(),
+                    )
+                  : (schedule) => [schedule.baseArrival.getTime(), schedule.baseDeparture.getTime()] as [number, number],
+              ),
+            ),
+          ] satisfies [unknown, unknown, unknown],
+      ),
+    ],
   ] as ConstructorParameters<typeof RAPTORData<Timestamp | InternalTimeInt>>;
 }
 
@@ -264,37 +416,13 @@ function postTreatment<TimeVal extends Timestamp | InternalTimeInt, V1, CA1 exte
   return results;
 }
 
-type DBJourneyReal = Omit<DBJourney, "steps"> & {
-  steps: (JourneyStepBase | JourneyStepFoot | JourneyStepVehicle)[];
-};
-function journeyDBFormatter<TimeVal extends Timestamp | InternalTimeInt, V, CA extends [V, string][]>(
-  journey: NonNullable<ReturnType<BaseRAPTOR<TimeVal, SharedID, number, V, CA>["getBestJourneys"]>[number][number]>,
-): DBJourneyReal {
-  return {
-    steps: journey.map<JourneyStepFoot | JourneyStepVehicle | JourneyStepBase>((js) => ({
-      ...js,
-      time: typeof js.label.time === "number" ? [js.label.time, js.label.time] : js.label.time,
-      ...("transfer" in js
-        ? { type: JourneyStepType.Foot }
-        : "route" in js
-          ? { route: js.route.id, type: JourneyStepType.Vehicle }
-          : {
-              type: JourneyStepType.Base,
-            }),
-    })),
-    criteria: journey[0].label.criteria.map(({ name }) => ({
-      name,
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      value: journey.at(-1)!.label.value(name),
-    })),
-  };
-}
-
 async function insertResults<TimeVal extends Timestamp | InternalTimeInt, V, CA extends [V, string][]>(
   resultModel: Awaited<ReturnType<typeof queryData>>["resultModel"],
+  unmapStopId: Awaited<ReturnType<typeof queryData>>["unmapStopId"],
+  unmapRouteId: Awaited<ReturnType<typeof queryData>>["unmapRouteId"],
   timeType: Time<TimeVal>,
-  from: LocationAddress | LocationTBM,
-  to: LocationAddress | LocationTBM,
+  from: [mappedId: number, LocationAddress | LocationTBM],
+  to: [mappedId: number, LocationAddress | LocationTBM],
   departureTime: TimeVal,
   settings: RAPTORRunSettings,
   results: ReturnType<BaseRAPTOR<TimeVal, SharedID, number, V, CA>["getBestJourneys"]>,
@@ -310,7 +438,17 @@ async function insertResults<TimeVal extends Timestamp | InternalTimeInt, V, CA 
       // Sort by arrival time
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       .sort((a, b) => timeType.strict.order(a.at(-1)!.label.time, b.at(-1)!.label.time))
-      .map((journey) => journeyDBFormatter(journey)),
+      .map((journey) =>
+        journeyDBFormatter<V, CA>(
+          [from[0], from[1].id as UnpackRefType<(typeof from)[1]["id"]>],
+          [to[0], to[1].id as UnpackRefType<(typeof from)[1]["id"]>],
+          unmapStopId,
+          unmapRouteId,
+          // @ts-expect-error Giving Timestamp | InternalTimeInt as TimeVal instead of InternalTimeInt but it's safe, just copying time field
+          // It will try to write a Timestamp instead of a InternalTimeInt, so model validation should fail
+          journey,
+        ),
+      ),
     settings,
   });
 
@@ -458,28 +596,32 @@ Command-line interface:
   const saveResults = "save" in args && args.save === true ? true : false;
   console.debug(`Saving results`, saveResults);
 
-  const b1 = await benchmark(queryData, []);
+  const b1 = await benchmark(queryData, [fpReqLen]);
   const queriedData = b1.lastReturn;
   if (!queriedData) throw new Error("No queried data");
 
   // Setup source & destination
-  let ps: number | SharedID;
+  let ps: number;
   let from: LocationAddress | LocationTBM;
 
   const psOpt = getArgsOptNumber(args, "ps");
   if (psOpt === null) {
-    ps = 974; // Barrière d'Ornano
-    from = { type: LocationType.Address, id: 174287 };
+    ps = queriedData.mapStopId(Providers.TBM, 974); // Barrière d'Ornano
+    from = { type: PointType.Address, id: 174287 };
   } else {
-    ps = psOpt;
-    from = { type: LocationType.TBM, id: ps };
+    ps = queriedData.mapStopId(Providers.TBM, psOpt);
+    from = { type: PointType.TBMStop, id: ps };
   }
-  let psInternalId = ps;
+  // Fake stop ID, foot proxy to ps
+  const psRawId = 1_000_000;
+  let psId: number | SharedID = psRawId;
 
-  const pt =
+  const pt = queriedData.mapStopId(
+    Providers.TBM,
     getArgsOptNumber(args, "pt") ??
-    // Béthanie
-    3846;
+      // Béthanie
+      3846,
+  );
 
   // Compute RAPTOR data
 
@@ -488,7 +630,7 @@ Command-line interface:
     [ps]: 100,
   };
 
-  const b2 = await benchmark(computeRAPTORData, [queriedData, fpReqLen, dataType, delay]);
+  const b2 = await benchmark(computeRAPTORData, [queriedData, dataType, delay]);
   const rawRAPTORData = b2.lastReturn;
   if (!rawRAPTORData) throw new Error("No raw RAPTOR data");
 
@@ -501,9 +643,7 @@ Command-line interface:
     if (!b3.lastReturn) throw new Error("No raw Shared RAPTOR data");
     rawSharedRAPTORData = b3.lastReturn;
 
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    psInternalId = queriedData.stops.at(-1)!.id + 1;
-    ps = SharedRAPTORData.serializeId(psInternalId);
+    psId = SharedRAPTORData.serializeId(psRawId);
   }
 
   // Create RAPTOR
@@ -546,8 +686,8 @@ Command-line interface:
 
   const attachStops = new Map<number, ConstructorParameters<typeof Stop<number, number>>>();
 
-  attachStops.set(psInternalId, [
-    psInternalId,
+  attachStops.set(psRawId, [
+    psRawId,
     [],
     Object.keys(distances).map((k) => {
       const sId = parseInt(k);
@@ -559,7 +699,7 @@ Command-line interface:
   Object.keys(distances).forEach((k) => {
     const sId = parseInt(k);
 
-    attachStops.set(sId, [sId, [], [{ to: psInternalId, length: distances[sId] }]]);
+    attachStops.set(sId, [sId, [], [{ to: psRawId, length: distances[sId] }]]);
   });
 
   RAPTORDataInst.attachStops(Array.from(attachStops.values()));
@@ -567,19 +707,26 @@ Command-line interface:
   // Run params
 
   // https://www.mongodb.com/docs/manual/core/aggregation-pipeline-optimization/#-sort----limit-coalescence
-  const maxUpdatedAt = (await queriedData.TBMSchedulesModel.find().sort({ updatedAt: -1 }).limit(1))[0]?.updatedAt?.getTime() ?? Infinity;
+  const minSchedule = (
+    await queriedData.TBMSchedulesModel.find({ hor_theo: { $gt: new Date(0) } })
+      .sort({ hor_theo: 1 })
+      .limit(1)
+  ).at(0)?.hor_theo;
+  const maxSchedule = (await queriedData.TBMSchedulesModel.find().sort({ hor_theo: -1 }).limit(1)).at(0)?.hor_theo;
+  if (!minSchedule || !maxSchedule) throw new Error("Could not find latest & oldest TBM schedules");
 
-  const departureTime = dataType === "interval" ? ([maxUpdatedAt, maxUpdatedAt] satisfies [unknown, unknown]) : maxUpdatedAt;
+  const meanSchedule = new Date(Math.round((minSchedule.getTime() + maxSchedule.getTime()) / 2)).getTime();
+  const departureTime = dataType === "interval" ? ([meanSchedule, meanSchedule] satisfies [unknown, unknown]) : meanSchedule;
 
   const settings: RAPTORRunSettings = { walkSpeed: 1.5, maxTransferLength: fpRunLen };
 
   // Run
 
   function runRAPTOR() {
-    RAPTORInstance.run(ps, pt, departureTime, settings);
+    RAPTORInstance.run(psId, pt, departureTime, settings);
   }
   console.log(
-    `Running with: ps=${ps}, pt=${pt}, departure time=${new Date(typeof departureTime === "number" ? departureTime : departureTime[0]).toLocaleString()}, settings=${JSON.stringify(settings)}`,
+    `Running with: ps=${psId}, pt=${pt}, departure time=${new Date(typeof departureTime === "number" ? departureTime : departureTime[0]).toLocaleString()}, settings=${JSON.stringify(settings)}`,
   );
   await benchmark(runRAPTOR, [], undefined, runTimes);
 
@@ -607,9 +754,12 @@ Command-line interface:
 
     const b8 = await benchmark(insertResults<Timestamp | InternalTimeInt, number, CA>, [
       queriedData.resultModel,
+      queriedData.unmapStopId,
+      queriedData.unmapRouteId,
       RAPTORDataInst.timeType,
-      from,
-      { type: LocationType.TBM, id: pt },
+      [psRawId, from],
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      [pt, { type: PointType.TBMStop, id: queriedData.unmapStopId(pt)![0] }],
       departureTime,
       settings,
       b7.lastReturn,
