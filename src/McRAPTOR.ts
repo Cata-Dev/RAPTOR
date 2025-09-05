@@ -47,17 +47,17 @@ export default class McRAPTOR<TimeVal, V, CA extends [V, string][], SI extends I
     let t = this.et(route, stop, fromJourneyStep.label.time);
     const previousLabels: Label<TimeVal, SI, RI, V, CA>[] = [];
     while (t) {
-      const tArr = route.trips.at(t.tripIndex)!.at(stopIndex)![0];
+      const arrivalTime = route.actualArrivalTime(t.tripIndex, stopIndex, this.time, this.time.low(fromJourneyStep.label.time));
       const partialJourneyStep = {
         boardedAt: [stop, fromJourneyStep] satisfies [SI, unknown],
         route,
         tripIndex: t.tripIndex,
       };
-      const label = fromJourneyStep.label.update(tArr, [
+      const label = fromJourneyStep.label.update(arrivalTime, [
         backTrace as Journey<TimeVal, SI, RI, V, [[V, CA[number][1]]]>,
         partialJourneyStep,
         this.time,
-        tArr,
+        arrivalTime,
         stop,
       ]);
       if (previousLabels.some((previousLabel) => (label.compare(previousLabel) ?? 2) <= 0))
@@ -114,15 +114,15 @@ export default class McRAPTOR<TimeVal, V, CA extends [V, string][], SI extends I
       // Need to use a temporary bag, otherwise updating makes the bag incoherent and comparison occurs on incomparable journey steps (they are not at the same stop)
       const RouteBagPi = new Bag<JourneyStep<TimeVal, SI, RI, V, CA, "VEHICLE">>();
       for (const journeyStep of RouteBag) {
-        const tArr = route.trips.at(journeyStep.tripIndex)!.at(i)![0];
+        const arrivalTime = route.actualArrivalTime(journeyStep.tripIndex, i, this.time, this.time.low(journeyStep.boardedAt[1].label.time));
         RouteBagPi.addOnly(
           makeJSComparable({
             ...journeyStep,
-            label: journeyStep.label.update(tArr, [
-              this.traceBackFromStep(journeyStep.boardedAt[1], this.k) as Journey<TimeVal, SI, RI, V, [[V, CA[number][1]]]>,
+            label: journeyStep.label.update(arrivalTime, [
+              this.traceBackFromStep(journeyStep.boardedAt[1], this.k - 1) as Journey<TimeVal, SI, RI, V, [[V, CA[number][1]]]>,
               { ...journeyStep },
               this.time,
-              tArr,
+              arrivalTime,
               pi,
             ]),
           }),
