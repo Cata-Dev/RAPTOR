@@ -30,10 +30,16 @@ export default class BaseRAPTOR<TimeVal, SI extends Id = Id, RI extends Id = Id,
   protected k = 0;
   protected marked = new Set<SI>();
 
+  protected runBeginTs = 0;
+
   /**
    * @description Creates a new RAPTOR instance for a defined network.
    */
   constructor(protected readonly data: IRAPTORData<TimeVal, SI, RI>) {}
+
+  protected trace(msg: string, ...args: unknown[]) {
+    console.log(`[${performance.now() - this.runBeginTs}] ${msg}`, ...args);
+  }
 
   /**
    * Getter on stops from {@link data}
@@ -92,6 +98,7 @@ export default class BaseRAPTOR<TimeVal, SI extends Id = Id, RI extends Id = Id,
 
   // Mark improvement
   protected mark(Q: Map<RI, SI>) {
+    this.trace("begin mark");
     Q.clear();
     for (const p of this.marked) {
       const connectedRoutes = this.stops.get(p)!.connectedRoutes;
@@ -103,6 +110,7 @@ export default class BaseRAPTOR<TimeVal, SI extends Id = Id, RI extends Id = Id,
 
       this.marked.delete(p);
     }
+    this.trace("end mark");
   }
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -121,36 +129,56 @@ export default class BaseRAPTOR<TimeVal, SI extends Id = Id, RI extends Id = Id,
    * @param pt Query target ; can be `null` to set query mode to "One-To-All".
    */
   run(ps: SI, pt: SI | null, departureTime: TimeVal, settings: RAPTORRunSettings, rounds: number = BaseRAPTOR.defaultRounds) {
+    this.runBeginTs = performance.now();
     this.runParams = { ps, pt, departureTime, settings, rounds };
 
+    this.trace("begin init");
     this.init();
+    this.trace("end init");
     /** Map<{@link RI} in {@link routes}, {@link SI} in {@link stops}> */
     const Q = new Map<RI, SI>();
 
     for (this.k = 1; this.k < rounds; this.k++) {
+      this.trace(`begin round ${this.k}`);
+
+      this.trace(`begin begin round`);
       this.beginRound();
+      this.trace(`end begin round`);
 
       this.mark(Q);
 
       // Traverse each route
-      for (const [r, p] of Q) this.traverseRoute(this.routes.get(r)!, p);
+      this.trace(`begin traverse route`);
+      for (const [r, p] of Q) {
+        this.traverseRoute(this.routes.get(r)!, p);
+      }
+      this.trace(`end traverse route`);
+      this.trace(`marked size traverse route ${this.marked.size}`);
 
       // Look at foot-paths
+      this.trace(`begin fp lookup`);
       if (this.k === 1)
         // Mark source so foot paths from it are considered in first round
         this.marked.add(ps);
       // Copy current state of marked stops
+      let cnt = 0;
       for (const p of new Set(this.marked)) {
         const stop = this.stops.get(p)!;
 
         if (stop.transfers(this.runParams.settings.maxTransferLength).next().done ?? true) continue;
 
         this.traverseFootPaths(p, stop);
+        cnt += stop.transfers(this.runParams.settings.maxTransferLength).reduce((acc) => acc + 1, 0);
       }
+      this.trace(`end fp lookup`);
+      this.trace(`scanned fp cnt ${cnt}`);
+      this.trace(`marked size fp lookup ${this.marked.size}`);
 
+      this.trace(`end round ${this.k}`);
       // Stopping criterion
       if (this.marked.size === 0) break;
     }
+    this.trace("end");
   }
 
   protected traceBackFromStep(from: JourneyStep<TimeVal, SI, RI, V, CA>, initRound: number): Journey<TimeVal, SI, RI, V, CA> {

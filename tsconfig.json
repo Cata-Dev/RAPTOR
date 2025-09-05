@@ -1,16 +1,14 @@
 {
-  "extends": [
-    "@tsconfig/node22/tsconfig.json",
-  ],
+  "extends": ["@tsconfig/node22/tsconfig.json"],
   "compilerOptions": {
     "outDir": "./lib",
     "rootDir": "./src",
     "target": "es2015",
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
     "sourceMap": true,
     "declaration": true,
     "isolatedModules": true
   },
-  "include": [
-    "src/**/*.ts"
-  ]
+  "include": ["src/**/*.ts"]
 }
