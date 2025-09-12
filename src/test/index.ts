@@ -475,6 +475,7 @@ Command-line interface:
   --save: save results in database
   --ps=<int>: source stop in source database for the itinerary query
   --pt=<int>: target stop in source database for the itinerary query
+  --ota: make OTA (One-To-All) runs, ignores pt
 `);
 }
 
@@ -620,12 +621,17 @@ Command-line interface:
   const psRawId = 1_000_000;
   let psId: number | SharedID = psRawId;
 
-  const pt = queriedData.mapStopId(
-    Providers.TBM,
-    getArgsOptNumber(args, "pt") ??
-      // Béthanie
-      3846,
-  );
+  const OTA = args.ota === true ? true : false;
+  console.debug("OTA mode set to", OTA);
+
+  const pt = OTA
+    ? null
+    : queriedData.mapStopId(
+        Providers.TBM,
+        getArgsOptNumber(args, "pt") ??
+          // Béthanie
+          3846,
+      );
 
   // Compute RAPTOR data
 
@@ -737,24 +743,60 @@ Command-line interface:
   // Get results
 
   function resultRAPTOR() {
-    return RAPTORInstance.getBestJourneys(pt);
+    return OTA
+      ? new Map(Array.from(RAPTORDataInst.stops).map(([_, { id }]) => [id, RAPTORInstance.getBestJourneys(id)]))
+      : // OTA is false <=> pt is number
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        RAPTORInstance.getBestJourneys(pt!);
   }
   const b6 = await benchmark(resultRAPTOR, [], undefined, getResTimes);
   if (!b6.lastReturn) throw new Error(`No best journeys`);
   console.debug("Best journeys", inspect(b6.lastReturn, false, 6));
 
-  const b7 = await benchmark(postTreatment<Timestamp | InternalTimeInt, number, CA, number, CA>, [
-    postCriteria as Criterion<number | InternalTimeInt, SharedID, number, number, "footDistance" | "bufferTime" | "successProbaInt">[],
-    RAPTORDataInst,
-    instanceType,
-    b6.lastReturn,
-    pt,
-  ]);
+  // Allow post-treating in OTA mode too
+  function postTreatmentAdapter() {
+    if (b6.lastReturn instanceof Array)
+      return postTreatment<Timestamp | InternalTimeInt, number, CA, number, CA>(
+        postCriteria as Criterion<number | InternalTimeInt, SharedID, number, number, "footDistance" | "bufferTime" | "successProbaInt">[],
+        RAPTORDataInst,
+        instanceType,
+        b6.lastReturn,
+        // If best journeys is an array, there was a target
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        pt!,
+      );
+
+    if (b6.lastReturn instanceof Map) {
+      return new Map(
+        b6.lastReturn
+          .entries()
+          .map(([stopId, bestJourneys]) => [
+            stopId,
+            postTreatment<Timestamp | InternalTimeInt, number, CA, number, CA>(
+              postCriteria as Criterion<number | InternalTimeInt, SharedID, number, number, "footDistance" | "bufferTime" | "successProbaInt">[],
+              RAPTORDataInst,
+              instanceType,
+              bestJourneys,
+              stopId,
+            ),
+          ]),
+      );
+    }
+
+    // Should never happen
+    return [];
+  }
+  const b7 = await benchmark(postTreatmentAdapter, []);
   if (!b7.lastReturn) throw new Error(`No post treatment`);
   console.debug("Post treatment", inspect(b7.lastReturn, false, 6));
 
   if (saveResults) {
     // Save results
+
+    if (OTA) {
+      console.warn("Saving results is not supported in OTA mode");
+      return;
+    }
 
     const b8 = await benchmark(insertResults<Timestamp | InternalTimeInt, number, CA>, [
       queriedData.resultModel,
@@ -762,11 +804,12 @@ Command-line interface:
       queriedData.unmapRouteId,
       RAPTORDataInst.timeType,
       [psRawId, from],
+      // OTA === false <=> pt is number
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      [pt, { type: PointType.TBMStop, id: queriedData.unmapStopId(pt)![0] }],
+      [pt!, { type: PointType.TBMStop, id: queriedData.unmapStopId(pt!)![0] }],
       departureTime,
       settings,
-      b7.lastReturn,
+      b7.lastReturn as ReturnType<typeof postTreatment<Timestamp | InternalTimeInt, number, CA, number, CA>>,
     ]);
     console.log("Saved result id", b8.lastReturn);
   }
