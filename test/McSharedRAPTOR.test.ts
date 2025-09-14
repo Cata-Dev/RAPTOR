@@ -26,67 +26,69 @@ import twoLines from "./assets/twoLines";
 import twoLinesOTA from "./assets/twoLinesOTA";
 import specialCases from "./assets/specialCases";
 
-// Same as RAPTOR
-for (const [datasetName, dataset] of [oneLine, twoLines, oneLineOTA, twoLinesOTA, specialCases] as TestDataset<Timestamp | InternalTimeInt>[]) {
-  describe(datasetName, () => {
-    for (const [assetName, asset] of Object.entries(dataset)) {
-      describe(assetName, () => {
-        const sharedRaptorData = SharedRAPTORData.makeFromRawData(
-          (asset.data[0] === TimeScal ? sharedTimeScal : sharedTimeIntOrderLow) as SharedTime<Timestamp | InternalTimeInt>,
+describe("McSharedRAPTOR", () => {
+  // Same as RAPTOR
+  for (const [datasetName, dataset] of [oneLine, twoLines, oneLineOTA, twoLinesOTA, specialCases] as TestDataset<Timestamp | InternalTimeInt>[]) {
+    describe(datasetName, () => {
+      for (const [assetName, asset] of Object.entries(dataset)) {
+        describe(assetName, () => {
+          const sharedRaptorData = SharedRAPTORData.makeFromRawData(
+            (asset.data[0] === TimeScal ? sharedTimeScal : sharedTimeIntOrderLow) as SharedTime<Timestamp | InternalTimeInt>,
 
-          asset.data[1],
-          asset.data[2],
-        );
-        const sharedRaptorInstance = new McSharedRAPTOR(sharedRaptorData, []);
-
-        for (const test of asset.tests) {
-          sharedRaptorInstance.run(...test.params);
-          const res = test.params[1] !== null ? sharedRaptorInstance.getBestJourneys(test.params[1]) : [];
-          for (const journeys of res) expect(journeys.length || 1).toBe(1);
-          test.validate(
-            res.map((journeys) => (journeys.length ? [journeys[0]] : [])),
-            sharedRaptorInstance as BaseRAPTOR<Timestamp | InternalTimeInt, number, number>,
+            asset.data[1],
+            asset.data[2],
           );
-        }
-      });
-    }
-  });
-}
+          const sharedRaptorInstance = new McSharedRAPTOR(sharedRaptorData, []);
 
-// With foot distance criterion
-for (const [datasetName, dataset] of [FDOneLine, FDTwoLines] as const) {
-  describe(datasetName, () => {
-    for (const [assetName, asset] of Object.entries(dataset)) {
-      describe(assetName, () => {
-        const sharedRaptorData = SharedRAPTORData.makeFromRawData(sharedTimeScal, asset.data[1], asset.data[2]);
-        const sharedRaptorInstance = new McSharedRAPTOR<number, number, [[number, "footDistance"]]>(sharedRaptorData, [
-          footDistance as Criterion<number, SharedID, SharedID, number, "footDistance">,
-        ]);
+          for (const test of asset.tests) {
+            sharedRaptorInstance.run(...test.params);
+            const res = test.params[1] !== null ? sharedRaptorInstance.getBestJourneys(test.params[1]) : [];
+            for (const journeys of res) expect(journeys.length || 1).toBe(1);
+            test.validate(
+              res.map((journeys) => (journeys.length ? [journeys[0]] : [])),
+              sharedRaptorInstance as BaseRAPTOR<Timestamp | InternalTimeInt, number, number>,
+            );
+          }
+        });
+      }
+    });
+  }
 
-        for (const test of asset.tests) {
-          sharedRaptorInstance.run(...test.params);
-          test.validate(sharedRaptorInstance as McRAPTOR<number, number, [[number, "footDistance"]], number, number>);
-        }
-      });
-    }
-  });
-}
+  // With foot distance criterion
+  for (const [datasetName, dataset] of [FDOneLine, FDTwoLines] as const) {
+    describe(datasetName, () => {
+      for (const [assetName, asset] of Object.entries(dataset)) {
+        describe(assetName, () => {
+          const sharedRaptorData = SharedRAPTORData.makeFromRawData(sharedTimeScal, asset.data[1], asset.data[2]);
+          const sharedRaptorInstance = new McSharedRAPTOR<number, number, [[number, "footDistance"]]>(sharedRaptorData, [
+            footDistance as Criterion<number, SharedID, SharedID, number, "footDistance">,
+          ]);
 
-// With buffer time criterion
-for (const [datasetName, dataset] of [BTOneLine, BTTwoLines] as const) {
-  describe(datasetName, () => {
-    for (const [assetName, asset] of Object.entries(dataset)) {
-      describe(assetName, () => {
-        const sharedRaptorData = SharedRAPTORData.makeFromRawData(sharedTimeScal, asset.data[1], asset.data[2]);
-        const sharedRaptorInstance = new McSharedRAPTOR<number, number, [[number, "bufferTime"]]>(sharedRaptorData, [
-          bufferTime as Criterion<number, SharedID, SharedID, number, "bufferTime">,
-        ]);
+          for (const test of asset.tests) {
+            sharedRaptorInstance.run(...test.params);
+            test.validate(sharedRaptorInstance as McRAPTOR<number, number, [[number, "footDistance"]], number, number>);
+          }
+        });
+      }
+    });
+  }
 
-        for (const test of asset.tests) {
-          sharedRaptorInstance.run(...test.params);
-          test.validate(sharedRaptorInstance as McRAPTOR<number, number, [[number, "bufferTime"]], number, number>);
-        }
-      });
-    }
-  });
-}
+  // With buffer time criterion
+  for (const [datasetName, dataset] of [BTOneLine, BTTwoLines] as const) {
+    describe(datasetName, () => {
+      for (const [assetName, asset] of Object.entries(dataset)) {
+        describe(assetName, () => {
+          const sharedRaptorData = SharedRAPTORData.makeFromRawData(sharedTimeScal, asset.data[1], asset.data[2]);
+          const sharedRaptorInstance = new McSharedRAPTOR<number, number, [[number, "bufferTime"]]>(sharedRaptorData, [
+            bufferTime as Criterion<number, SharedID, SharedID, number, "bufferTime">,
+          ]);
+
+          for (const test of asset.tests) {
+            sharedRaptorInstance.run(...test.params);
+            test.validate(sharedRaptorInstance as McRAPTOR<number, number, [[number, "bufferTime"]], number, number>);
+          }
+        });
+      }
+    });
+  }
+});
