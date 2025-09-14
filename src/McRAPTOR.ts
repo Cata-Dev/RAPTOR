@@ -143,11 +143,7 @@ export default class McRAPTOR<TimeVal, V, CA extends [V, string][], SI extends I
         this.marked.add(pi);
 
       // Step 3: populating route bag with previous round & update
-      // Update current route bag with possible new earliest catchable trips thanks to this round
-      for (const journeyStep of RouteBag)
-        this.forEachNDEt(route, pi, i, journeyStep, (newJourneyStep) => {
-          if (newJourneyStep.tripIndex != journeyStep.tripIndex) RouteBag.addOnly(newJourneyStep);
-        });
+      // Update current route bag with possible new earliest catchable trips thanks to previous round
       for (const journeyStep of this.bags[this.k - 1].get(pi)!)
         this.forEachNDEt(route, pi, i, journeyStep, (newJourneyStep) => {
           if (!("route" in journeyStep) || journeyStep.route.id != route.id || newJourneyStep.tripIndex != journeyStep.tripIndex)
