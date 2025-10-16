@@ -7,7 +7,8 @@ module.exports = {
   collectCoverageFrom: ["src/**/*.ts"],
   coveragePathIgnorePatterns: ["src/test/"],
   coverageReporters: ["text", "lcov", "json-summary"],
-  testMatch: ["**/test/**/*.test.ts"],
+  // Using https://jestjs.io/docs/configuration#rootdir-string
+  testMatch: ["<rootDir>/test/**/*.test.ts"],
   testEnvironment: "node",
   transform: {
     ...tsJestTransformCfg,

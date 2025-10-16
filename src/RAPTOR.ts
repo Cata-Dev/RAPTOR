@@ -1,11 +1,11 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
-import BaseRAPTOR from "./base";
+import BaseRAPTOR, { IRAPTOR } from "./base";
 import { Id, IStop, Journey, JourneyStep, Label, makeJSComparable, Route } from "./structures";
 
 /**
  * @description A RAPTOR instance
  */
-export default class RAPTOR<TimeVal, SI extends Id = Id, RI extends Id = Id> extends BaseRAPTOR<TimeVal, SI, RI> {
+export default class RAPTOR<TimeVal, SI extends Id = Id, RI extends Id = Id> extends BaseRAPTOR<TimeVal, SI, RI> implements IRAPTOR<TimeVal, SI, RI> {
   /** @description A {@link Label} Ti(SI) represents the earliest known arrival time at stop SI with up to i trips. */
   protected multiLabel: Map<SI, JourneyStep<TimeVal, SI, RI, never, []>>[] = [];
 

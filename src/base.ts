@@ -8,11 +8,28 @@ interface RAPTORRunSettings {
   maxTransferLength: number;
 }
 
+interface IRAPTOR<TimeVal, SI extends Id = Id, RI extends Id = Id, V = never, CA extends [V, string][] = []> {
+  /**
+   * Run a RAPTOR query
+   * @param ps Query source
+   * @param pt Query target ; can be `null` to set query mode to "One-To-All".
+   */
+  run(ps: SI, pt: SI | null, departureTime: TimeVal, settings: RAPTORRunSettings, rounds: number): void;
+  /**
+   * Get best journeys from a target stop {@link pt} after running the algorithm with {@link run}.
+   * @param pt Target stop to get best journeys to
+   * @returns A list of journeys for each round.
+   */
+  getBestJourneys(pt: SI): Journey<TimeVal, SI, RI, V, CA>[][];
+}
+
 /**
  * @description A RAPTOR instance
  * @template TimeVal Time representation internal type, its full type is {@link Time<TimeVal>}.
  */
-export default class BaseRAPTOR<TimeVal, SI extends Id = Id, RI extends Id = Id, V = never, CA extends [V, string][] = []> {
+export default class BaseRAPTOR<TimeVal, SI extends Id = Id, RI extends Id = Id, V = never, CA extends [V, string][] = []>
+  implements Pick<IRAPTOR<TimeVal, SI, RI, V, CA>, "run">
+{
   static defaultRounds = 6;
 
   protected runParams: {
@@ -123,11 +140,6 @@ export default class BaseRAPTOR<TimeVal, SI extends Id = Id, RI extends Id = Id,
     throw new Error("Not implemented");
   }
 
-  /**
-   * Run a RAPTOR query
-   * @param ps Query source
-   * @param pt Query target ; can be `null` to set query mode to "One-To-All".
-   */
   run(ps: SI, pt: SI | null, departureTime: TimeVal, settings: RAPTORRunSettings, rounds: number = BaseRAPTOR.defaultRounds) {
     this.runBeginTs = performance.now();
     this.runParams = { ps, pt, departureTime, settings, rounds };
@@ -222,11 +234,6 @@ export default class BaseRAPTOR<TimeVal, SI extends Id = Id, RI extends Id = Id,
 
     return trace;
   }
-
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  getBestJourneys(pt: SI): Journey<TimeVal, SI, RI, V, CA>[][] {
-    throw new Error("Not implemented");
-  }
 }
 
-export type { RAPTORRunSettings };
+export type { IRAPTOR, RAPTORRunSettings };
