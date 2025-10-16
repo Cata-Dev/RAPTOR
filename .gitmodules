@@ -1,0 +1,4 @@
+[submodule "bibm"]
+	path = bibm
+	url = https://github.com/Cata-Dev/Best-itinerary-Bordeaux-Metropole.git
+	branch = dev
