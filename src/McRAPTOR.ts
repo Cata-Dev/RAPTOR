@@ -1,14 +1,11 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
-import BaseRAPTOR from "./base";
+import BaseRAPTOR, { IRAPTOR } from "./base";
 import { Bag, Criterion, Id, IRAPTORData, IStop, Journey, JourneyStep, Label, makeJSComparable, Route } from "./structures";
 
-export default class McRAPTOR<TimeVal, V, CA extends [V, string][], SI extends Id = Id, RI extends Id = Id> extends BaseRAPTOR<
-  TimeVal,
-  SI,
-  RI,
-  V,
-  CA
-> {
+export default class McRAPTOR<TimeVal, V, CA extends [V, string][], SI extends Id = Id, RI extends Id = Id>
+  extends BaseRAPTOR<TimeVal, SI, RI, V, CA>
+  implements IRAPTOR<TimeVal, SI, RI, V, CA>
+{
   /** @description A {@link Label} Bags_i(SI) stores earliest known arrival times and best values for criteria at stop `SI` with up to `i` trips. */
   protected bags: Map<SI, Bag<JourneyStep<TimeVal, SI, RI, V, CA>>>[] = [];
 

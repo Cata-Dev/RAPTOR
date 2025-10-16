@@ -1,13 +1,13 @@
 import { McRAPTOR, RAPTOR, RAPTORData } from "../../src";
-import BaseRAPTOR from "../../src/base";
+import BaseRAPTOR, { IRAPTOR } from "../../src/base";
 
 interface TestAsset<TimeVal> {
   data: ConstructorParameters<typeof RAPTORData<TimeVal, number, number>>;
   tests: {
     params: Parameters<RAPTOR<TimeVal, number, number>["run"]>;
     validate: (
-      res: ReturnType<BaseRAPTOR<TimeVal, number, number>["getBestJourneys"]>,
-      raptorInstance: InstanceType<typeof BaseRAPTOR<TimeVal, number, number>>,
+      res: ReturnType<IRAPTOR<TimeVal, number, number>["getBestJourneys"]>,
+      raptorInstance: InstanceType<typeof BaseRAPTOR<TimeVal, number, number>> & IRAPTOR<TimeVal, number, number>,
     ) => void;
   }[];
 }
