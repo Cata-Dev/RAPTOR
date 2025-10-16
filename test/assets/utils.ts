@@ -1,5 +1,5 @@
 import { Journey, Time } from "../../src";
-import BaseRAPTOR from "../../src/base";
+import BaseRAPTOR, { IRAPTOR } from "../../src/base";
 import { McTestAsset, TestAsset } from "./asset";
 
 const validateWithoutCriteria =
@@ -26,7 +26,7 @@ const validateWithoutCriteria =
     });
     validate(
       journeysWithoutCriteria as Parameters<TestAsset<TimeVal>["tests"][number]["validate"]>[0],
-      rap as unknown as BaseRAPTOR<TimeVal, number, number>,
+      rap as unknown as BaseRAPTOR<TimeVal, number, number> & IRAPTOR<TimeVal, number, number>,
     );
 
     return [journeysWithoutCriteria, res.map((journeys, k) => journeys.filter((j) => j !== journeysWithoutCriteria[k][0]))];

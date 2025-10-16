@@ -14,7 +14,7 @@ import {
   TimeScal,
   Timestamp,
 } from "../src";
-import BaseRAPTOR from "../src/base";
+import BaseRAPTOR, { IRAPTOR } from "../src/base";
 import { TestDataset } from "./assets/asset";
 import BTOneLine from "./assets/BTOneLine";
 import BTTwoLines from "./assets/BTTwoLines";
@@ -22,9 +22,9 @@ import FDOneLine from "./assets/FDOneLine";
 import FDTwoLines from "./assets/FDTwoLines";
 import oneLine from "./assets/oneLine";
 import oneLineOTA from "./assets/oneLineOTA";
+import specialCases from "./assets/specialCases";
 import twoLines from "./assets/twoLines";
 import twoLinesOTA from "./assets/twoLinesOTA";
-import specialCases from "./assets/specialCases";
 
 describe("McSharedRAPTOR", () => {
   // Same as RAPTOR
@@ -46,7 +46,7 @@ describe("McSharedRAPTOR", () => {
             for (const journeys of res) expect(journeys.length || 1).toBe(1);
             test.validate(
               res.map((journeys) => (journeys.length ? [journeys[0]] : [])),
-              sharedRaptorInstance as BaseRAPTOR<Timestamp | InternalTimeInt, number, number>,
+              sharedRaptorInstance as BaseRAPTOR<Timestamp | InternalTimeInt, number, number> & IRAPTOR<Timestamp | InternalTimeInt, number, number>,
             );
           }
         });

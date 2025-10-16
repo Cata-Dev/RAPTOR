@@ -24,10 +24,6 @@ describe("Base RAPTOR should not be usable", () => {
     expect(() => {
       (raptorInstance as unknown as { traverseFootPaths: BaseRAPTOR<never>["traverseFootPaths"] }).traverseFootPaths(0, new Stop(0, [], []));
     }).toThrow("Not implemented");
-
-    expect(() => {
-      (raptorInstance as unknown as { getBestJourneys: BaseRAPTOR<never>["getBestJourneys"] }).getBestJourneys(0);
-    }).toThrow("Not implemented");
   });
 });
 

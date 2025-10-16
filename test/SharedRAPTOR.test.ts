@@ -1,6 +1,6 @@
 import { describe } from "@jest/globals";
 import { InternalTimeInt, SharedRAPTOR, SharedRAPTORData, SharedTime, sharedTimeIntOrderLow, sharedTimeScal, TimeScal, Timestamp } from "../src";
-import BaseRAPTOR from "../src/base";
+import BaseRAPTOR, { IRAPTOR } from "../src/base";
 import { TestDataset } from "./assets/asset";
 import oneLine from "./assets/oneLine";
 import oneLineOTA from "./assets/oneLineOTA";
@@ -23,7 +23,10 @@ describe("SharedRAPTOR", () => {
           for (const test of asset.tests) {
             sharedRaptorInstance.run(...test.params);
             const res = test.params[1] !== null ? sharedRaptorInstance.getBestJourneys(test.params[1]) : [];
-            test.validate(res, sharedRaptorInstance as BaseRAPTOR<Timestamp | InternalTimeInt, number, number>);
+            test.validate(
+              res,
+              sharedRaptorInstance as BaseRAPTOR<Timestamp | InternalTimeInt, number, number> & IRAPTOR<Timestamp | InternalTimeInt, number, number>,
+            );
           }
         });
       }
